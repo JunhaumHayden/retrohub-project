@@ -1,0 +1,68 @@
+services:
+  # --- Database Service ---
+  postgres:
+    image: postgres:15-alpine
+    container_name: retrohub-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+      POSTGRES_DB: ${DB_NAME:-retrohub}
+    ports:
+      - "5432:5432"
+    volumes:
+      # To map the local directory ./resources/database/postgre to the container's data directory for persistence
+      - ./resources/database/postgre:/var/lib/postgresql/data
+      # Automatically run schema.sql and data.sql on first startup
+      - ./resources/database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./resources/database/02_data.sql:/docker-entrypoint-initdb.d/02_data.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-retrohub}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - retrohub-network
+
+  # --- Web Application Service ---
+  retrohub-web:
+    build: .
+    container_name: retrohub-app
+    ports:
+      - "5000:5000"
+    environment:
+      # Connection string for SQLAlchemy
+      # Format: postgresql+psycopg2://user:password@host:port/dbname
+      PG_DATABASE_URL: postgresql+psycopg2://${DB_USER:-admin}:${DB_PASSWORD:-admin}@postgres:5432/${DB_NAME:-retrohub}
+      FLASK_APP: run.py
+      FLASK_DEBUG: 1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Mount source code for live reloading during development
+      - ./app:/app/app
+      - ./run.py:/app/run.py
+    networks:
+      - retrohub-network
+
+  # --- Database Management Interface ---
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: retrohub-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@retrohub.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      # A imagem dpage/pgadmin4 procura por este arquivo para auto-configurar servidores
+    ports:
+      - "5050:80"
+    volumes:
+      - ./resources/database/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_started
+    networks:
+      - retrohub-network
+
+networks:
+  retrohub-network:
+    driver: bridge

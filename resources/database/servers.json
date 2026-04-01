@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "RetroHub PostgreSQL",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "retrohub",
+      "Username": "admin",
+      "SSLMode": "prefer"
+    }
+  }
+}
