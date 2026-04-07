@@ -1,4 +1,4 @@
-# RetroHub Web
+# <img src="https://private-user-images.githubusercontent.com/79289647/572707004-61463e20-5ba3-4ce4-a632-8905ed1357b0.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NzUwNzEwMTcsIm5iZiI6MTc3NTA3MDcxNywicGF0aCI6Ii83OTI4OTY0Ny81NzI3MDcwMDQtNjE0NjNlMjAtNWJhMy00Y2U0LWE2MzItODkwNWVkMTM1N2IwLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA0MDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwNDAxVDE5MTE1N1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWE0MzdhYWJhNDNmZjNlYTNkODcxNGUwMzIzNDRmZDI3YTg0N2ZmNGRiMDg0MWFkMjdjNGMyZTYxYjFkZGQ0ZWUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.tp2uX7n2Ek8pbIP25oX2SqEkc2EWQNLXiiGjM3TR9qA" width="48" height="48" alt="RetroHub Logo" align="center" /> RetroHub Web
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-green.svg)
@@ -15,6 +15,7 @@
 This is a digital platform for retro gaming enthusiasts, not only modernizing and optimizing sales, rental, and inventory processes, but also enriching the customer experience through advanced personalization, community engagement, and intelligent tools. We will implement predictive intelligence for inventory management, recommendation systems, and an ecosystem that values the passion for classic games, maintaining nostalgic authenticity through elements such as personalized rental receipts and improving operational efficiency for the team.
 
 ### 🚀 Key Features
+
 - **Clean Architecture**: Separation of concerns using Models, Routes, and Templates.
 - **Robust Data Modeling**: SQLAlchemy 2.0 ORM with comprehensive constraints and relationships.
 - **Database Factory**: Modular support for PostgreSQL (Production/Docker) and SQLite (Local testing).
@@ -22,6 +23,7 @@ This is a digital platform for retro gaming enthusiasts, not only modernizing an
 - **Dockerized**: Fully automated setup with Docker Compose.
 
 ### 📂 Project Structure
+
 ```plaintext
 /project-retrohub
 ├── app
@@ -38,8 +40,11 @@ This is a digital platform for retro gaming enthusiasts, not only modernizing an
 ├── run.py                   # Entry Point
 └── requirements.txt
 ```
+
 ---
+
 ### Class Diagram
+
 ```mermaid
 classDiagram
 class Usuario {
@@ -141,20 +146,26 @@ Venda --|> Transacao
 The easiest way to run the project is using Docker Compose. This will set up the Database, Web App, and PGAdmin automatically.
 
 #### 1. Prerequisites
+
 - Docker & Docker Compose installed.
 
 #### 2. Run the Application
+
 Execute the following command in the project root:
+
 ```bash
     docker-compose up --build
 ```
+
 *This will build the Python image, start PostgreSQL, initialize the database schema, and launch the web server.*
 
 #### 3. Access the Services
+
 - **Web App:** [http://localhost:5000](http://localhost:5000)
 - **PGAdmin (Database UI):** [http://localhost:5050](http://localhost:5050)
   - **Email:** `admin@retrohub.com`
   - **Password:** `admin`
+
 ---
 
 ### 🔧 How to Run (Manual / Local Development)
@@ -162,17 +173,21 @@ Execute the following command in the project root:
 If you prefer to run the Python application locally (outside Docker) for debugging:
 
 #### 1. Prerequisites
+
 - Python 3.11+ (Conda recommended)
 - PostgreSQL Database running (you can use `docker-compose up -d postgres`)
 
 #### 2. Configure Environment
+
 Create a `.env` file in the root directory:
+
 ```bash
     # Connection String: dialect+driver://username:password@host:port/database
     export PG_DATABASE_URL="postgresql+psycopg2://admin:admin@localhost:5432/retrohub"
 ```
 
 #### 3. Install Dependencies
+
 ```bash
     conda create -n tc_generator_web python=3.11
     conda activate tc_generator_web
@@ -180,6 +195,7 @@ Create a `.env` file in the root directory:
 ```
 
 #### 4. Run the Application
+
 ```bash
   python run.py
 ```
@@ -191,6 +207,7 @@ Create a `.env` file in the root directory:
 Esta é uma plataforma digital para entusiastas de jogos retrô, não apenas modernizando e otimizando processos de venda, aluguel e estoque, mas também enriquecendo a experiência do cliente através de personalização avançada, engajamento comunitário e ferramentas inteligentes. Implementaremos inteligência preditiva para gestão de inventário, sistemas de recomendação e um ecossistema que valoriza a paixão por jogos clássicos, mantendo a autenticidade nostálgica através de elementos como comprovantes de aluguel personalizados e aprimorando a eficiência operacional para a equipe.
 
 ### 🚀 Principais Funcionalidades
+
 - **Arquitetura Limpa**: Separação de responsabilidades usando Models, Routes e Templates.
 - **Modelagem Robusta**: ORM SQLAlchemy 2.0 com restrições e relacionamentos completos.
 - **Interface Moderna**: Aplicativo responsivo.
@@ -201,16 +218,21 @@ Esta é uma plataforma digital para entusiastas de jogos retrô, não apenas mod
 A maneira mais fácil de rodar o projeto é usando Docker Compose. Isso configurará o Banco de Dados, a Aplicação Web e o PGAdmin automaticamente.
 
 #### 1. Pré-requisitos
+
 - Docker & Docker Compose instalados.
 
 #### 2. Executar a Aplicação
+
 Execute o seguinte comando na raiz do projeto:
+
 ```bash
 docker-compose up --build
 ```
+
 *Isso construirá a imagem Python, iniciará o PostgreSQL, inicializará o esquema do banco de dados e lançará o servidor web.*
 
 #### 3. Acessar os Serviços
+
 - **App Web:** [http://localhost:5000](http://localhost:5000)
 - **PGAdmin (Interface do Banco):** [http://localhost:5050](http://localhost:5050)
   - **Email:** `admin@retrohub.com`
@@ -223,17 +245,21 @@ docker-compose up --build
 Se preferir rodar a aplicação Python localmente (fora do Docker) para depuração:
 
 #### 1. Pré-requisitos
+
 - Python 3.11+ (Recomendado usar Conda)
 - Banco de dados PostgreSQL rodando (você pode usar `docker-compose up -d postgres`)
 
 #### 2. Configurar Ambiente
+
 Crie um arquivo `.env` na raiz ou exporte as variáveis:
+
 ```bash
     # String de Conexão: dialect+driver://username:password@host:port/database
     export PG_DATABASE_URL="postgresql+psycopg2://admin:admin@localhost:5432/retrohub"
 ```
 
 #### 3. Instalar Dependências
+
 ```bash
     conda create -n tc_generator_web python=3.11
     conda activate tc_generator_web
@@ -241,6 +267,29 @@ Crie um arquivo `.env` na raiz ou exporte as variáveis:
 ```
 
 #### 4. Executar a Aplicação
+
 ```bash
     python run.py
 ```
+
+---
+
+### logo
+
+#### retro
+
+48x48
+<img width="48" height="48" alt="Image" src="https://github.com/user-attachments/assets/3d87777e-f09c-4bdc-9d7b-fec05688124a" />
+
+100x100
+<img width="100" height="100" alt="Image" src="https://github.com/user-attachments/assets/61463e20-5ba3-4ce4-a632-8905ed1357b0" />
+
+#### Neon
+
+48x48:
+
+<img width="48" height="48" alt="Image" src="https://github.com/user-attachments/assets/6009e417-0221-4307-89c2-aedba5be7d12" />
+
+100x100:
+
+<img width="100" height="100" alt="Image" src="https://github.com/user-attachments/assets/fc997634-c093-4689-a609-a37ad21de6ed" />
