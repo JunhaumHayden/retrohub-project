@@ -1,4 +1,4 @@
-# <img src="https://private-user-images.githubusercontent.com/79289647/572707004-61463e20-5ba3-4ce4-a632-8905ed1357b0.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NzUwNzEwMTcsIm5iZiI6MTc3NTA3MDcxNywicGF0aCI6Ii83OTI4OTY0Ny81NzI3MDcwMDQtNjE0NjNlMjAtNWJhMy00Y2U0LWE2MzItODkwNWVkMTM1N2IwLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA0MDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwNDAxVDE5MTE1N1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWE0MzdhYWJhNDNmZjNlYTNkODcxNGUwMzIzNDRmZDI3YTg0N2ZmNGRiMDg0MWFkMjdjNGMyZTYxYjFkZGQ0ZWUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.tp2uX7n2Ek8pbIP25oX2SqEkc2EWQNLXiiGjM3TR9qA" width="48" height="48" alt="RetroHub Logo" align="center" /> RetroHub Web
+# <img src="https://private-user-images.githubusercontent.com/79289647/572707004-61463e20-5ba3-4ce4-a632-8905ed1357b0.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NzUwNzEwMTcsIm5ibfI6MTc3NTA3MDcxNywicGF0aCI6Ii83OTI4OTY0Ny81NzI3MDcwMDQtNjE0NjNlMjAtNWJhMy00Y2U0LWE2MzItODkwNWVkMTM1N2IwLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA0MDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwNDAxVDE5MTE1N1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWE0MzdhYWJhNDNmZjNlYTNkODcxNGUwMzIzNDRmZDI3YTg0N2ZmNGRiMDg0MWFkMjdjNGMyZTYxYjFkZGQ0ZWUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.tp2uX7n2Ek8pbIP25oX2SqEkc2EWQNLXiiGjM3TR9qA" width="48" height="48" alt="RetroHub Logo" align="center" /> RetroHub Web
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-green.svg)
@@ -21,6 +21,23 @@ This is a digital platform for retro gaming enthusiasts, not only modernizing an
 - **Database Factory**: Modular support for PostgreSQL (Production/Docker) and SQLite (Local testing).
 - **Modern UI**: Responsive Dashboard built with Bootstrap 5.
 - **Dockerized**: Fully automated setup with Docker Compose.
+
+### 🔌 API Endpoints (Current Progress)
+- **Clients (CRUD)**
+  - `POST /api/clientes/cadastro`: Registers a new client (Validates 18+ age, unique CPF/Email, password hashing).
+  - `GET /api/clientes/`: Lists all clients.
+  - `GET /api/clientes/<id>`: Retrieves a specific client.
+  - `PUT /api/clientes/<id>`: Updates client data.
+  - `DELETE /api/clientes/<id>`: Removes a client.
+
+### 🧪 Running Tests
+
+The project includes an automated test suite utilizing an in-memory SQLite database to avoid interfering with the main PostgreSQL data.
+
+To run all test cases (Database Connections, ORM Models, and API Routes), execute:
+```bash
+python -m unittest discover tests -v
+```
 
 ### 📂 Project Structure
 
@@ -212,6 +229,23 @@ Esta é uma plataforma digital para entusiastas de jogos retrô, não apenas mod
 - **Modelagem Robusta**: ORM SQLAlchemy 2.0 com restrições e relacionamentos completos.
 - **Interface Moderna**: Aplicativo responsivo.
 - **Dockerizado**: Configuração automatizada com Docker Compose.
+
+### 🔌 Endpoints da API (Progresso Atual)
+- **Clientes (CRUD)**
+  - `POST /api/clientes/cadastro`: Registra um novo cliente (Valida 18+, CPF/Email único e hash de senha).
+  - `GET /api/clientes/`: Lista todos os clientes.
+  - `GET /api/clientes/<id>`: Retorna os dados de um cliente específico.
+  - `PUT /api/clientes/<id>`: Atualiza os dados cadastrais.
+  - `DELETE /api/clientes/<id>`: Remove um cliente do sistema.
+
+### 🧪 Como Rodar os Testes
+
+O projeto conta com uma robusta bateria de testes automatizados. Eles rodam isolados utilizando um banco SQLite em memória `sqlite:///:memory:`, o que garante velocidade extrema e zero poluição no seu banco de dados principal de desenvolvimento.
+
+Para executar todos os testes (Conexão com Banco, Mapeamento de Modelos ORM e Rotas de API), abra o terminal na raiz do projeto e rode:
+```bash
+python -m unittest discover tests -v
+```
 
 ### 🛠️ Como Executar (Rápido com Docker)
 
