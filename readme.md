@@ -48,6 +48,13 @@ This is a digital platform for retro gaming enthusiasts, not only modernizing an
   - `PUT /api/catalogo/itens/<id>`: Updates game details (Prevents title+platform duplication).
   - `DELETE /api/catalogo/itens/<id>`: Logically deletes (inactivates) a game from the catalog.
 
+- **Inventory (Stock)**
+  - `POST /api/estoque/fisico`: Registers a physical cartridge (Barcode, Condition).
+  - `POST /api/estoque/digital`: Registers a digital key (Activation key, Expiration date).
+  - `GET /api/estoque/jogo/<id_jogo>`: Lists all physical and digital copies available for a specific game in the catalog.
+  - `PUT /api/estoque/fisico/<id>`: Updates the condition of a physical copy.
+  - `DELETE /api/estoque/<id>`: Logically deletes an item from the inventory.
+
 ### 🧪 Running Tests
 
 The project includes an automated test suite utilizing an in-memory SQLite database to avoid interfering with the main PostgreSQL data.
@@ -284,6 +291,13 @@ Esta é uma plataforma digital para entusiastas de jogos retrô, não apenas mod
   - `GET /api/catalogo/itens/<id>`: Retorna detalhes de um jogo específico.
   - `PUT /api/catalogo/itens/<id>`: Atualiza dados do jogo (Impede duplicidade de Título + Plataforma).
   - `DELETE /api/catalogo/itens/<id>`: Inativa o jogo do catálogo (Soft Delete).
+
+- **Estoque (Inventário)**
+  - `POST /api/estoque/fisico`: Cadastra um cartucho físico (Requer Código de Barras e Estado de Conservação).
+  - `POST /api/estoque/digital`: Cadastra uma chave digital (Requer Chave de Ativação).
+  - `GET /api/estoque/jogo/<id_jogo>`: Lista todos os exemplares (físicos e digitais) atrelados a um jogo do catálogo.
+  - `PUT /api/estoque/fisico/<id>`: Atualiza o estado de conservação de uma mídia física.
+  - `DELETE /api/estoque/<id>`: Remove/inativa um exemplar específico do estoque.
 
 ### 🧪 Como Rodar os Testes
 
