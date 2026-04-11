@@ -3,6 +3,7 @@ from app.database.factories.database_manager import DatabaseManager
 from app.routes.clientes_routes import clientes_bp
 from app.routes.funcionarios_routes import funcionarios_bp
 from app.routes.catalogo_routes import catalogo_bp
+from app.routes.estoque_routes import estoque_bp
 
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -18,6 +19,7 @@ def create_app(test_config=None):
     app.register_blueprint(clientes_bp)
     app.register_blueprint(funcionarios_bp)
     app.register_blueprint(catalogo_bp)
+    app.register_blueprint(estoque_bp)
 
     @app.route('/')
     def index():
