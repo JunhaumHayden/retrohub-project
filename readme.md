@@ -32,6 +32,13 @@ This is a digital platform for retro gaming enthusiasts, not only modernizing an
   - `PUT /api/clientes/<id>`: Updates client data.
   - `DELETE /api/clientes/<id>`: Removes a client.
 
+- **Employees (CRUD)**
+  - `POST /api/funcionarios/`: Registers a new employee (Requires Admin via `X-Admin-Id` header, validates 18+ age, unique CPF/Email/Registration).
+  - `GET /api/funcionarios/`: Lists all employees.
+  - `GET /api/funcionarios/<id>`: Retrieves a specific employee.
+  - `PUT /api/funcionarios/<id>`: Updates employee data (Requires Admin, prevents last admin downgrade).
+  - `DELETE /api/funcionarios/<id>`: Inactivates/removes an employee (Requires Admin, prevents self-deletion).
+
 ### 🧪 Running Tests
 
 The project includes an automated test suite utilizing an in-memory SQLite database to avoid interfering with the main PostgreSQL data.
@@ -239,6 +246,13 @@ Esta é uma plataforma digital para entusiastas de jogos retrô, não apenas mod
   - `GET /api/clientes/<id>`: Retorna os dados de um cliente específico.
   - `PUT /api/clientes/<id>`: Atualiza os dados cadastrais.
   - `DELETE /api/clientes/<id>`: Remove um cliente do sistema.
+
+- **Funcionários (CRUD)**
+  - `POST /api/funcionarios/`: Registra um novo funcionário (Requer Admin via header `X-Admin-Id`, valida 18+, CPF/Email/Matrícula).
+  - `GET /api/funcionarios/`: Lista todos os funcionários.
+  - `GET /api/funcionarios/<id>`: Retorna os dados de um funcionário específico.
+  - `PUT /api/funcionarios/<id>`: Atualiza os dados cadastrais (Requer Admin, impede rebaixamento do último admin).
+  - `DELETE /api/funcionarios/<id>`: Remove/inativa um funcionário (Requer Admin, impede auto-exclusão).
 
 ### 🧪 Como Rodar os Testes
 

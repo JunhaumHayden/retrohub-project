@@ -1,6 +1,7 @@
 from flask import Flask
 from app.database.factories.database_manager import DatabaseManager
 from app.routes.clientes_routes import clientes_bp
+from app.routes.funcionarios_routes import funcionarios_bp
 
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -14,6 +15,7 @@ def create_app(test_config=None):
 
     # Registra os blueprints das rotas
     app.register_blueprint(clientes_bp)
+    app.register_blueprint(funcionarios_bp)
 
     @app.route('/')
     def index():
