@@ -10,7 +10,7 @@ class Transacao(Base):
     __tablename__ = 'transacao'
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    data: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
+    data_transacao: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
     valor_total: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
     status: Mapped[Optional[str]] = mapped_column(String, default='PENDENTE')
     id_cliente: Mapped[Optional[int]] = mapped_column(ForeignKey('cliente.id_usuario'))

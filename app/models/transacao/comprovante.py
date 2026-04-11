@@ -11,5 +11,5 @@ class Comprovante(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     id_transacao: Mapped[Optional[int]] = mapped_column(ForeignKey('transacao.id', ondelete='CASCADE'))
     tipo: Mapped[Optional[str]] = mapped_column(String)
-    data_emissao: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
+    data_envio: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
     codigo_rastreio: Mapped[Optional[str]] = mapped_column(String(255))

@@ -1,4 +1,6 @@
-# <img src="https://private-user-images.githubusercontent.com/79289647/572707004-61463e20-5ba3-4ce4-a632-8905ed1357b0.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NzUwNzEwMTcsIm5ibfI6MTc3NTA3MDcxNywicGF0aCI6Ii83OTI4OTY0Ny81NzI3MDcwMDQtNjE0NjNlMjAtNWJhMy00Y2U0LWE2MzItODkwNWVkMTM1N2IwLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA0MDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwNDAxVDE5MTE1N1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWE0MzdhYWJhNDNmZjNlYTNkODcxNGUwMzIzNDRmZDI3YTg0N2ZmNGRiMDg0MWFkMjdjNGMyZTYxYjFkZGQ0ZWUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.tp2uX7n2Ek8pbIP25oX2SqEkc2EWQNLXiiGjM3TR9qA" width="48" height="48" alt="RetroHub Logo" align="center" /> RetroHub Web
+# <img src="https://github.com/user-attachments/assets/61463e20-5ba3-4ce4-a632-8905ed1357b0" width="48" height="48" alt="RetroHub Logo" align="center" /> RetroHub Web
+<img width="100" height="100" alt="Image" src="https://github.com/user-attachments/assets/fc997634-c093-4689-a609-a37ad21de6ed" />
+
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-green.svg)

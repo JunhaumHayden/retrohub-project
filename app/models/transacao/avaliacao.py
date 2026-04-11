@@ -1,5 +1,6 @@
+from datetime import date
 from typing import Optional
-from sqlalchemy import Integer, Text, ForeignKey
+from sqlalchemy import Integer, Text, Date, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.database_config import Base
@@ -11,3 +12,4 @@ class Avaliacao(Base):
     id_transacao: Mapped[Optional[int]] = mapped_column(ForeignKey('transacao.id', ondelete='CASCADE'))
     nota: Mapped[Optional[int]] = mapped_column(Integer)
     comentario: Mapped[Optional[str]] = mapped_column(Text)
+    data_avaliacao: Mapped[Optional[date]] = mapped_column(Date)
