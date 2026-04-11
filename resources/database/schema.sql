@@ -3,23 +3,19 @@
 -- ================================
 DROP TABLE IF EXISTS transacao, item_transacao, comprovante, multa, aluguel, venda, reserva, avaliacao, midia_fisica, midia_digital, jogo, cliente, funcionario, usuario CASCADE;
 
-DROP TYPE IF EXISTS status_transacao_enum, status_venda_enum, status_aluguel_enum, status_reserva_enum, status_pagamento_enum, tipo_comprovante_enum CASCADE;
+DROP TYPE IF EXISTS status_transacao_enum, status_venda_enum, status_aluguel_enum, status_reserva_enum, status_pagamento_enum, tipo_comprovante_enum, tipo_cliente_enum CASCADE;
 
 -- ================================
 -- ENUMS
 -- ================================
 
 CREATE TYPE status_transacao_enum AS ENUM ('PENDENTE', 'CONCLUIDA', 'CANCELADA');
-
 CREATE TYPE status_venda_enum AS ENUM ('FINALIZADA', 'ESTORNADA');
-
 CREATE TYPE status_aluguel_enum AS ENUM ('ATIVO', 'FINALIZADO', 'ATRASADO');
-
 CREATE TYPE status_reserva_enum AS ENUM ('ATIVA', 'CANCELADA', 'EXPIRADA', 'CONVERTIDA');
-
 CREATE TYPE status_pagamento_enum AS ENUM ('PENDENTE', 'PAGO');
-
 CREATE TYPE tipo_comprovante_enum AS ENUM ('VENDA', 'ALUGUEL');
+CREATE TYPE tipo_cliente_enum AS ENUM ('regular', 'premium');
 
 -- ================================
 -- USUARIO
@@ -41,13 +37,17 @@ CREATE TABLE usuario (
 
 CREATE TABLE cliente (
     id_usuario INTEGER PRIMARY KEY REFERENCES usuario(id) ON DELETE CASCADE,
-    dados_pagamento VARCHAR(255)
+    dados_pagamento VARCHAR(255),
+    data_cadastro DATE DEFAULT CURRENT_DATE,
+    tipo_cliente tipo_cliente_enum DEFAULT 'regular'
 );
 
 CREATE TABLE funcionario (
     id_usuario INTEGER PRIMARY KEY REFERENCES usuario(id) ON DELETE CASCADE,
     matricula VARCHAR(50) NOT NULL UNIQUE,
-    cargo VARCHAR(100)
+    cargo VARCHAR(100),
+    setor VARCHAR(100),
+    data_admissao DATE
 );
 
 -- ================================
@@ -89,7 +89,7 @@ CREATE TABLE midia_digital (
 
 CREATE TABLE transacao (
     id SERIAL PRIMARY KEY,
-    data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_transacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     valor_total NUMERIC(10,2) CHECK (valor_total >= 0),
     status status_transacao_enum DEFAULT 'PENDENTE',
     id_cliente INTEGER REFERENCES cliente(id_usuario),
@@ -102,7 +102,8 @@ CREATE TABLE transacao (
 
 CREATE TABLE venda (
     id_transacao INTEGER PRIMARY KEY REFERENCES transacao(id) ON DELETE CASCADE,
-    status status_venda_enum DEFAULT 'FINALIZADA'
+    status status_venda_enum DEFAULT 'FINALIZADA',
+    data_confirmacao DATE
 );
 
 CREATE TABLE aluguel (
@@ -110,7 +111,9 @@ CREATE TABLE aluguel (
     periodo INTEGER CHECK (periodo > 0),
     data_devolucao DATE,
     status status_aluguel_enum DEFAULT 'ATIVO',
-    id_reserva INTEGER
+    id_reserva INTEGER,
+    data_inicio DATE,
+    data_prevista_devolucao DATE
 );
 
 -- ================================
@@ -133,7 +136,7 @@ CREATE TABLE comprovante (
     id SERIAL PRIMARY KEY,
     id_transacao INTEGER REFERENCES transacao(id) ON DELETE CASCADE,
     tipo tipo_comprovante_enum,
-    data_emissao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     codigo_rastreio VARCHAR(255)
 );
 
@@ -146,7 +149,8 @@ CREATE TABLE multa (
     id_aluguel INTEGER REFERENCES aluguel(id_transacao),
     dias_atraso INTEGER CHECK (dias_atraso > 0),
     valor NUMERIC(10,2) CHECK (valor >= 0),
-    status status_pagamento_enum DEFAULT 'PENDENTE'
+    status status_pagamento_enum DEFAULT 'PENDENTE',
+    data_calculo DATE
 );
 
 -- ================================
@@ -157,7 +161,8 @@ CREATE TABLE avaliacao (
     id SERIAL PRIMARY KEY,
     id_transacao INTEGER REFERENCES transacao(id) ON DELETE CASCADE,
     nota INTEGER CHECK (nota BETWEEN 1 AND 5),
-    comentario TEXT
+    comentario TEXT,
+    data_avaliacao DATE
 );
 
 -- ================================
@@ -169,7 +174,8 @@ CREATE TABLE reserva (
     id_cliente INTEGER REFERENCES cliente(id_usuario),
     id_jogo INTEGER REFERENCES jogo(id),
     data_reserva DATE DEFAULT CURRENT_DATE,
-    status status_reserva_enum DEFAULT 'ATIVA'
+    status status_reserva_enum DEFAULT 'ATIVA',
+    data_expiracao DATE
 );
 
 -- Relacionamento opcional

@@ -1,5 +1,6 @@
+from datetime import date
 from typing import Optional
-from sqlalchemy import String, ForeignKey
+from sqlalchemy import String, Date, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.transacao.transacao import Transacao
@@ -9,6 +10,7 @@ class Venda(Transacao):
 
     id_transacao: Mapped[int] = mapped_column(ForeignKey('transacao.id', ondelete='CASCADE'), primary_key=True)
     status: Mapped[Optional[str]] = mapped_column(String, default='FINALIZADA')
+    data_confirmacao: Mapped[Optional[date]] = mapped_column(Date)
 
     __mapper_args__ = {
         "polymorphic_identity": "venda",

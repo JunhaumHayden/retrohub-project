@@ -13,6 +13,8 @@ class Aluguel(Transacao):
     data_devolucao: Mapped[Optional[date]] = mapped_column(Date)
     status: Mapped[Optional[str]] = mapped_column(String, default='ATIVO')
     id_reserva: Mapped[Optional[int]] = mapped_column(ForeignKey('reserva.id'))
+    data_inicio: Mapped[Optional[date]] = mapped_column(Date)
+    data_prevista_devolucao: Mapped[Optional[date]] = mapped_column(Date)
 
     __mapper_args__ = {
         "polymorphic_identity": "aluguel",

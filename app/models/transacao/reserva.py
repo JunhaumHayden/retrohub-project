@@ -13,3 +13,4 @@ class Reserva(Base):
     id_jogo: Mapped[Optional[int]] = mapped_column(ForeignKey('jogo.id'))
     data_reserva: Mapped[Optional[date]] = mapped_column(Date, default=date.today)
     status: Mapped[Optional[str]] = mapped_column(String, default='ATIVA')
+    data_expiracao: Mapped[Optional[date]] = mapped_column(Date)
