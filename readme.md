@@ -1,5 +1,7 @@
 # <img src="https://github.com/user-attachments/assets/61463e20-5ba3-4ce4-a632-8905ed1357b0" width="48" height="48" alt="RetroHub Logo" align="center" /> RetroHub Web
-<img width="100" height="100" alt="Image" src="https://github.com/user-attachments/assets/fc997634-c093-4689-a609-a37ad21de6ed" />
+---
+<img width="100" height="100" alt="Image"  align="center" src="https://github.com/user-attachments/assets/fc997634-c093-4689-a609-a37ad21de6ed" />
+---
 
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
@@ -19,7 +21,7 @@ This is a digital platform for retro gaming enthusiasts, not only modernizing an
 ### 🚀 Key Features
 
 - **Clean Architecture**: Separation of concerns using Models, Routes, and Templates.
-- **Robust Data Modeling**: SQLAlchemy 2.0 ORM with comprehensive constraints and relationships.
+- **Robust Data Modeling**: SQLAlchemy 2.0 ORM with comprehensive constraints and relationships. Uses the **Catalog vs Inventory** pattern (Title vs Item).
 - **Database Factory**: Modular support for PostgreSQL (Production/Docker) and SQLite (Local testing).
 - **Modern UI**: Responsive Dashboard built with Bootstrap 5.
 - **Dockerized**: Fully automated setup with Docker Compose.
@@ -33,11 +35,18 @@ This is a digital platform for retro gaming enthusiasts, not only modernizing an
   - `DELETE /api/clientes/<id>`: Removes a client.
 
 - **Employees (CRUD)**
-  - `POST /api/funcionarios/`: Registers a new employee (Requires Admin via `X-Admin-Id` header, validates 18+ age, unique CPF/Email/Registration).
+  - `POST /api/funcionarios/`: Registers a new employee (Requires Admin via `X-Admin-Id` header).
   - `GET /api/funcionarios/`: Lists all employees.
   - `GET /api/funcionarios/<id>`: Retrieves a specific employee.
-  - `PUT /api/funcionarios/<id>`: Updates employee data (Requires Admin, prevents last admin downgrade).
-  - `DELETE /api/funcionarios/<id>`: Inactivates/removes an employee (Requires Admin, prevents self-deletion).
+  - `PUT /api/funcionarios/<id>`: Updates employee data.
+  - `DELETE /api/funcionarios/<id>`: Inactivates/removes an employee.
+
+- **Catalog (CRUD)**
+  - `POST /api/catalogo/itens/`: Registers a new game in the storefront catalog (Requires Employee via `X-Funcionario-Id`).
+  - `GET /api/catalogo/itens/`: Lists all available games in the catalog.
+  - `GET /api/catalogo/itens/<id>`: Retrieves a specific game.
+  - `PUT /api/catalogo/itens/<id>`: Updates game details (Prevents title+platform duplication).
+  - `DELETE /api/catalogo/itens/<id>`: Logically deletes (inactivates) a game from the catalog.
 
 ### 🧪 Running Tests
 
@@ -84,26 +93,32 @@ class Usuario {
 }
 class Cliente {
     +char dados_pagamento
+    +char tipo_cliente
 }
 class Funcionario {
     +char matricula
     +char cargo
+    +char setor
+    +date data_admissao
 }
 class Jogo {
-    +char id
+    +int id
     +char titulo
     +char descricao
     +char plataforma
-    +boolean status
+    +boolean ativo
     +char genero
     +char classificacao
     +double valor_venda
     +double valor_diaria_aluguel
 }
+class Exemplar {
+    +int id
+    +char tipo_midia
+}
 class MidiaFisica {
     +char codido_barras
     +char estado_conservacao
-    +int quantidade
 }
 class MidiaDigital {
     +char chave_ativacao
@@ -111,57 +126,66 @@ class MidiaDigital {
 }
 class Venda {
     +char status
+    +date data_confirmacao
 }
 class Comprovante {
-    +char id
+    +int id
     +char tipo
-    +date data_emissao
+    +date data_envio
     +char codigo_rastreio
 }
 class Multa {
-    +char id
+    +int id
     +int dias_atraso
     +double valor
-    +boolean status_pagamnento
+    +char status
+    +date data_calculo
 }
 class Aluguel {
     +int periodo
+    +date data_inicio
     +date data_devolucao
+    +date data_prevista_devolucao
     +char status
 }
 class ItemTransacao {
     +int quantidade
-    +int valor_unitario
+    +double valor_unitario
 }
 class Avaliacao {
-    +char id
-    +char nota
+    +int id
+    +int nota
     +char comentario
+    +date data_avaliacao
 }
 class Reserva {
-    +char id
-    +int data_reserva
-    +int status
+    +int id
+    +date data_reserva
+    +date data_expiracao
+    +char status
 }
 class Transacao {
-    +char id
-    +date data
+    +int id
+    +date data_transacao
     +double valor_total
 }
 Transacao "0..*" -- "1" Cliente
 Transacao "0..*" -- "0..1" Funcionario
 Transacao "1" -- "1..*" ItemTransacao
-ItemTransacao "0..*" -- "1" Jogo
+Exemplar "0..*" -- "1" Jogo
+ItemTransacao "0..*" -- "1" Exemplar
 Comprovante "1" -- "1" Transacao
-Multa "0..1" -- "1" Aluguel
+Multa "0..*" -- "1" Aluguel
 Aluguel "1" -- "0..1" Reserva
 Avaliacao "0..1" -- "1" Transacao
 Cliente --|> Usuario
 Funcionario --|> Usuario
-MidiaFisica --|> Jogo
-MidiaDigital --|> Jogo
+MidiaFisica --|> Exemplar
+MidiaDigital --|> Exemplar
 Venda --|> Transacao
- Aluguel--|> Transacao
+Aluguel --|> Transacao
+Reserva "0..*" -- "1" Jogo
+Reserva "0..*" -- "1" Cliente
 %%Generated by Astah mermaid plugin
 ```
 
@@ -235,7 +259,7 @@ Esta é uma plataforma digital para entusiastas de jogos retrô, não apenas mod
 ### 🚀 Principais Funcionalidades
 
 - **Arquitetura Limpa**: Separação de responsabilidades usando Models, Routes e Templates.
-- **Modelagem Robusta**: ORM SQLAlchemy 2.0 com restrições e relacionamentos completos.
+- **Modelagem Robusta**: ORM SQLAlchemy 2.0 com restrições e relacionamentos completos. Refatorado para arquitetura **Catálogo vs Inventário** (Item/Exemplar).
 - **Interface Moderna**: Aplicativo responsivo.
 - **Dockerizado**: Configuração automatizada com Docker Compose.
 
@@ -253,6 +277,13 @@ Esta é uma plataforma digital para entusiastas de jogos retrô, não apenas mod
   - `GET /api/funcionarios/<id>`: Retorna os dados de um funcionário específico.
   - `PUT /api/funcionarios/<id>`: Atualiza os dados cadastrais (Requer Admin, impede rebaixamento do último admin).
   - `DELETE /api/funcionarios/<id>`: Remove/inativa um funcionário (Requer Admin, impede auto-exclusão).
+
+- **Catálogo de Jogos (CRUD)**
+  - `POST /api/catalogo/itens/`: Adiciona um novo jogo à vitrine (Requer Funcionario via header `X-Funcionario-Id`).
+  - `GET /api/catalogo/itens/`: Lista todo o catálogo de jogos.
+  - `GET /api/catalogo/itens/<id>`: Retorna detalhes de um jogo específico.
+  - `PUT /api/catalogo/itens/<id>`: Atualiza dados do jogo (Impede duplicidade de Título + Plataforma).
+  - `DELETE /api/catalogo/itens/<id>`: Inativa o jogo do catálogo (Soft Delete).
 
 ### 🧪 Como Rodar os Testes
 

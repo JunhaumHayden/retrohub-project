@@ -10,6 +10,5 @@ class ItemTransacao(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     id_transacao: Mapped[Optional[int]] = mapped_column(ForeignKey('transacao.id', ondelete='CASCADE'))
-    id_jogo: Mapped[Optional[int]] = mapped_column(ForeignKey('jogo.id'))
-    quantidade: Mapped[Optional[int]] = mapped_column(Integer)
+    id_exemplar: Mapped[Optional[int]] = mapped_column(ForeignKey('exemplar.id'))
     valor_unitario: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
