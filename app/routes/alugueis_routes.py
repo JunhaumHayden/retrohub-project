@@ -6,7 +6,7 @@ from sqlalchemy import or_, and_, not_
 
 from app.models import Cliente, Jogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao, Funcionario
 from app.database.factories.database_manager import DatabaseManager
-from app.services.aluguel_service import registrar_retirada
+from app.services.aluguel_service import registrar_retirada, registrar_devolucao
 
 alugueis_bp = Blueprint('alugueis', __name__, url_prefix='/api/alugueis')
 
@@ -97,7 +97,13 @@ def serialize_aluguel(aluguel: Aluguel):
         "data_prevista_devolucao": aluguel.data_prevista_devolucao.isoformat() if aluguel.data_prevista_devolucao else None,
         "data_fim_prevista": aluguel.data_prevista_devolucao.isoformat() if aluguel.data_prevista_devolucao else None,
         "data_devolucao": aluguel.data_devolucao.isoformat() if aluguel.data_devolucao else None,
+        "data_devolucao_real": aluguel.data_devolucao_real.isoformat() if getattr(aluguel, "data_devolucao_real", None) else None,
         "data_retirada": aluguel.data_retirada.isoformat() if getattr(aluguel, 'data_retirada', None) else None,
+        "condicao_item": getattr(aluguel, "condicao_item", None),
+        "id_funcionario_recebimento": getattr(aluguel, "id_funcionario_recebimento", None),
+        "multa_aplicada": float(aluguel.multa_aplicada) if getattr(aluguel, "multa_aplicada", None) is not None else None,
+        "multa_paga": aluguel.multa_paga if getattr(aluguel, "multa_paga", None) is not None else None,
+        "dias_atraso": getattr(aluguel, "dias_atraso", None),
         "status_aluguel": getattr(aluguel, 'status', 'ATIVO')
     }
 
@@ -217,6 +223,33 @@ def registrar_retirada_aluguel(id):
 
         session.commit()
         logger.info(f"Retirada registrada para aluguel ID {id}.")
+        return jsonify(serialize_aluguel(aluguel)), 200
+
+    except Exception as e:
+        session.rollback()
+        return jsonify({"erro": str(e)}), 500
+    finally:
+        session.close()
+
+@alugueis_bp.route('/<int:id>/devolucao', methods=['PATCH'])
+def registrar_devolucao_aluguel(id):
+    session = DatabaseManager.get_session()
+    try:
+        funcionario, erro = get_funcionario_from_header(session)
+        if erro:
+            return jsonify({"erro": erro}), 403
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"erro": "Dados não fornecidos."}), 400
+        condicao = data.get("condicao_item")
+        aluguel, err = registrar_devolucao(session, id, condicao, funcionario.id_usuario)
+        if err:
+            code = 404 if "não encontrado" in err.lower() else 400
+            return jsonify({"erro": err}), code
+
+        session.commit()
+        logger.info(f"Devolução registrada para aluguel ID {id}.")
         return jsonify(serialize_aluguel(aluguel)), 200
 
     except Exception as e:
