@@ -267,17 +267,17 @@ INSERT INTO reserva (id_cliente, id_jogo, status, data_reserva, data_expiracao) 
 -- =========================================
 
 INSERT INTO transacao (valor_total, status, id_cliente, id_funcionario, data_transacao) VALUES
-(150.00, 'CONCLUIDA', 16, 1, CURRENT_DATE - INTERVAL '15 days'),
-(17.80, 'CONCLUIDA', 15, 7, CURRENT_DATE - INTERVAL '5 days'),
-(29.70, 'CONCLUIDA', 1, 4, CURRENT_DATE - INTERVAL '10 days'),
-(299.90, 'CONCLUIDA', 3, 2, CURRENT_DATE - INTERVAL '20 days'),
-(26.70, 'CONCLUIDA', 8, 8, CURRENT_DATE - INTERVAL '3 days'),
-(19.80, 'CONCLUIDA', 9, 9, CURRENT_DATE - INTERVAL '2 days'),
-(99.90, 'CONCLUIDA', 24, 1, CURRENT_DATE - INTERVAL '8 days'),
-(13.80, 'CONCLUIDA', 2, 2, CURRENT_DATE - INTERVAL '1 day'),
-(6.90, 'CONCLUIDA', 11, 7, CURRENT_DATE),
-(25.80, 'CONCLUIDA', 25, 8, CURRENT_DATE - INTERVAL '4 days'),
-(79.90, 'CONCLUIDA', 21, 9, CURRENT_DATE - INTERVAL '12 days'),
+(150.00, 'CONCLUIDA', 16, 1, CURRENT_DATE - INTERVAL '15 days'), -- venda
+(17.80, 'CONCLUIDA', 15, 7, CURRENT_DATE - INTERVAL '5 days'), --aluguel
+(29.70, 'CONCLUIDA', 1, 4, CURRENT_DATE - INTERVAL '10 days'), --aluguel
+(299.90, 'CONCLUIDA', 3, 2, CURRENT_DATE - INTERVAL '20 days'), --venda
+(26.70, 'CONCLUIDA', 8, 8, CURRENT_DATE - INTERVAL '3 days'), --aluguel
+(19.80, 'CONCLUIDA', 9, 9, CURRENT_DATE - INTERVAL '2 days'), --aluguel
+(99.90, 'CONCLUIDA', 24, 1, CURRENT_DATE - INTERVAL '8 days'), --venda
+(13.80, 'CONCLUIDA', 2, 2, CURRENT_DATE - INTERVAL '1 day'), --aluguel
+(6.90, 'CONCLUIDA', 11, 7, CURRENT_DATE), --aluguel
+(25.80, 'CONCLUIDA', 25, 8, CURRENT_DATE - INTERVAL '4 days'), --aluguel
+(79.90, 'CONCLUIDA', 21, 9, CURRENT_DATE - INTERVAL '12 days'), --venda
 (13.80, 'CONCLUIDA', 22, 10, CURRENT_DATE - INTERVAL '6 days'),
 (7.90, 'CONCLUIDA', 17, 7, CURRENT_DATE - INTERVAL '1 day'),
 (8.00, 'CONCLUIDA', 26, 7, CURRENT_DATE - INTERVAL '10 days'),
@@ -286,7 +286,7 @@ INSERT INTO transacao (valor_total, status, id_cliente, id_funcionario, data_tra
 (4140.00, 'CONCLUIDA', 29, 10, CURRENT_DATE - INTERVAL '600 days'),
 (15.90, 'CONCLUIDA', 30, 7, CURRENT_DATE - INTERVAL '3 days'),
 (15.90, 'CONCLUIDA', 31, 8, CURRENT_DATE - INTERVAL '2 days'),
-(79.90, 'CONCLUIDA', 32, 9, CURRENT_DATE - INTERVAL '5 days');
+(79.90, 'CONCLUIDA', 32, 9, CURRENT_DATE - INTERVAL '5 days'); --venda
 
 
 -- =========================================
