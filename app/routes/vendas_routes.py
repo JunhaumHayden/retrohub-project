@@ -29,13 +29,28 @@ def get_cliente_from_header(session):
 
 def find_exemplar_disponivel_venda(session, id_jogo, tipo_midia):
     if tipo_midia == 'DIGITAL':
-        # Digital é infinito, basta ter um cadastrado
-        return session.query(Exemplar).join(MidiaDigital).filter(Exemplar.id_jogo == id_jogo).first()
+        alugueis_ocupando_ids = session.query(Aluguel.id_transacao).filter(
+            Aluguel.status.in_(['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO'])
+        )
+        vendas_ids = session.query(Venda.id_transacao).filter(Venda.status == 'FINALIZADA')
+        exemplares_indisponiveis = session.query(ItemTransacao.id_exemplar).filter(
+            or_(
+                ItemTransacao.id_transacao.in_(alugueis_ocupando_ids),
+                ItemTransacao.id_transacao.in_(vendas_ids)
+            )
+        )
+        return session.query(Exemplar).join(MidiaDigital).filter(
+            Exemplar.id_jogo == id_jogo,
+            or_(Exemplar.situacao.is_(None), Exemplar.situacao == 'DISPONIVEL'),
+            not_(Exemplar.id.in_(exemplares_indisponiveis))
+        ).first()
         
     elif tipo_midia == 'FISICA':
         # Físico: precisa buscar um exemplar que não esteja em um Aluguel ATIVO/ATRASADO nem em uma Venda FINALIZADA
         
-        alugueis_ativos_ids = session.query(Aluguel.id_transacao).filter(Aluguel.status.in_(['ATIVO', 'ATRASADO']))
+        alugueis_ativos_ids = session.query(Aluguel.id_transacao).filter(
+            Aluguel.status.in_(['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO'])
+        )
         vendas_ids = session.query(Venda.id_transacao).filter(Venda.status == 'FINALIZADA')
 
         exemplares_indisponiveis = session.query(ItemTransacao.id_exemplar).filter(
@@ -47,6 +62,7 @@ def find_exemplar_disponivel_venda(session, id_jogo, tipo_midia):
 
         exemplar = session.query(Exemplar).join(MidiaFisica).filter(
             Exemplar.id_jogo == id_jogo,
+            or_(Exemplar.situacao.is_(None), Exemplar.situacao == 'DISPONIVEL'),
             not_(Exemplar.id.in_(exemplares_indisponiveis))
         ).first()
         

@@ -1,6 +1,6 @@
 from typing import Optional
 from decimal import Decimal
-from sqlalchemy import String, Text, Boolean, Numeric, UniqueConstraint
+from sqlalchemy import String, Text, Boolean, Numeric, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.database_config import Base
@@ -17,6 +17,7 @@ class Jogo(Base):
     classificacao: Mapped[Optional[str]] = mapped_column(String(50))
     valor_venda: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
     valor_diaria_aluguel: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
+    estoque_disponivel: Mapped[Optional[int]] = mapped_column(Integer)
 
     __table_args__ = (
         UniqueConstraint('titulo', 'plataforma', name='uq_jogo_titulo_plataforma'),
