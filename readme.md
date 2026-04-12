@@ -1,8 +1,9 @@
 # <img src="https://github.com/user-attachments/assets/61463e20-5ba3-4ce4-a632-8905ed1357b0" width="48" height="48" alt="RetroHub Logo" align="center" /> RetroHub Web
 ---
-<img width="100" height="100" alt="Image"  align="center" src="https://github.com/user-attachments/assets/fc997634-c093-4689-a609-a37ad21de6ed" />
----
 
+<img width="100" height="100" alt="Image"  align="center" src="https://github.com/user-attachments/assets/fc997634-c093-4689-a609-a37ad21de6ed" />
+
+---
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-green.svg)
@@ -54,6 +55,19 @@ This is a digital platform for retro gaming enthusiasts, not only modernizing an
   - `GET /api/estoque/jogo/<id_jogo>`: Lists all physical and digital copies available for a specific game in the catalog.
   - `PUT /api/estoque/fisico/<id>`: Updates the condition of a physical copy.
   - `DELETE /api/estoque/<id>`: Logically deletes an item from the inventory.
+
+- **Rentals (Aluguéis)** (Requires Employee via `X-Cliente-Id`).
+  - `POST /api/alugueis/solicitar`: Requests a new rental (Validates stock, customer debts, and calculates total price).
+  - `GET /api/alugueis/meus-alugueis`: Lists all rentals for the authenticated client.
+  - `GET /api/alugueis/<id>`: Retrieves details of a specific rental.
+  - `PATCH /api/alugueis/<id>/cancelar`: Cancels a rental before its start date.
+  - `PATCH /api/alugueis/<id>/renovar`: Renews an active rental for extra days.
+
+- **Sales (Vendas)** (Requires Employee via `X-Cliente-Id`).
+  - `POST /api/vendas/solicitar`: Requests a new game purchase (Automatically drops stock).
+  - `GET /api/vendas/minhas-vendas`: Lists all purchases for the authenticated client.
+  - `GET /api/vendas/<id>`: Retrieves details of a specific purchase.
+  - `PATCH /api/vendas/<id>/cancelar`: Cancels/refunds a purchase.
 
 ### 🧪 Running Tests
 
@@ -269,35 +283,6 @@ Esta é uma plataforma digital para entusiastas de jogos retrô, não apenas mod
 - **Modelagem Robusta**: ORM SQLAlchemy 2.0 com restrições e relacionamentos completos. Refatorado para arquitetura **Catálogo vs Inventário** (Item/Exemplar).
 - **Interface Moderna**: Aplicativo responsivo.
 - **Dockerizado**: Configuração automatizada com Docker Compose.
-
-### 🔌 Endpoints da API (Progresso Atual)
-- **Clientes (CRUD)**
-  - `POST /api/clientes/cadastro`: Registra um novo cliente (Valida 18+, CPF/Email único e hash de senha).
-  - `GET /api/clientes/`: Lista todos os clientes.
-  - `GET /api/clientes/<id>`: Retorna os dados de um cliente específico.
-  - `PUT /api/clientes/<id>`: Atualiza os dados cadastrais.
-  - `DELETE /api/clientes/<id>`: Remove um cliente do sistema.
-
-- **Funcionários (CRUD)**
-  - `POST /api/funcionarios/`: Registra um novo funcionário (Requer Admin via header `X-Admin-Id`, valida 18+, CPF/Email/Matrícula).
-  - `GET /api/funcionarios/`: Lista todos os funcionários.
-  - `GET /api/funcionarios/<id>`: Retorna os dados de um funcionário específico.
-  - `PUT /api/funcionarios/<id>`: Atualiza os dados cadastrais (Requer Admin, impede rebaixamento do último admin).
-  - `DELETE /api/funcionarios/<id>`: Remove/inativa um funcionário (Requer Admin, impede auto-exclusão).
-
-- **Catálogo de Jogos (CRUD)**
-  - `POST /api/catalogo/itens/`: Adiciona um novo jogo à vitrine (Requer Funcionario via header `X-Funcionario-Id`).
-  - `GET /api/catalogo/itens/`: Lista todo o catálogo de jogos.
-  - `GET /api/catalogo/itens/<id>`: Retorna detalhes de um jogo específico.
-  - `PUT /api/catalogo/itens/<id>`: Atualiza dados do jogo (Impede duplicidade de Título + Plataforma).
-  - `DELETE /api/catalogo/itens/<id>`: Inativa o jogo do catálogo (Soft Delete).
-
-- **Estoque (Inventário)**
-  - `POST /api/estoque/fisico`: Cadastra um cartucho físico (Requer Código de Barras e Estado de Conservação).
-  - `POST /api/estoque/digital`: Cadastra uma chave digital (Requer Chave de Ativação).
-  - `GET /api/estoque/jogo/<id_jogo>`: Lista todos os exemplares (físicos e digitais) atrelados a um jogo do catálogo.
-  - `PUT /api/estoque/fisico/<id>`: Atualiza o estado de conservação de uma mídia física.
-  - `DELETE /api/estoque/<id>`: Remove/inativa um exemplar específico do estoque.
 
 ### 🧪 Como Rodar os Testes
 
