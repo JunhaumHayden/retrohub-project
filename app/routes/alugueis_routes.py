@@ -4,8 +4,9 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_, and_, not_
 
-from app.models import Cliente, Jogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao
+from app.models import Cliente, Jogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao, Funcionario
 from app.database.factories.database_manager import DatabaseManager
+from app.services.aluguel_service import registrar_retirada
 
 alugueis_bp = Blueprint('alugueis', __name__, url_prefix='/api/alugueis')
 
@@ -27,15 +28,45 @@ def get_cliente_from_header(session):
     
     return cliente, None
 
+def get_funcionario_from_header(session):
+    func_id = request.headers.get('X-Funcionario-Id')
+    if not func_id:
+        func_id = request.headers.get('X-Admin-Id')
+    if not func_id:
+        return None, "Header X-Funcionario-Id (ou X-Admin-Id) é obrigatório para esta operação."
+    try:
+        func_id = int(func_id)
+    except ValueError:
+        return None, "O ID do funcionário deve ser um número inteiro."
+    funcionario = session.query(Funcionario).get(func_id)
+    if not funcionario:
+        return None, "Funcionário não encontrado."
+    return funcionario, None
+
 def find_exemplar_disponivel(session, id_jogo, tipo_midia):
     if tipo_midia == 'DIGITAL':
-        # Digital é infinito, basta ter um cadastrado
-        return session.query(Exemplar).join(MidiaDigital).filter(Exemplar.id_jogo == id_jogo).first()
+        alugueis_ocupando_ids = session.query(Aluguel.id_transacao).filter(
+            Aluguel.status.in_(['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO'])
+        )
+        vendas_ids = session.query(Venda.id_transacao).filter(Venda.status == 'FINALIZADA')
+        exemplares_indisponiveis = session.query(ItemTransacao.id_exemplar).filter(
+            or_(
+                ItemTransacao.id_transacao.in_(alugueis_ocupando_ids),
+                ItemTransacao.id_transacao.in_(vendas_ids)
+            )
+        )
+        return session.query(Exemplar).join(MidiaDigital).filter(
+            Exemplar.id_jogo == id_jogo,
+            or_(Exemplar.situacao.is_(None), Exemplar.situacao == 'DISPONIVEL'),
+            not_(Exemplar.id.in_(exemplares_indisponiveis))
+        ).first()
         
     elif tipo_midia == 'FISICA':
         # Físico: precisa buscar um exemplar que não esteja em um Aluguel ATIVO/ATRASADO nem em uma Venda FINALIZADA
         
-        alugueis_ativos_ids = session.query(Aluguel.id_transacao).filter(Aluguel.status.in_(['ATIVO', 'ATRASADO']))
+        alugueis_ativos_ids = session.query(Aluguel.id_transacao).filter(
+            Aluguel.status.in_(['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO'])
+        )
         vendas_ids = session.query(Venda.id_transacao).filter(Venda.status == 'FINALIZADA')
 
         exemplares_indisponiveis = session.query(ItemTransacao.id_exemplar).filter(
@@ -47,6 +78,7 @@ def find_exemplar_disponivel(session, id_jogo, tipo_midia):
 
         exemplar = session.query(Exemplar).join(MidiaFisica).filter(
             Exemplar.id_jogo == id_jogo,
+            or_(Exemplar.situacao.is_(None), Exemplar.situacao == 'DISPONIVEL'),
             not_(Exemplar.id.in_(exemplares_indisponiveis))
         ).first()
         
@@ -63,8 +95,10 @@ def serialize_aluguel(aluguel: Aluguel):
         "periodo_dias": aluguel.periodo,
         "data_inicio": aluguel.data_inicio.isoformat() if aluguel.data_inicio else None,
         "data_prevista_devolucao": aluguel.data_prevista_devolucao.isoformat() if aluguel.data_prevista_devolucao else None,
+        "data_fim_prevista": aluguel.data_prevista_devolucao.isoformat() if aluguel.data_prevista_devolucao else None,
         "data_devolucao": aluguel.data_devolucao.isoformat() if aluguel.data_devolucao else None,
-        "status_aluguel": getattr(aluguel, 'status', 'ATIVO') 
+        "data_retirada": aluguel.data_retirada.isoformat() if getattr(aluguel, 'data_retirada', None) else None,
+        "status_aluguel": getattr(aluguel, 'status', 'ATIVO')
     }
 
 
@@ -118,17 +152,17 @@ def solicitar_aluguel():
         novo_aluguel = Aluguel(
             id_cliente=cliente.id_usuario,
             valor_total=valor_total,
-            status='PENDENTE', # Transação fica PENDENTE de pagamento/aprovação
+            status='SOLICITADO',
             data_transacao=datetime.utcnow(),
             periodo=dias_alugados,
             data_inicio=data_inicio,
             data_prevista_devolucao=data_prevista_devolucao
         )
-        
-        novo_aluguel.status = 'ATIVO'
 
         session.add(novo_aluguel)
         session.flush() # Gerar o ID do aluguel
+
+        exemplar_disponivel.situacao = 'RESERVADO'
 
         # Criar Item da Transação vinculando ao Exemplar
         item = ItemTransacao(
@@ -168,6 +202,29 @@ def meus_alugueis():
     finally:
         session.close()
 
+@alugueis_bp.route('/<int:id>/retirada', methods=['PATCH'])
+def registrar_retirada_aluguel(id):
+    session = DatabaseManager.get_session()
+    try:
+        _, erro = get_funcionario_from_header(session)
+        if erro:
+            return jsonify({"erro": erro}), 403
+
+        aluguel, err = registrar_retirada(session, id)
+        if err:
+            code = 404 if "não encontrado" in err.lower() else 400
+            return jsonify({"erro": err}), code
+
+        session.commit()
+        logger.info(f"Retirada registrada para aluguel ID {id}.")
+        return jsonify(serialize_aluguel(aluguel)), 200
+
+    except Exception as e:
+        session.rollback()
+        return jsonify({"erro": str(e)}), 500
+    finally:
+        session.close()
+
 @alugueis_bp.route('/<int:id>', methods=['GET'])
 def detalhes_aluguel(id):
     session = DatabaseManager.get_session()
@@ -200,8 +257,13 @@ def cancelar_aluguel(id):
         if aluguel.data_inicio <= date.today():
             return jsonify({"erro": "Não é possível cancelar um aluguel que já iniciou ou está no dia de retirada."}), 400
 
-        aluguel.status = 'FINALIZADO' # Status do Aluguel
-        
+        aluguel.status = 'FINALIZADO'
+        item_tr = session.query(ItemTransacao).filter_by(id_transacao=aluguel.id).first()
+        if item_tr:
+            ex = session.query(Exemplar).get(item_tr.id_exemplar)
+            if ex and ex.situacao == 'RESERVADO':
+                ex.situacao = 'DISPONIVEL'
+
         session.commit()
         logger.info(f"Cliente ID {cliente.id_usuario} CANCELOU o aluguel ID {aluguel.id}.")
         return jsonify({"mensagem": "Aluguel cancelado com sucesso."}), 200

@@ -1,6 +1,6 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
-from sqlalchemy import String, Integer, Date, ForeignKey
+from sqlalchemy import String, Integer, Date, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.transacao.transacao import Transacao
@@ -15,6 +15,7 @@ class Aluguel(Transacao):
     id_reserva: Mapped[Optional[int]] = mapped_column(ForeignKey('reserva.id'))
     data_inicio: Mapped[Optional[date]] = mapped_column(Date)
     data_prevista_devolucao: Mapped[Optional[date]] = mapped_column(Date)
+    data_retirada: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     __mapper_args__ = {
         "polymorphic_identity": "aluguel",
