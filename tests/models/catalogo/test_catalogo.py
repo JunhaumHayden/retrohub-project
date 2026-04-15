@@ -2,7 +2,7 @@ import unittest
 from app import create_app
 from app.database.database_config import Base
 from app.database.factories.database_manager import DatabaseManager
-from app.models import Funcionario, Usuario, Jogo
+from app.models import Funcionario, Usuario, Catalogo, Exemplar, MidiaFisica, MidiaDigital
 
 
 class TestCatalogo(unittest.TestCase):
@@ -34,7 +34,7 @@ class TestCatalogo(unittest.TestCase):
         }
 
         # Criar instância do Jogo
-        catalogo = Jogo(
+        catalogo = Catalogo(
             id=1,
             titulo=data.get('titulo'),
             plataforma=data.get('plataforma'),
@@ -56,6 +56,27 @@ class TestCatalogo(unittest.TestCase):
         self.assertIn("id", repr_str)
         self.assertIn("titulo", repr_str)
 
+    def test_2_relacionamento_catalogo_exemplares(self):
+        """Testa a agregação e navegação entre Catalogo e seus Exemplares (físico e digital)."""
+        catalogo = Catalogo(
+            titulo="The Legend of Zelda",
+            plataforma="Nintendo Switch"
+        )
+
+        # Instanciando as subclasses, pois a base Exemplar bloqueia instanciação direta
+        exemplar_fisico = MidiaFisica(tipo_midia="FISICA")
+        exemplar_digital = MidiaDigital(tipo_midia="DIGITAL")
+
+        # Adicionando os objetos à lista do catálogo
+        catalogo.exemplares.append(exemplar_fisico)
+        catalogo.exemplares.append(exemplar_digital)
+
+        # Verifica se o catálogo "conhece" os exemplares
+        self.assertEqual(len(catalogo.exemplares), 2)
+
+        # Verifica se a navegação inversa (back_populates) ocorreu automaticamente em memória
+        self.assertEqual(exemplar_fisico.catalogo, catalogo)
+        self.assertEqual(exemplar_digital.catalogo.titulo, "The Legend of Zelda")
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

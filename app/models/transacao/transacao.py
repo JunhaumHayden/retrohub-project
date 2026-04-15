@@ -18,6 +18,20 @@ class Transacao(Base):
     status: Mapped[Optional[str]] = mapped_column(String, default=StatusTransacao.PENDENTE.value)
     id_cliente: Mapped[Optional[int]] = mapped_column(ForeignKey('cliente.id_usuario'))
     id_funcionario: Mapped[Optional[int]] = mapped_column(ForeignKey('funcionario.id_usuario'))
+    tipo: Mapped[str] = mapped_column(String(50), nullable=False)
 
-    def __repr__(self) -> str:
-        return f"<Transacao(id={self.id}, valor_total={self.valor_total})>"
+    __mapper_args__ = {
+        "polymorphic_on": tipo,
+        "polymorphic_identity": "transacao",
+    }
+
+    def __init__(self, *args, **kwargs):
+        if type(self) is Transacao:
+            raise TypeError("Erro: Operação Não permitida")
+        super().__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}(id={self.id})>"
+
+    def __str__(self):
+        return f"{self.__class__.__name__} id={self.id}, status={self.status}, valor={self.valor_total}, cliente={self.id_cliente}, funcionario={self.id_funcionario}"

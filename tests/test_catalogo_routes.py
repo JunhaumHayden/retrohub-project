@@ -2,7 +2,7 @@ import unittest
 from app import create_app
 from app.database.database_config import Base
 from app.database.factories.database_manager import DatabaseManager
-from app.models import Funcionario, Usuario, Jogo
+from app.models import Funcionario, Usuario, Catalogo
 
 class TestCatalogoRoutes(unittest.TestCase):
     @classmethod
@@ -33,7 +33,7 @@ class TestCatalogoRoutes(unittest.TestCase):
         """Antes de cada teste, limpa as tabelas e recria o cenário base."""
         session = DatabaseManager.get_session()
         
-        session.query(Jogo).delete()
+        session.query(Catalogo).delete()
         session.query(Funcionario).delete()
         session.query(Usuario).delete()
         session.commit()
@@ -120,13 +120,13 @@ class TestCatalogoRoutes(unittest.TestCase):
 
     def test_5_atualizar_duplicidade(self):
         """Testa a prevenção de duplicidade na atualização."""
-        # Cria Jogo 1
+        # Cria Catalogo 1
         self.client.post('/api/catalogo/itens/', json={"titulo": "Doom", "plataforma": "PC"}, headers=self.headers)
-        # Cria Jogo 2
+        # Cria Catalogo 2
         res2 = self.client.post('/api/catalogo/itens/', json={"titulo": "Quake", "plataforma": "PC"}, headers=self.headers)
         jogo2_id = res2.get_json()['id']
         
-        # Tenta atualizar o Jogo 2 para ter o mesmo titulo e plataforma do Jogo 1
+        # Tenta atualizar o Catalogo 2 para ter o mesmo titulo e plataforma do Catalogo 1
         res_update = self.client.put(f'/api/catalogo/itens/{jogo2_id}', json={"titulo": "Doom"}, headers=self.headers)
         self.assertEqual(res_update.status_code, 400)
         self.assertIn("Já existe outro jogo", res_update.get_json()['erro'])

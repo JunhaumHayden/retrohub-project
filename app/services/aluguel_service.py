@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 
 from sqlalchemy.orm import Session
 
-from app.models import Aluguel, Exemplar, ItemTransacao, Jogo, Multa
+from app.models import Aluguel, Exemplar, ItemTransacao, Catalogo, Multa
 
 _CONDICOES_DEVOLUCAO = frozenset({"bom", "danificado", "extraviado"})
 
@@ -39,7 +39,7 @@ def registrar_retirada(session: Session, aluguel_id: int) -> Tuple[Optional[Alug
     exemplar = session.query(Exemplar).get(item.id_exemplar)
     if exemplar:
         exemplar.situacao = "ALUGADO"
-        jogo = session.query(Jogo).get(exemplar.id_jogo)
+        jogo = session.query(Catalogo).get(exemplar.id_jogo)
         if jogo is not None and jogo.estoque_disponivel is not None and jogo.estoque_disponivel > 0:
             jogo.estoque_disponivel -= 1
 
@@ -78,7 +78,7 @@ def registrar_devolucao(
         return None, "Item da transação não encontrado."
 
     exemplar = session.query(Exemplar).get(item.id_exemplar)
-    jogo = session.query(Jogo).get(exemplar.id_jogo) if exemplar else None
+    jogo = session.query(Catalogo).get(exemplar.id_jogo) if exemplar else None
     valor_diaria = jogo.valor_diaria_aluguel if jogo and jogo.valor_diaria_aluguel else Decimal("0")
     valor_total = aluguel.valor_total if aluguel.valor_total is not None else Decimal("0")
 

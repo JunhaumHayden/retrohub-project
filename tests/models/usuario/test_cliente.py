@@ -43,6 +43,7 @@ class TestCliente(unittest.TestCase):
         repr_str = repr(cliente)
         self.assertIn("Cliente", repr_str)
         self.assertIn("João Silva", repr_str)
+        self.assertIn("cliente", repr_str)
 
 
 if __name__ == '__main__':

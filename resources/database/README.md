@@ -8,7 +8,7 @@ A inicialização do banco de dados é controlada por dois arquivos principais, 
 
 -   `schema.sql`: Este é o arquivo principal que define a **estrutura** do banco de dados. Ele contém todos os comandos `CREATE TABLE`, `CREATE TYPE` (para ENUMs), e define as chaves primárias, chaves estrangeiras e restrições. A execução deste script garante que todas as tabelas e seus relacionamentos sejam criados corretamente. (Atualizado para a arquitetura Catálogo/Exemplar).
 
--   `02_data.sql`: Após a criação da estrutura pelo `schema.sql`, este arquivo é executado para **popular** o banco de dados com dados iniciais de demonstração. Ele contém uma série de comandos `INSERT` que adicionam exemplos de usuários, clientes, funcionários, catálogo de jogos, exemplares e transações.
+-   `data.sql`: Após a criação da estrutura pelo `schema.sql`, este arquivo é executado para **popular** o banco de dados com dados iniciais de demonstração. Ele contém uma série de comandos `INSERT` que adicionam exemplos de usuários, clientes, funcionários, catálogo de jogos, exemplares e transações.
 
 -   `servers.json`: Este arquivo é usado para pré-configurar a conexão com o banco de dados no **PGAdmin**. Ele informa ao PGAdmin como se conectar ao contêiner do PostgreSQL da RetroHub, para que o servidor já apareça listado na interface, simplificando o acesso durante o desenvolvimento.
 
@@ -155,7 +155,7 @@ erDiagram
 Ao executar `docker-compose up` pela primeira vez:
 1.  O Docker cria um volume para o PostgreSQL no diretório `resources/database/postgre`.
 2.  Como o volume está vazio, o contêiner do PostgreSQL executa os scripts do diretório `/docker-entrypoint-initdb.d`.
-3.  Nosso `docker-compose.yml` mapeia o `schema.sql` e o `02_data.sql` para este diretório.
-4.  O PostgreSQL executa `schema.sql` primeiro (criando as tabelas e os ENUMs) e depois `02_data.sql` (populando-as com os Easter Eggs e catálogos).
+3.  Nosso `docker-compose.yml` mapeia o `schema.sql` e o `data.sql` para este diretório.
+4.  O PostgreSQL executa `schema.sql` primeiro (criando as tabelas e os ENUMs) e depois `data.sql` (populando-as com os Easter Eggs e catálogos).
 5.  Em todas as inicializações futuras, como o volume de dados não estará mais vazio, esses scripts de inicialização são ignorados, preservando os dados existentes.
 

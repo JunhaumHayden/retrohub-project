@@ -1,3 +1,3 @@
-from app.models.catalogo.jogo import Jogo
+from app.models.catalogo.catalogo import Catalogo
 
-__all__ = ["Jogo"]
+__all__ = ["Catalogo"]

@@ -15,6 +15,20 @@ class Usuario(Base):
     senha: Mapped[str] = mapped_column(String(255), nullable=False)
     data_cadastro: Mapped[Optional[date]] = mapped_column(Date, default=date.today)
     data_nascimento: Mapped[Optional[date]] = mapped_column(Date)
+    tipo: Mapped[str] = mapped_column(String(50), nullable=False)
 
-    def __repr__(self) -> str:
-        return f"<Usuario(id={self.id}, nome='{self.nome}')>"
+    __mapper_args__ = {
+        "polymorphic_on": tipo,
+        "polymorphic_identity": "transacao",
+    }
+
+    def __init__(self, *args, **kwargs):
+        if type(self) is Usuario:
+            raise TypeError("Erro: Operação Não permitida")
+        super().__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}(id={self.id}, nome='{self.nome},tipo='{self.tipo}')>"
+
+    def __str__(self):
+        return f"{self.__class__.__name__} id={self.id}, nome={self.nome}, cpf={self.cpf}, email={self.email}, data_cadastro={self.data_cadastro}, data_nascimento={self.data_nascimento}"
