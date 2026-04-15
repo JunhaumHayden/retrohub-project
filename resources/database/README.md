@@ -150,6 +150,185 @@ erDiagram
     }
 ```
 
+
+### Atualizaçao do modelo
+```mermaid
+erDiagram
+    USUARIO {
+        SERIAL id PK
+        VARCHAR nome
+        VARCHAR cpf UK
+        VARCHAR email UK
+        VARCHAR senha
+        DATE data_cadastro
+        DATE data_nascimento
+        VARCHAR tipo "cliente|funcionario"
+    }
+
+    FUNCIONARIO {
+        INTEGER id_usuario PK,FK
+        VARCHAR matricula UK
+        VARCHAR cargo
+        VARCHAR setor
+        DATE data_admissao
+    }
+
+    CLIENTE {
+        INTEGER id_usuario PK,FK
+        VARCHAR dados_pagamento
+        VARCHAR tipo_cliente "REGULAR|PREMIUM"
+    }
+
+    CATALOGO {
+        SERIAL id PK
+        VARCHAR titulo
+        TEXT descricao
+        VARCHAR plataforma
+        BOOLEAN ativo
+        VARCHAR genero
+        VARCHAR classificacao
+        NUMERIC valor_venda
+        NUMERIC valor_diaria_aluguel
+    }
+
+    EXEMPLAR {
+        SERIAL id PK
+        INTEGER id_catalogo FK
+        VARCHAR tipo_midia "FISICA|DIGITAL"
+    }
+
+    MIDIA_FISICA {
+        INTEGER id_exemplar PK,FK
+        VARCHAR codigo_barras UK
+        VARCHAR estado_conservacao
+    }
+
+    MIDIA_DIGITAL {
+        INTEGER id_exemplar PK,FK
+        VARCHAR chave_ativacao UK
+        DATE data_expiracao
+    }
+
+    RESERVA {
+        SERIAL id PK
+        INTEGER id_cliente FK
+        INTEGER id_catalogo FK
+        DATE data_reserva
+        VARCHAR status
+        DATE data_expiracao
+    }
+
+    TRANSACAO {
+        SERIAL id PK
+        TIMESTAMP data_transacao
+        NUMERIC valor_total
+        VARCHAR pagamento
+        VARCHAR status
+        INTEGER id_cliente FK
+        INTEGER id_funcionario FK
+        VARCHAR tipo "VENDA|ALUGUEL"
+    }
+
+    VENDA {
+        INTEGER id_transacao PK,FK
+        VARCHAR status
+        DATE data_confirmacao
+    }
+
+    ALUGUEL {
+        INTEGER id_transacao PK,FK
+        INTEGER periodo
+        DATE data_devolucao
+        VARCHAR status
+        INTEGER id_reserva FK
+        DATE data_inicio
+        DATE data_prevista_devolucao
+    }
+
+    ITEM_TRANSACAO {
+        SERIAL id PK
+        INTEGER id_transacao FK
+        INTEGER id_exemplar FK
+        NUMERIC valor_unitario
+    }
+
+    COMPROVANTE {
+        SERIAL id PK
+        INTEGER id_transacao FK
+        VARCHAR tipo
+        TIMESTAMP data_envio
+        VARCHAR tipo_comprovante
+        VARCHAR codigo_rastreio
+    }
+
+    MULTA {
+        SERIAL id PK
+        INTEGER id_aluguel FK
+        INTEGER dias_atraso
+        NUMERIC valor
+        VARCHAR status
+        DATE data_calculo
+    }
+
+    AVALIACAO {
+        SERIAL id PK
+        INTEGER id_transacao FK
+        INTEGER nota "1 a 5"
+        TEXT comentario
+        DATE data_avaliacao
+    }
+
+    %% Relacionamentos
+    USUARIO ||--o| FUNCIONARIO : "id_usuario"
+    USUARIO ||--o| CLIENTE : "id_usuario"
+
+    CATALOGO ||--o{ EXEMPLAR : "id_catalogo"
+    EXEMPLAR ||--o| MIDIA_FISICA : "id_exemplar"
+    EXEMPLAR ||--o| MIDIA_DIGITAL : "id_exemplar"
+
+    CLIENTE ||--o{ RESERVA : "id_cliente"
+    CATALOGO ||--o{ RESERVA : "id_catalogo"
+
+    CLIENTE ||--o{ TRANSACAO : "id_cliente"
+    FUNCIONARIO ||--o{ TRANSACAO : "id_funcionario"
+
+    TRANSACAO ||--o| VENDA : "id_transacao"
+    TRANSACAO ||--o| ALUGUEL : "id_transacao"
+
+    TRANSACAO ||--o{ ITEM_TRANSACAO : "id_transacao"
+    EXEMPLAR ||--o{ ITEM_TRANSACAO : "id_exemplar"
+
+    TRANSACAO ||--o{ COMPROVANTE : "id_transacao"
+    TRANSACAO ||--o{ AVALIACAO : "id_transacao"
+
+    ALUGUEL ||--o{ MULTA : "id_aluguel"
+    RESERVA ||--o| ALUGUEL : "id_reserva"
+```
+
+## Principais Características do Modelo
+
+Herança com Polimorfismo
+
+USUARIO se especializa em CLIENTE ou FUNCIONARIO via campo tipo
+EXEMPLAR se especializa em MIDIA_FISICA ou MIDIA_DIGITAL via tipo_midia
+Catálogo vs Estoque
+
+CATALOGO representa a vitrine (produto)
+EXEMPLAR representa cópias físicas/digitais (estoque)
+Transações Polimórficas
+
+TRANSACAO se especializa em VENDA ou ALUGUEL via campo tipo
+Rastreabilidade Completa
+
+ITEM_TRANSACAO vincula cada transação a um exemplar específico
+COMPROVANTE documenta cada operação
+AVALIACAO permite feedback pós-transação
+Regras de Negócio
+
+MULTA vinculada a aluguéis atrasados
+RESERVA pode se converter em ALUGUEL
+CLIENTE tem tipo (REGULAR/PREMIUM) para regras diferenciadas
+
 ## Como Funciona a Inicialização
 
 Ao executar `docker-compose up` pela primeira vez:
