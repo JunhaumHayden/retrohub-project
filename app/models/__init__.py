@@ -1,5 +1,6 @@
 from .usuario import Usuario, Cliente, Funcionario
-from .jogo import Jogo, Exemplar, MidiaFisica, MidiaDigital
+from .estoque import Exemplar, MidiaFisica, MidiaDigital
+from .catalogo import Jogo
 from .transacao import (
     Transacao, Venda, Aluguel, Reserva,
     ItemTransacao, Comprovante, Multa, Avaliacao
