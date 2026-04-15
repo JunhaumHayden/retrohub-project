@@ -1,7 +1,7 @@
 -- ================================
 -- RESET
 -- ================================
-DROP TABLE IF EXISTS transacao, item_transacao, comprovante, multa, aluguel, venda, reserva, avaliacao, midia_fisica, midia_digital, exemplar, jogo, cliente, funcionario, usuario CASCADE;
+DROP TABLE IF EXISTS transacao, item_transacao, comprovante, multa, aluguel, venda, reserva, avaliacao, midia_fisica, midia_digital, exemplar, catalogo, cliente, funcionario, usuario CASCADE;
 
 -- ================================
 -- USUARIO
@@ -14,7 +14,8 @@ CREATE TABLE usuario (
     email VARCHAR(255) NOT NULL UNIQUE,
     senha VARCHAR(255) NOT NULL,
     data_cadastro DATE DEFAULT CURRENT_DATE,
-    data_nascimento DATE
+    data_nascimento DATE,
+    tipo VARCHAR(50) NOT NULL -- for polymorphic_on cliente | funcionario
 );
 
 -- ================================
@@ -39,7 +40,7 @@ CREATE TABLE funcionario (
 -- JOGO (CATÁLOGO / VITRINE)
 -- ================================
 
-CREATE TABLE jogo (
+CREATE TABLE catalogo (
     id SERIAL PRIMARY KEY,
     titulo VARCHAR(255) NOT NULL,
     descricao TEXT,
@@ -53,13 +54,13 @@ CREATE TABLE jogo (
 );
 
 -- ================================
--- EXEMPLARES (1 Jogo -> N Exemplares)
+-- EXEMPLARES (1 catalogo -> N Exemplares)
 -- ================================
 
 CREATE TABLE exemplar (
     id SERIAL PRIMARY KEY,
-    id_jogo INTEGER REFERENCES jogo(id) ON DELETE CASCADE,
-    tipo_midia VARCHAR(50) NOT NULL
+    id_catalogo INTEGER REFERENCES catalogo(id) ON DELETE CASCADE,
+    tipo_midia VARCHAR(50) NOT NULL -- for polymorphic_on cliente | funcionario
 );
 
 CREATE TABLE midia_fisica (
@@ -85,7 +86,8 @@ CREATE TABLE transacao (
     pagamento VARCHAR(50) DEFAULT 'PENDENTE',
     status VARCHAR(50) DEFAULT 'PENDENTE',
     id_cliente INTEGER REFERENCES cliente(id_usuario),
-    id_funcionario INTEGER REFERENCES funcionario(id_usuario)
+    id_funcionario INTEGER REFERENCES funcionario(id_usuario),
+    tipo VARCHAR(50) NOT NULL
 );
 
 -- ================================
@@ -105,7 +107,7 @@ CREATE TABLE venda (
 CREATE TABLE reserva (
     id SERIAL PRIMARY KEY,
     id_cliente INTEGER REFERENCES cliente(id_usuario),
-    id_jogo INTEGER REFERENCES jogo(id),  -- Reserva é feita no catálogo, o exemplar é definido na locação
+    id_catalogo INTEGER REFERENCES catalogo(id),  -- Reserva é feita no catálogo, o exemplar é definido na locação
     data_reserva DATE DEFAULT CURRENT_DATE,
     status VARCHAR(50) DEFAULT 'ATIVA',
     data_expiracao DATE

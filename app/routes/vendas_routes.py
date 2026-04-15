@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import not_, or_
 
-from app.models import Cliente, Jogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao
+from app.models import Cliente, Catalogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao
 from app.database.factories.database_manager import DatabaseManager
 
 vendas_bp = Blueprint('vendas', __name__, url_prefix='/api/vendas')
@@ -95,7 +95,7 @@ def solicitar_venda():
             if field not in data or str(data[field]).strip() == "":
                 return jsonify({"erro": f"O campo '{field}' é obrigatório."}), 400
 
-        jogo = session.query(Jogo).get(data['id_jogo'])
+        jogo = session.query(Catalogo).get(data['id_jogo'])
         if not jogo or not jogo.ativo:
             return jsonify({"erro": "Jogo não existe ou está inativo no catálogo."}), 404
 

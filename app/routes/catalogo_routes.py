@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import and_
 
-from app.models import Jogo, Funcionario
+from app.models import Catalogo, Funcionario
 from app.database.factories.database_manager import DatabaseManager
 
 catalogo_bp = Blueprint('catalogo', __name__, url_prefix='/api/catalogo/itens')
@@ -13,7 +13,7 @@ catalogo_bp = Blueprint('catalogo', __name__, url_prefix='/api/catalogo/itens')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def serialize_jogo(jogo: Jogo):
+def serialize_jogo(jogo: Catalogo):
     """Função utilitária para serializar um objeto Jogo."""
     return {
         "id": jogo.id,
@@ -73,10 +73,10 @@ def criar_jogo():
                 return jsonify({"erro": f"O campo '{field}' é obrigatório."}), 400
 
         # Prevenção contra duplicidade (título + plataforma)
-        jogo_duplicado = session.query(Jogo).filter(
+        jogo_duplicado = session.query(Catalogo).filter(
             and_(
-                Jogo.titulo.ilike(data['titulo']),
-                Jogo.plataforma.ilike(data['plataforma'])
+                Catalogo.titulo.ilike(data['titulo']),
+                Catalogo.plataforma.ilike(data['plataforma'])
             )
         ).first()
         
@@ -86,7 +86,7 @@ def criar_jogo():
         valor_venda = Decimal(str(data['valor_venda'])) if data.get('valor_venda') else None
         valor_diaria_aluguel = Decimal(str(data['valor_diaria_aluguel'])) if data.get('valor_diaria_aluguel') else None
 
-        novo_jogo = Jogo(
+        novo_jogo = Catalogo(
             titulo=data['titulo'],
             descricao=data.get('descricao'),
             plataforma=data['plataforma'],
@@ -124,7 +124,7 @@ def listar_jogos():
     try:
         # Permite filtrar por status ativo (ex: ?ativo=true)
         ativo_param = request.args.get('ativo')
-        query = session.query(Jogo)
+        query = session.query(Catalogo)
         
         if ativo_param is not None:
             is_ativo = ativo_param.lower() == 'true'
@@ -145,9 +145,9 @@ def listar_jogos():
 def buscar_jogo(id):
     session = DatabaseManager.get_session()
     try:
-        jogo = session.query(Jogo).get(id)
+        jogo = session.query(Catalogo).get(id)
         if not jogo:
-            return jsonify({"erro": "Jogo não encontrado no catálogo."}), 404
+            return jsonify({"erro": "Catalogo não encontrado no catálogo."}), 404
             
         return jsonify(serialize_jogo(jogo)), 200
     except Exception as e:
@@ -172,20 +172,20 @@ def atualizar_jogo(id):
         if not data:
             return jsonify({"erro": "Dados não fornecidos."}), 400
 
-        jogo = session.query(Jogo).get(id)
+        jogo = session.query(Catalogo).get(id)
         if not jogo:
-            return jsonify({"erro": "Jogo não encontrado."}), 404
+            return jsonify({"erro": "Catalogo não encontrado."}), 404
 
         # Prevenção contra duplicidade ao alterar título ou plataforma
         novo_titulo = data.get('titulo', jogo.titulo)
         nova_plataforma = data.get('plataforma', jogo.plataforma)
 
         if novo_titulo != jogo.titulo or nova_plataforma != jogo.plataforma:
-            jogo_duplicado = session.query(Jogo).filter(
+            jogo_duplicado = session.query(Catalogo).filter(
                 and_(
-                    Jogo.titulo.ilike(novo_titulo),
-                    Jogo.plataforma.ilike(nova_plataforma),
-                    Jogo.id != id
+                    Catalogo.titulo.ilike(novo_titulo),
+                    Catalogo.plataforma.ilike(nova_plataforma),
+                    Catalogo.id != id
                 )
             ).first()
             if jogo_duplicado:
@@ -233,7 +233,7 @@ def excluir_jogo(id):
         if erro:
             return jsonify({"erro": erro}), 403
 
-        jogo = session.query(Jogo).get(id)
+        jogo = session.query(Catalogo).get(id)
         if not jogo:
             return jsonify({"erro": "Jogo não encontrado."}), 404
 

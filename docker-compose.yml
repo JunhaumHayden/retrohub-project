@@ -14,7 +14,7 @@ services:
       - ./resources/database/postgre:/var/lib/postgresql/data
       # Automatically run schema.sql and data.sql on first startup
       - ./resources/database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
-      - ./resources/database/02_data.sql:/docker-entrypoint-initdb.d/02_data.sql
+      - ./resources/database/data.sql:/docker-entrypoint-initdb.d/02_data.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-retrohub}"]
       interval: 5s

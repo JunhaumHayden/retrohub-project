@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_, and_, not_
 
-from app.models import Cliente, Jogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao, Funcionario
+from app.models import Cliente, Catalogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao, Funcionario
 from app.database.factories.database_manager import DatabaseManager
 from app.services.aluguel_service import registrar_retirada, registrar_devolucao
 
@@ -135,7 +135,7 @@ def solicitar_aluguel():
         if data_inicio < date.today():
             return jsonify({"erro": "A data de início não pode ser anterior à data atual."}), 400
 
-        jogo = session.query(Jogo).get(data['id_jogo'])
+        jogo = session.query(Catalogo).get(data['id_jogo'])
         if not jogo or not jogo.ativo:
             return jsonify({"erro": "Jogo não existe ou está inativo no catálogo."}), 404
 
@@ -332,7 +332,7 @@ def renovar_aluguel(id):
         # Para renovar, pega o valor da diária atual do jogo
         item_transacao = session.query(ItemTransacao).filter_by(id_transacao=aluguel.id).first()
         exemplar = session.query(Exemplar).get(item_transacao.id_exemplar)
-        jogo = session.query(Jogo).get(exemplar.id_jogo)
+        jogo = session.query(Catalogo).get(exemplar.id_jogo)
 
         acrescimo = jogo.valor_diaria_aluguel * dias_adicionais
         aluguel.periodo += dias_adicionais

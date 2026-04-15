@@ -4,7 +4,7 @@ from decimal import Decimal
 from app import create_app
 from app.database.database_config import Base
 from app.database.factories.database_manager import DatabaseManager
-from app.models import Cliente, Jogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao, Usuario
+from app.models import Cliente, Catalogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao, Usuario
 
 class TestAlugueisRoutes(unittest.TestCase):
     @classmethod
@@ -39,7 +39,7 @@ class TestAlugueisRoutes(unittest.TestCase):
         session.query(MidiaFisica).delete()
         session.query(MidiaDigital).delete()
         session.query(Exemplar).delete()
-        session.query(Jogo).delete()
+        session.query(Catalogo).delete()
         session.query(Cliente).delete()
         session.query(Usuario).delete()
         session.commit()
@@ -55,8 +55,8 @@ class TestAlugueisRoutes(unittest.TestCase):
         )
         session.add(self.cliente)
         
-        # Jogo com Mídia Física e Digital
-        self.jogo = Jogo(
+        # Catalogo com Mídia Física e Digital
+        self.jogo = Catalogo(
             titulo="Chrono Trigger",
             plataforma="SNES",
             valor_venda=200.00,

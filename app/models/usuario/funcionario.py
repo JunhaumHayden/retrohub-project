@@ -17,6 +17,3 @@ class Funcionario(Usuario):
     __mapper_args__ = {
         "polymorphic_identity": "funcionario",
     }
-
-    def __repr__(self) -> str:
-        return f"<Funcionario(id={self.id_usuario}, matricula='{self.matricula}', nome='{self.nome}')>"

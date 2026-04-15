@@ -16,6 +16,3 @@ class Cliente(Usuario):
     __mapper_args__ = {
         "polymorphic_identity": "cliente",
     }
-
-    def __repr__(self) -> str:
-        return f"<Cliente(id={self.id_usuario}, nome='{self.nome}')>"

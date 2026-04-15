@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Jogo, Exemplar, MidiaFisica, MidiaDigital, Funcionario
+from app.models import Catalogo, Exemplar, MidiaFisica, MidiaDigital, Funcionario
 from app.database.factories.database_manager import DatabaseManager
 
 estoque_bp = Blueprint('estoque', __name__, url_prefix='/api/estoque')
@@ -39,7 +39,7 @@ def serialize_exemplar(exemplar: Exemplar):
     """Serializa um Exemplar baseando-se no seu tipo real (Físico ou Digital)."""
     base_data = {
         "id": exemplar.id,
-        "id_jogo": exemplar.id_jogo,
+        "id_catalogo": exemplar.id_catalogo,
         "tipo_midia": exemplar.tipo_midia
     }
     
@@ -70,13 +70,13 @@ def cadastrar_midia_fisica():
         data = request.get_json()
         if not data: return jsonify({"erro": "Dados não fornecidos."}), 400
 
-        required_fields = ['id_jogo', 'codigo_barras', 'estado_conservacao']
+        required_fields = ['id_catalogo', 'codigo_barras', 'estado_conservacao']
         for field in required_fields:
             if field not in data or not str(data[field]).strip():
                 return jsonify({"erro": f"O campo '{field}' é obrigatório."}), 400
 
-        jogo = session.query(Jogo).get(data['id_jogo'])
-        if not jogo:
+        catalogo = session.query(Catalogo).get(data['id_catalogo'])
+        if not catalogo:
             return jsonify({"erro": "Jogo não encontrado no catálogo."}), 404
 
         # Prevenção de duplicidade
@@ -85,7 +85,7 @@ def cadastrar_midia_fisica():
             return jsonify({"erro": f"O código de barras '{data['codigo_barras']}' já está cadastrado no sistema."}), 400
 
         nova_midia = MidiaFisica(
-            id_jogo=jogo.id,
+            id_catalogo=catalogo.id,
             codigo_barras=data['codigo_barras'],
             estado_conservacao=data['estado_conservacao']
         )
@@ -93,7 +93,7 @@ def cadastrar_midia_fisica():
         session.add(nova_midia)
         session.commit()
 
-        logger.info(f"Funcionário ID {funcionario.id_usuario} cadastrou mídia FÍSICA '{nova_midia.codigo_barras}' para o jogo '{jogo.titulo}'.")
+        logger.info(f"Funcionário ID {funcionario.id_usuario} cadastrou mídia FÍSICA '{nova_midia.codigo_barras}' para o jogo '{catalogo.titulo}'.")
         return jsonify(serialize_exemplar(nova_midia)), 201
 
     except IntegrityError:
@@ -119,13 +119,13 @@ def cadastrar_midia_digital():
         data = request.get_json()
         if not data: return jsonify({"erro": "Dados não fornecidos."}), 400
 
-        required_fields = ['id_jogo', 'chave_ativacao']
+        required_fields = ['id_catalogo', 'chave_ativacao']
         for field in required_fields:
             if field not in data or not str(data[field]).strip():
                 return jsonify({"erro": f"O campo '{field}' é obrigatório."}), 400
 
-        jogo = session.query(Jogo).get(data['id_jogo'])
-        if not jogo:
+        catalogo = session.query(Catalogo).get(data['id_catalogo'])
+        if not catalogo:
             return jsonify({"erro": "Jogo não encontrado no catálogo."}), 404
 
         # Prevenção de duplicidade
@@ -141,7 +141,7 @@ def cadastrar_midia_digital():
                 return jsonify({"erro": "Formato de data inválido. Use AAAA-MM-DD."}), 400
 
         nova_midia = MidiaDigital(
-            id_jogo=jogo.id,
+            id_catalogo=catalogo.id,
             chave_ativacao=data['chave_ativacao'],
             data_expiracao=data_expiracao
         )
@@ -149,7 +149,7 @@ def cadastrar_midia_digital():
         session.add(nova_midia)
         session.commit()
 
-        logger.info(f"Funcionário ID {funcionario.id_usuario} cadastrou mídia DIGITAL para o jogo '{jogo.titulo}'.")
+        logger.info(f"Funcionário ID {funcionario.id_usuario} cadastrou mídia DIGITAL para o catalogo '{catalogo.titulo}'.")
         return jsonify(serialize_exemplar(nova_midia)), 201
 
     except IntegrityError:
@@ -165,16 +165,16 @@ def cadastrar_midia_digital():
 # ==========================================
 # READ ALL (R) - Lista o estoque de um Jogo
 # ==========================================
-@estoque_bp.route('/jogo/<int:id_jogo>', methods=['GET'])
-def listar_estoque_do_jogo(id_jogo):
+@estoque_bp.route('/catalogo/<int:id_catalogo>', methods=['GET'])
+def listar_estoque_do_catalogo(id_catalogo):
     session = DatabaseManager.get_session()
     try:
-        jogo = session.query(Jogo).get(id_jogo)
-        if not jogo:
+        catalogo = session.query(Catalogo).get(id_catalogo)
+        if not catalogo:
             return jsonify({"erro": "Jogo não encontrado no catálogo."}), 404
 
         # Consulta baseada no relacionamento de Herança
-        exemplares = session.query(Exemplar).filter_by(id_jogo=id_jogo).all()
+        exemplares = session.query(Exemplar).filter_by(id_catalogo=id_catalogo).all()
         
         return jsonify([serialize_exemplar(ex) for ex in exemplares]), 200
     except Exception as e:

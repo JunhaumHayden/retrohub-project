@@ -1,15 +1,33 @@
-# <img src="https://github.com/user-attachments/assets/61463e20-5ba3-4ce4-a632-8905ed1357b0" width="48" height="48" alt="RetroHub Logo" align="center" /> RetroHub Web
+<h1 align="center"> <img src="https://github.com/user-attachments/assets/61463e20-5ba3-4ce4-a632-8905ed1357b0" width="48" height="48" alt="RetroHub Logo" align="center" />RetroHub Web</h1>
+
+<p align="center">
+  <img src="http://img.shields.io/static/v1?label=STATUS&message=Em%20Desenvolvimento&color=brightgreen&style=for-the-badge"/>
+</p>
+
 ---
 
-<img width="100" height="100" alt="Image"  align="center" src="https://github.com/user-attachments/assets/fc997634-c093-4689-a609-a37ad21de6ed" />
-
----
+<div align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-green.svg)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-red.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)
+[![Next.js](https://img.shields.io/badge/Next.js-13%2B-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-18%2B-61DAFB?logo=react)](https://react.dev/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3%2B-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+[![Shadcn/UI](https://img.shields.io/badge/Shadcn/UI-Clean%20Components-purple)](https://ui.shadcn.com/)
+[![Python Backend](https://img.shields.io/badge/API-SmartRent%20Estimator%20API-blue?logo=fastapi)](https://github.com/JunhaumHayden/SmartRent-API)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/license/mit/)
+
+[![GitHub Repo stars](https://img.shields.io/github/stars/JunhaumHayden/SmartRent?style=social)](https://github.com/JunhaumHayden/SmartRent)
+[![GitHub forks](https://img.shields.io/github/forks/JunhaumHayden/SmartRent?style=social)](https://github.com/JunhaumHayden/SmartRent/fork)
+[![GitHub watchers](https://img.shields.io/github/watchers/JunhaumHayden/SmartRent?style=social)](https://github.com/JunhaumHayden/SmartRent/watchers)
+
+</div>
+
+
+---
 
 [English Version](#english-version) | [Versão em Português](#versão-em-português)
 
@@ -354,22 +372,47 @@ Crie um arquivo `.env` na raiz ou exporte as variáveis:
 
 ---
 
-### logo
+## Logo
 
-#### retro
+<table table align="center" cellspacing="20">
+    <tr align="center"><h3>Retro</h3></tr>
+    <tr>
+        <td align="center">
+            <a> <img width="48" height="48" alt="Image" src="https://github.com/user-attachments/assets/3d87777e-f09c-4bdc-9d7b-fec05688124a" /><br> <sub><b>48x48</b></sub> </a>
+        </td>
+        <td align="center">
+            <a> <img width="100" height="100" alt="Image" src="https://github.com/user-attachments/assets/61463e20-5ba3-4ce4-a632-8905ed1357b0" /><br> <sub><b>100x100</b></sub> </a>
+        </td>
+    </tr>
+</table>
+<table table align="center" cellspacing="20">
+    <tr align="center"><h3>Neon</h3></tr>
+    <tr>
+        <td align="center">
+            <a> <img width="48" height="48" alt="Image" src="https://github.com/user-attachments/assets/6009e417-0221-4307-89c2-aedba5be7d12" /><br> <sub><b>48x48</b></sub> </a>
+        </td>
+        <td align="center">
+            <a> <img width="100" height="100" alt="Image" src="https://github.com/user-attachments/assets/fc997634-c093-4689-a609-a37ad21de6ed" /><br> <sub><b>100x100</b></sub> </a>
+        </td>
+    </tr>
+</table>
 
-48x48
-<img width="48" height="48" alt="Image" src="https://github.com/user-attachments/assets/3d87777e-f09c-4bdc-9d7b-fec05688124a" />
+---
+##  Licença
 
-100x100
-<img width="100" height="100" alt="Image" src="https://github.com/user-attachments/assets/61463e20-5ba3-4ce4-a632-8905ed1357b0" />
+MIT — ou seja: use, quebre, refaça, mas me cite se for ficar famoso com isso 😎
 
-#### Neon
+---
 
-48x48:
-
-<img width="48" height="48" alt="Image" src="https://github.com/user-attachments/assets/6009e417-0221-4307-89c2-aedba5be7d12" />
-
-100x100:
-
-<img width="100" height="100" alt="Image" src="https://github.com/user-attachments/assets/fc997634-c093-4689-a609-a37ad21de6ed" />
+🧙‍♂️ Autores
+<table>
+    <tr>
+    <td align="center">
+        <a href="https://github.com/alinmeyer"> <img src="https://avatars.githubusercontent.com/u/143973449?v=4" width="115"/><br> <sub><b>Aline Meyer</b></sub> </a>
+    </td>
+        <td align="center"> <a href="https://github.com/JunhaumHayden"> <img src="https://avatars.githubusercontent.com/u/79289647?v=4" width="115"/><br> <sub><b>Carlos Hayden</b></sub> </a>
+    </td>
+        <td align="center"> <a href="https://github.com/flplz"> <img src="https://avatars.githubusercontent.com/u/127215448?v=4" width="115"/><br> <sub><b>Felipe Pacheco</b></sub> </a> </td>
+    </tr>
+</table>
+<p align="center"> <em>🧠💻 Built with data, code & caffeine.<br> May the <strong>rent</strong> be ever in your favor.</em> ☕✨ </p>
