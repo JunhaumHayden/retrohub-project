@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import String, Date, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.jogo.exemplar import Exemplar
+from app.models.estoque.exemplar import Exemplar
 
 class MidiaDigital(Exemplar):
     __tablename__ = 'midia_digital'

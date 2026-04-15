@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy import String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.jogo.exemplar import Exemplar
+from app.models.estoque.exemplar import Exemplar
 
 class MidiaFisica(Exemplar):
     __tablename__ = 'midia_fisica'

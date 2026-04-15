@@ -13,7 +13,7 @@ class Usuario(Base):
     cpf: Mapped[str] = mapped_column(String(14), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     senha: Mapped[str] = mapped_column(String(255), nullable=False)
-    data_cadastro: Mapped[Optional[date]] = mapped_column(Date)
+    data_cadastro: Mapped[Optional[date]] = mapped_column(Date, default=date.today)
     data_nascimento: Mapped[Optional[date]] = mapped_column(Date)
 
     def __repr__(self) -> str:

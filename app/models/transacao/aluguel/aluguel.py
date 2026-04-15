@@ -5,6 +5,7 @@ from sqlalchemy import String, Integer, Date, DateTime, Numeric, Boolean, Foreig
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.transacao.transacao import Transacao
+from app.models.enums import StatusAluguel
 
 class Aluguel(Transacao):
     __tablename__ = 'aluguel'
@@ -12,7 +13,7 @@ class Aluguel(Transacao):
     id_transacao: Mapped[int] = mapped_column(ForeignKey('transacao.id', ondelete='CASCADE'), primary_key=True)
     periodo: Mapped[Optional[int]] = mapped_column(Integer)
     data_devolucao: Mapped[Optional[date]] = mapped_column(Date)
-    status: Mapped[Optional[str]] = mapped_column(String, default='ATIVO')
+    status: Mapped[Optional[str]] = mapped_column(String, default=StatusAluguel.PENDENTE.value)
     id_reserva: Mapped[Optional[int]] = mapped_column(ForeignKey('reserva.id'))
     data_inicio: Mapped[Optional[date]] = mapped_column(Date)
     data_prevista_devolucao: Mapped[Optional[date]] = mapped_column(Date)

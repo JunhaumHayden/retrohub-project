@@ -9,11 +9,13 @@ class StatusTransacao(Enum):
 
 class StatusVenda(Enum):
     FINALIZADA = 'FINALIZADA'
+    PENDENTE = 'PENDENTE'
     ESTORNADA = 'ESTORNADA'
 
 
 class StatusAluguel(Enum):
     ATIVO = 'ATIVO'
+    PENDENTE = 'PENDENTE'
     FINALIZADO = 'FINALIZADO'
     ATRASADO = 'ATRASADO'
     SOLICITADO = 'SOLICITADO'
@@ -22,6 +24,7 @@ class StatusAluguel(Enum):
 
 class StatusReserva(Enum):
     ATIVA = 'ATIVA'
+    PENDENTE = 'PENDENTE'
     CANCELADA = 'CANCELADA'
     EXPIRADA = 'EXPIRADA'
     CONVERTIDA = 'CONVERTIDA'
@@ -29,14 +32,18 @@ class StatusReserva(Enum):
 
 class StatusPagamento(Enum):
     PENDENTE = 'PENDENTE'
+    ESTORNADO = 'ESTORNADO'
+    CANCELADO = 'CANCELADO'
     PAGO = 'PAGO'
 
 
 class TipoComprovante(Enum):
     VENDA = 'VENDA'
     ALUGUEL = 'ALUGUEL'
+    RESERVA = 'RESERVA'
+    DEVOLUCAO = 'DEVOLUCAO'
 
 
 class TipoCliente(Enum):
-    REGULAR = 'regular'
-    PREMIUM = 'premium'
+    REGULAR = 'REGULAR'
+    PREMIUM = 'PREMIUM'

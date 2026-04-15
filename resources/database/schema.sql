@@ -24,8 +24,7 @@ CREATE TABLE usuario (
 CREATE TABLE cliente (
     id_usuario INTEGER PRIMARY KEY REFERENCES usuario(id) ON DELETE CASCADE,
     dados_pagamento VARCHAR(255),
-    data_cadastro DATE DEFAULT CURRENT_DATE,
-    tipo_cliente VARCHAR(50) DEFAULT 'regular'
+    tipo_cliente VARCHAR(50) DEFAULT 'REGULAR'
 );
 
 CREATE TABLE funcionario (
@@ -83,6 +82,7 @@ CREATE TABLE transacao (
     id SERIAL PRIMARY KEY,
     data_transacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     valor_total NUMERIC(10,2) CHECK (valor_total >= 0),
+    pagamento VARCHAR(50) DEFAULT 'PENDENTE',
     status VARCHAR(50) DEFAULT 'PENDENTE',
     id_cliente INTEGER REFERENCES cliente(id_usuario),
     id_funcionario INTEGER REFERENCES funcionario(id_usuario)
@@ -142,6 +142,7 @@ CREATE TABLE comprovante (
     id_transacao INTEGER REFERENCES transacao(id) ON DELETE CASCADE,
     tipo VARCHAR(50),
     data_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    tipo_comprovante VARCHAR(50) DEFAULT 'RESERVA',
     codigo_rastreio VARCHAR(255)
 );
 
