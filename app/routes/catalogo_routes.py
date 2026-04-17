@@ -13,7 +13,7 @@ catalogo_bp = Blueprint('catalogo', __name__, url_prefix='/api/catalogo/itens')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def serialize_jogo(jogo: Catalogo):
+def serialize_catalogo(jogo: Catalogo):
     """Função utilitária para serializar um objeto Jogo."""
     return {
         "id": jogo.id,
@@ -54,7 +54,7 @@ def get_funcionario_from_header(session):
 # CREATE (C) - Inserir novo item no catálogo
 # ==========================================
 @catalogo_bp.route('/', methods=['POST'])
-def criar_jogo():
+def criar_catalogo():
     session = DatabaseManager.get_session()
     try:
         # Apenas Funcionários (ou Admin) podem cadastrar
@@ -86,7 +86,7 @@ def criar_jogo():
         valor_venda = Decimal(str(data['valor_venda'])) if data.get('valor_venda') else None
         valor_diaria_aluguel = Decimal(str(data['valor_diaria_aluguel'])) if data.get('valor_diaria_aluguel') else None
 
-        novo_jogo = Catalogo(
+        novo_catalogo = Catalogo(
             titulo=data['titulo'],
             descricao=data.get('descricao'),
             plataforma=data['plataforma'],
@@ -97,13 +97,13 @@ def criar_jogo():
             valor_diaria_aluguel=valor_diaria_aluguel
         )
 
-        session.add(novo_jogo)
+        session.add(novo_catalogo)
         session.commit()
 
         # Registro de log de criação
-        logger.info(f"Funcionário ID {funcionario.id_usuario} ({funcionario.nome}) CADASTROU o jogo '{novo_jogo.titulo}' (ID {novo_jogo.id}).")
+        logger.info(f"Funcionário ID {funcionario.id_usuario} ({funcionario.nome}) CADASTROU o jogo '{novo_catalogo.titulo}' (ID {novo_catalogo.id}).")
 
-        return jsonify(serialize_jogo(novo_jogo)), 201
+        return jsonify(serialize_catalogo(novo_catalogo)), 201
 
     except IntegrityError as e:
         session.rollback()
@@ -118,8 +118,8 @@ def criar_jogo():
 # ==========================================
 # READ ALL (R) - Listar jogos
 # ==========================================
-@catalogo_bp.route('/', methods=['GET'])
-def listar_jogos():
+@catalogo_bp.route('/all', methods=['GET'])
+def listar_catalogos():
     session = DatabaseManager.get_session()
     try:
         # Permite filtrar por status ativo (ex: ?ativo=true)
@@ -131,36 +131,49 @@ def listar_jogos():
             query = query.filter_by(ativo=is_ativo)
             
         jogos = query.all()
-        return jsonify([serialize_jogo(j) for j in jogos]), 200
+        return jsonify([serialize_catalogo(j) for j in jogos]), 200
     except Exception as e:
         return jsonify({"erro": f"Erro ao buscar catálogo: {str(e)}"}), 500
     finally:
         session.close()
 
-
+# ==========================================
+# READ ALL DTO(R) - Listar jogos
+# ==========================================
+@catalogo_bp.route('/', methods=['GET'])
+def listar_catalogos_dto():
+    #to do
+    pass
 # ==========================================
 # READ ONE (R) - Detalhes do jogo
 # ==========================================
-@catalogo_bp.route('/<int:id>', methods=['GET'])
-def buscar_jogo(id):
+@catalogo_bp.route('/all/<int:id>', methods=['GET'])
+def buscar_catalogo(id):
     session = DatabaseManager.get_session()
     try:
         jogo = session.query(Catalogo).get(id)
         if not jogo:
             return jsonify({"erro": "Catalogo não encontrado no catálogo."}), 404
             
-        return jsonify(serialize_jogo(jogo)), 200
+        return jsonify(serialize_catalogo(jogo)), 200
     except Exception as e:
         return jsonify({"erro": f"Erro ao buscar jogo: {str(e)}"}), 500
     finally:
         session.close()
 
+# ==========================================
+# READ ONE DTO(R) - lista de jogos resumo
+# ==========================================
+@catalogo_bp.route('/<int:id>', methods=['GET'])
+def buscar_catalogo_dto(id):
+    #to do
+    pass
 
 # ==========================================
 # UPDATE (U) - Atualizar dados do jogo
 # ==========================================
 @catalogo_bp.route('/<int:id>', methods=['PUT'])
-def atualizar_jogo(id):
+def atualizar_catalogo(id):
     session = DatabaseManager.get_session()
     try:
         # Apenas Funcionários podem alterar
@@ -210,7 +223,7 @@ def atualizar_jogo(id):
         # Registro de log de alteração
         logger.info(f"Funcionário ID {funcionario.id_usuario} ({funcionario.nome}) ATUALIZOU o jogo '{jogo.titulo}' (ID {jogo.id}).")
 
-        return jsonify(serialize_jogo(jogo)), 200
+        return jsonify(serialize_catalogo(jogo)), 200
 
     except IntegrityError as e:
         session.rollback()
@@ -226,7 +239,7 @@ def atualizar_jogo(id):
 # DELETE (D) - Inativar ou Excluir item
 # ==========================================
 @catalogo_bp.route('/<int:id>', methods=['DELETE'])
-def excluir_jogo(id):
+def excluir_catalogo(id):
     session = DatabaseManager.get_session()
     try:
         funcionario, erro = get_funcionario_from_header(session)
@@ -239,13 +252,13 @@ def excluir_jogo(id):
 
         # Se o jogo já tiver transações/reservas atreladas, a exclusão física (DELETE) vai falhar
         # Para catálogo de produtos, a exclusão lógica (inativação) é sempre a melhor prática
-        nome_jogo = jogo.titulo
+        nome_catalogo = jogo.titulo
         jogo.ativo = False
         session.commit()
         
-        logger.warning(f"Funcionário ID {funcionario.id_usuario} ({funcionario.nome}) INATIVOU o jogo '{nome_jogo}' (ID {id}).")
+        logger.warning(f"Funcionário ID {funcionario.id_usuario} ({funcionario.nome}) INATIVOU o jogo '{nome_catalogo}' (ID {id}).")
         
-        return jsonify({"mensagem": "Jogo inativado com sucesso (exclusão lógica).", "jogo": serialize_jogo(jogo)}), 200
+        return jsonify({"mensagem": "Jogo inativado com sucesso (exclusão lógica).", "jogo": serialize_catalogo(jogo)}), 200
         
     except Exception as e:
         session.rollback()

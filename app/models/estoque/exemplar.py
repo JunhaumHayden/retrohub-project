@@ -3,6 +3,8 @@ from sqlalchemy import String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database_config import Base
+from app.models.enums import StatusCatalogo
+
 
 class Exemplar(Base):
     __tablename__ = 'exemplar'
@@ -11,7 +13,8 @@ class Exemplar(Base):
     id_catalogo: Mapped[int] = mapped_column(ForeignKey('catalogo.id', ondelete='CASCADE'))
     catalogo: Mapped["Catalogo"] = relationship(back_populates="exemplares")
     tipo_midia: Mapped[str] = mapped_column(String(50), nullable=False)
-    situacao: Mapped[Optional[str]] = mapped_column(String(50), default='DISPONIVEL')
+    plataforma: Mapped[Optional[str]] = mapped_column(String(100))
+    situacao: Mapped[Optional[str]] = mapped_column(String(50), default=StatusCatalogo.DISPONIVEL.value)
 
     __mapper_args__ = {
         "polymorphic_on": "tipo_midia",

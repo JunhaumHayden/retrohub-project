@@ -39,9 +39,6 @@ def registrar_retirada(session: Session, aluguel_id: int) -> Tuple[Optional[Alug
     exemplar = session.query(Exemplar).get(item.id_exemplar)
     if exemplar:
         exemplar.situacao = "ALUGADO"
-        jogo = session.query(Catalogo).get(exemplar.id_jogo)
-        if jogo is not None and jogo.estoque_disponivel is not None and jogo.estoque_disponivel > 0:
-            jogo.estoque_disponivel -= 1
 
     return aluguel, None
 
@@ -107,8 +104,6 @@ def registrar_devolucao(
 
     if exemplar:
         exemplar.situacao = "DISPONIVEL"
-    if jogo is not None and jogo.estoque_disponivel is not None:
-        jogo.estoque_disponivel += 1
 
     if multa_valor > 0:
         session.add(
