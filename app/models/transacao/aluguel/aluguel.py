@@ -1,30 +1,30 @@
 from datetime import date, datetime
 from typing import Optional
 from decimal import Decimal
-from sqlalchemy import String, Integer, Date, DateTime, Numeric, Boolean, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.transacao.transacao import Transacao
 from app.models.enums import StatusAluguel
 
 class Aluguel(Transacao):
-    __tablename__ = 'aluguel'
-
-    id_transacao: Mapped[int] = mapped_column(ForeignKey('transacao.id', ondelete='CASCADE'), primary_key=True)
-    periodo: Mapped[Optional[int]] = mapped_column(Integer)
-    data_devolucao: Mapped[Optional[date]] = mapped_column(Date)
-    status: Mapped[Optional[str]] = mapped_column(String, default=StatusAluguel.PENDENTE.value)
-    id_reserva: Mapped[Optional[int]] = mapped_column(ForeignKey('reserva.id'))
-    data_inicio: Mapped[Optional[date]] = mapped_column(Date)
-    data_prevista_devolucao: Mapped[Optional[date]] = mapped_column(Date)
-    data_retirada: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    data_devolucao_real: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    condicao_item: Mapped[Optional[str]] = mapped_column(String(50))
-    id_funcionario_recebimento: Mapped[Optional[int]] = mapped_column(ForeignKey('funcionario.id_usuario'))
-    multa_aplicada: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
-    multa_paga: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    dias_atraso: Mapped[Optional[int]] = mapped_column(Integer)
-
-    __mapper_args__ = {
-        "polymorphic_identity": "aluguel",
-    }
+    def __init__(self, id_transacao: int, periodo: Optional[int] = None, 
+                 data_devolucao: Optional[date] = None, status: Optional[str] = None, 
+                 id_reserva: Optional[int] = None, data_inicio: Optional[date] = None, 
+                 data_prevista_devolucao: Optional[date] = None, data_retirada: Optional[datetime] = None, 
+                 data_devolucao_real: Optional[datetime] = None, condicao_item: Optional[str] = None, 
+                 id_funcionario_recebimento: Optional[int] = None, multa_aplicada: Optional[Decimal] = None, 
+                 multa_paga: Optional[bool] = None, dias_atraso: Optional[int] = None, **kwargs):
+        super().__init__(id=id_transacao, tipo="aluguel", **kwargs)
+        self.id_transacao = id_transacao
+        self.periodo = periodo
+        self.data_devolucao = data_devolucao
+        self.status = status or StatusAluguel.PENDENTE.value
+        self.id_reserva = id_reserva
+        self.data_inicio = data_inicio
+        self.data_prevista_devolucao = data_prevista_devolucao
+        self.data_retirada = data_retirada
+        self.data_devolucao_real = data_devolucao_real
+        self.condicao_item = condicao_item
+        self.id_funcionario_recebimento = id_funcionario_recebimento
+        self.multa_aplicada = multa_aplicada
+        self.multa_paga = multa_paga or False
+        self.dias_atraso = dias_atraso

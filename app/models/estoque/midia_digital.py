@@ -1,17 +1,11 @@
 from datetime import date
 from typing import Optional
-from sqlalchemy import String, Date, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.estoque.exemplar import Exemplar
 
 class MidiaDigital(Exemplar):
-    __tablename__ = 'midia_digital'
-
-    id_exemplar: Mapped[int] = mapped_column(ForeignKey('exemplar.id', ondelete='CASCADE'), primary_key=True)
-    chave_ativacao: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    data_expiracao: Mapped[Optional[date]] = mapped_column(Date)
-
-    __mapper_args__ = {
-        "polymorphic_identity": "DIGITAL",
-    }
+    def __init__(self, id_exemplar: int, chave_ativacao: str, data_expiracao: Optional[date] = None, **kwargs):
+        super().__init__(id=id_exemplar, tipo_midia="DIGITAL", **kwargs)
+        self.id_exemplar = id_exemplar
+        self.chave_ativacao = chave_ativacao
+        self.data_expiracao = data_expiracao

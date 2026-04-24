@@ -48,6 +48,10 @@ class TipoCliente(Enum):
     REGULAR = 'REGULAR'
     PREMIUM = 'PREMIUM'
 
+class TipoFuncionario(Enum):
+    REGULAR = 'REGULAR'
+    PREMIUM = 'PREMIUM'
+
 class StatusCatalogo(Enum):
     DISPONIVEL = 'DISPONIVEL'
     INDISPONIVEL = 'INDISPONIVEL'

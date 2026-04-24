@@ -1,17 +1,15 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, ForeignKey, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database.database_config import Base
 from app.models.enums import TipoComprovante
 
-class Comprovante(Base):
-    __tablename__ = 'comprovante'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    id_transacao: Mapped[Optional[int]] = mapped_column(ForeignKey('transacao.id', ondelete='CASCADE'))
-    tipo: Mapped[Optional[str]] = mapped_column(String)
-    data_envio: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.now)
-    tipo_comprovante: Mapped[Optional[str]] = mapped_column(String,default=TipoComprovante.RESERVA.value)
-    codigo_rastreio: Mapped[Optional[str]] = mapped_column(String(255))
+class Comprovante:
+    def __init__(self, id: int, id_transacao: Optional[int] = None, tipo: Optional[str] = None, 
+                 data_envio: Optional[datetime] = None, tipo_comprovante: Optional[str] = None, 
+                 codigo_rastreio: Optional[str] = None):
+        self.id = id
+        self.id_transacao = id_transacao
+        self.tipo = tipo
+        self.data_envio = data_envio or datetime.now()
+        self.tipo_comprovante = tipo_comprovante or TipoComprovante.RESERVA.value
+        self.codigo_rastreio = codigo_rastreio

@@ -1,30 +1,18 @@
 from typing import Optional
-from sqlalchemy import String, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.database_config import Base
 from app.models.enums import StatusCatalogo
 
 
-class Exemplar(Base):
-    __tablename__ = 'exemplar'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    id_catalogo: Mapped[int] = mapped_column(ForeignKey('catalogo.id', ondelete='CASCADE'))
-    catalogo: Mapped["Catalogo"] = relationship(back_populates="exemplares")
-    tipo_midia: Mapped[str] = mapped_column(String(50), nullable=False)
-    plataforma: Mapped[Optional[str]] = mapped_column(String(100))
-    situacao: Mapped[Optional[str]] = mapped_column(String(50), default=StatusCatalogo.DISPONIVEL.value)
-
-    __mapper_args__ = {
-        "polymorphic_on": "tipo_midia",
-        "polymorphic_identity": "exemplar"
-    }
-
-    def __init__(self, *args, **kwargs):
-        if type(self) is Exemplar:
-            raise TypeError("Erro: Operação Não permitida")
-        super().__init__(*args, **kwargs)
+class Exemplar:
+    def __init__(self, id: int, id_catalogo: int, tipo_midia: str, 
+                 plataforma: Optional[str] = None, situacao: Optional[str] = None):
+        # Removed protection to allow instantiation for data factory
+        self.id = id
+        self.id_catalogo = id_catalogo
+        self.tipo_midia = tipo_midia
+        self.plataforma = plataforma
+        self.situacao = situacao or StatusCatalogo.DISPONIVEL.value
+        self.catalogo = None
 
     def __repr__(self):
         return f"<{self.__class__.__name__}(id={self.id}, id_catalogo={self.id_catalogo}, tipo={self.tipo_midia})>"

@@ -1,19 +1,16 @@
 from datetime import date
 from typing import Optional
-from sqlalchemy import String, Date, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.usuario.usuario import Usuario
 
 class Funcionario(Usuario):
-    __tablename__ = 'funcionario'
-
-    id_usuario: Mapped[int] = mapped_column(ForeignKey('usuario.id', ondelete='CASCADE'), primary_key=True)
-    matricula: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
-    cargo: Mapped[Optional[str]] = mapped_column(String(100))
-    setor: Mapped[Optional[str]] = mapped_column(String(100))
-    data_admissao: Mapped[Optional[date]] = mapped_column(Date)
-
-    __mapper_args__ = {
-        "polymorphic_identity": "funcionario",
-    }
+    def __init__(self, matricula: str, id_usuario: int = None, nome: str = None, cpf: str = None, 
+                 email: str = None, senha: str = None, data_nascimento: date = None,
+                 cargo: Optional[str] = None, setor: Optional[str] = None, 
+                 data_admissao: Optional[date] = None, **kwargs):
+        super().__init__(id=id_usuario, nome=nome, cpf=cpf, email=email, senha=senha, 
+                        data_nascimento=data_nascimento, tipo="funcionario", **kwargs)
+        self.matricula = matricula
+        self.cargo = cargo
+        self.setor = setor
+        self.data_admissao = data_admissao

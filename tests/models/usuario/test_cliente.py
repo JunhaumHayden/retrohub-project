@@ -17,6 +17,7 @@ class TestCliente(unittest.TestCase):
 
         # Criar instância do Cliente
         cliente = Cliente(
+           id_usuario=1,
             nome=nome,
             cpf=cpf,
             email=email,
@@ -24,6 +25,26 @@ class TestCliente(unittest.TestCase):
             data_nascimento=data_nascimento,
             dados_pagamento=dados_pagamento
         )
+
+        # ===== FORMAS DE IMPRIMIR O OBJETO =====
+        # Forma 1: Usar print() com -s flag do pytest
+        print("\n[FORMA 1] print(cliente):")
+        print(cliente)
+        
+        # Forma 2: Usar repr()
+        print("\n[FORMA 2] repr(cliente):")
+        print(repr(cliente))
+        
+        # Forma 3: Imprimir atributos específicos
+        print("\n[FORMA 3] Atributos específicos:")
+        print(f"  Nome: {cliente.nome}")
+        print(f"  CPF: {cliente.cpf}")
+        print(f"  Email: {cliente.email}")
+        print(f"  Tipo Cliente: {cliente.tipo_cliente}")
+        
+        # Forma 4: Usar vars() para ver todos os atributos
+        print("\n[FORMA 4] vars(cliente) - Todos os atributos:")
+        print(vars(cliente))
 
         # Verificar se os atributos foram definidos corretamente
         self.assertEqual(cliente.nome, nome)

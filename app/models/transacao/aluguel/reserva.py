@@ -1,17 +1,15 @@
 from datetime import date
 from typing import Optional
-from sqlalchemy import String, Date, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database.database_config import Base
 from app.models.enums import StatusReserva
 
-class Reserva(Base):
-    __tablename__ = 'reserva'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    id_cliente: Mapped[Optional[int]] = mapped_column(ForeignKey('cliente.id_usuario'))
-    id_jogo: Mapped[Optional[int]] = mapped_column(ForeignKey('jogo.id'))
-    data_reserva: Mapped[Optional[date]] = mapped_column(Date, default=date.today)
-    status: Mapped[Optional[str]] = mapped_column(String, default=StatusReserva.ATIVA.value)
-    data_expiracao: Mapped[Optional[date]] = mapped_column(Date)
+class Reserva:
+    def __init__(self, id: int, id_cliente: Optional[int] = None, id_jogo: Optional[int] = None, 
+                 data_reserva: Optional[date] = None, status: Optional[str] = None, 
+                 data_expiracao: Optional[date] = None):
+        self.id = id
+        self.id_cliente = id_cliente
+        self.id_jogo = id_jogo
+        self.data_reserva = data_reserva or date.today()
+        self.status = status or StatusReserva.ATIVA.value
+        self.data_expiracao = data_expiracao

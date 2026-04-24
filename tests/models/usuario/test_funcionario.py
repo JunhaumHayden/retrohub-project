@@ -22,6 +22,7 @@ class TestFuncionario(unittest.TestCase):
 
         # Criar instância do Cliente
         usuario = Funcionario(
+           id_usuario=1,
             nome=nome,
             cpf=cpf,
             email=email,
@@ -32,6 +33,28 @@ class TestFuncionario(unittest.TestCase):
             setor=setor,
             data_admissao=data_admissao
         )
+
+        # ===== FORMAS DE IMPRIMIR O OBJETO =====
+        # Forma 1: Usar print() com -s flag do pytest
+        print("\n[FORMA 1] print(usuario):")
+        print(usuario)
+
+        # Forma 2: Usar repr()
+        print("\n[FORMA 2] repr(cliente):")
+        print(repr(usuario))
+
+        # Forma 3: Imprimir atributos específicos
+        print("\n[FORMA 3] Atributos específicos:")
+        print(f"  Nome: {usuario.nome}")
+        print(f"  CPF: {usuario.cpf}")
+        print(f"  Email: {usuario.email}")
+        print(f"  Tipo: {usuario.cargo}")
+        print(f"  Setor: {usuario.setor}")
+        print(f"  Data de Admissão: {usuario.data_admissao}")
+
+        # Forma 4: Usar vars() para ver todos os atributos
+        print("\n[FORMA 4] vars(cliente) - Todos os atributos:")
+        print(vars(usuario))
 
         # Verificar se os atributos foram definidos corretamente
         self.assertEqual(usuario.nome, nome)
