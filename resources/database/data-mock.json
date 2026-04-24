@@ -1,0 +1,117 @@
+{
+  "usuarios": [
+    { "id": 1, "nome": "Solid Snake", "cpf": "111.111.111-11", "email": "snake@metalgear.com", "senha": "hash123", "data_nascimento": "1972-06-12", "tipo": "funcionario" },
+    { "id": 2, "nome": "Rachel Teller", "cpf": "222.222.222-22", "email": "chief@nfsunderground2.com", "senha": "hash123", "data_nascimento": "2511-03-07", "tipo": "funcionario" },
+    { "id": 3, "nome": "Sam Fisher", "cpf": "777.777.777-77", "email": "fisher@splintercell.com", "senha": "hash123", "data_nascimento": "2001-11-07", "tipo": "cliente" },
+    { "id": 4, "nome": "Lara Croft", "cpf": "101.202.303-44", "email": "lara@tombraider.com", "senha": "hash123", "data_nascimento": "1968-02-14", "tipo": "cliente" },
+    { "id": 5, "nome": "Nathan Drake", "cpf": "202.303.404-55", "email": "drake@uncharted.com", "senha": "hash123", "data_nascimento": "1976-10-19", "tipo": "cliente" },
+    { "id": 6, "nome": "Jill Valentine", "cpf": "303.404.505-66", "email": "jill@residentevil.com", "senha": "hash123", "data_nascimento": "1974-11-30", "tipo": "cliente" }
+  ],
+  "funcionarios": [
+    { "id_usuario": 1, "matricula": "FOX001", "cargo": "Administrador", "setor": "TI", "data_admissao": "1998-09-03" },
+    { "id_usuario": 2, "matricula": "NFS001", "cargo": "Administrador", "setor": "TI", "data_admissao": "2004-11-15" }
+  ],
+  "clientes": [
+    { "id_usuario": 3, "dados_pagamento": "Créditos Echelon", "tipo_cliente": "regular" },
+    { "id_usuario": 4, "dados_pagamento": "Cartão Black - Visa Infinite", "tipo_cliente": "premium" },
+    { "id_usuario": 5, "dados_pagamento": "Cartão Platinum - Mastercard", "tipo_cliente": "premium" },
+    { "id_usuario": 6, "dados_pagamento": "Pix - Chave aleatória", "tipo_cliente": "regular" }
+  ],
+  "catalogo": [
+    { "id": 1, "titulo": "Metal Gear Solid 3: Snake Eater", "descricao": "A origem de Naked Snake e The Boss", "plataforma": "PS2", "genero": "Stealth", "classificacao": "16+", "valor_venda": 89.90, "valor_diaria_aluguel": 5.90, "ativo": true },
+    { "id": 2, "titulo": "Tomb Raider", "descricao": "Lara Croft explora tumbas antigas", "plataforma": "PS4", "genero": "Aventura", "classificacao": "16+", "valor_venda": 129.90, "valor_diaria_aluguel": 6.90, "ativo": true },
+    { "id": 3, "titulo": "Uncharted 4: A Thief's End", "descricao": "Nathan Drake em busca de tesouros", "plataforma": "PS4", "genero": "Aventura", "classificacao": "16+", "valor_venda": null, "valor_diaria_aluguel": 7.90, "ativo": true },
+    { "id": 4, "titulo": "Resident Evil 3", "descricao": "Jill Valentine enfrenta Nemesis", "plataforma": "PS1", "genero": "Survival Horror", "classificacao": "18+", "valor_venda": 89.90, "valor_diaria_aluguel": 5.90, "ativo": true },
+    { "id": 5, "titulo": "Need for Speed: Heat", "descricao": "Corrida de rua e perseguição policial", "plataforma": "PS4", "genero": "Corrida", "classificacao": "14+", "valor_venda": 129.90, "valor_diaria_aluguel": 6.90, "ativo": true },
+    { "id": 6, "titulo": "Street Fighter V", "descricao": "Ryu, Ken e Chun-Li no torneio definitivo", "plataforma": "PS4", "genero": "Luta", "classificacao": "12+", "valor_venda": 79.90, "valor_diaria_aluguel": 5.90, "ativo": true }
+  ],
+  "exemplares": [
+    { "id": 1, "id_catalogo": 1, "tipo_midia": "FISICA" },
+    { "id": 2, "id_catalogo": 2, "tipo_midia":  "DIGITAL" },
+    { "id": 3, "id_catalogo": 3, "tipo_midia": "FISICA" },
+    { "id": 4, "id_catalogo": 4, "tipo_midia": "FISICA" },
+    { "id": 5, "id_catalogo": 5, "tipo_midia": "FISICA" },
+    { "id": 6, "id_catalogo": 6, "tipo_midia": "FISICA" },
+    { "id": 7, "id_catalogo": 3, "tipo_midia": "DIGITAL" },
+    { "id": 8, "id_catalogo": 4, "tipo_midia": "DIGITAL" },
+    { "id": 9, "id_catalogo": 5, "tipo_midia": "DIGITAL" },
+    { "id": 10, "id_catalogo": 6, "tipo_midia": "DIGITAL" }
+  ],
+  "midias_fisicas": [
+    { "id_exemplar": 1, "codigo_barras": "MGS001-BR", "estado_conservacao": "EXCELENTE" },
+    { "id_exemplar": 3, "codigo_barras": "UNCHARTED01-BR", "estado_conservacao": "EXCELENTE" },
+    { "id_exemplar": 4, "codigo_barras": "RE301-BR", "estado_conservacao": "REGULAR" },
+    { "id_exemplar": 5, "codigo_barras": "NFS-BR", "estado_conservacao": "BOM" },
+    { "id_exemplar": 6, "codigo_barras": "SF5-BR", "estado_conservacao": "EXCELENTE" },
+    { "id_exemplar": 6, "codigo_barras": "SF5-BR-2", "estado_conservacao": "BOM" }
+  ],
+  "midias_digitais": [
+    { "id_exemplar": 2, "chave_ativacao": "TOMB-LARA-008", "data_expiracao": "2030-12-31" },
+    { "id_exemplar": 7, "chave_ativacao": "UNCHARTED-DRAKE-009", "data_expiracao": "2030-12-31" },
+    { "id_exemplar": 8, "chave_ativacao": "RE3-JILL-010", "data_expiracao": "2030-12-31" },
+    { "id_exemplar": 9, "chave_ativacao": "NFS-RACHEL-030", "data_expiracao": "2030-12-31" },
+    { "id_exemplar": 10, "chave_ativacao": "SF5-RYU-032", "data_expiracao": "2030-12-31" }
+  ],
+  "reservas": [
+    { "id": 1, "id_cliente": 3, "id_catalogo": 1, "status": "ATIVA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-07" },
+    { "id": 2, "id_cliente": 4, "id_catalogo": 2, "status": "ATIVA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-07" },
+    { "id": 3, "id_cliente": 5, "id_catalogo": 3, "status": "ATIVA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-07" },
+    { "id": 4, "id_cliente": 6, "id_catalogo": 4, "status": "CANCELADA", "data_reserva": "2026-02-28", "data_expiracao": "2026-03-02" },
+    { "id": 5, "id_cliente": 3, "id_catalogo": 5, "status": "ATIVA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-06" },
+    { "id": 6, "id_cliente": 4, "id_catalogo": 6, "status": "ATIVA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-07" },
+    { "id": 7, "id_cliente": 5, "id_catalogo": 6, "status": "ATIVA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-08" }
+  ],
+  "transacoes": [
+    { "id": 1, "valor_total": 150.00, "status": "CONCLUIDA", "id_cliente": 3, "id_funcionario": 1, "data_transacao": "2026-02-18", "tipo": "VENDA" },
+    { "id": 2, "valor_total": 299.90, "status": "CONCLUIDA", "id_cliente": 4, "id_funcionario": 2, "data_transacao": "2026-02-13", "tipo": "VENDA" },
+    { "id": 6, "valor_total": 17.80, "status": "CONCLUIDA", "id_cliente": 5, "id_funcionario": 2, "data_transacao": "2026-02-28", "tipo": "ALUGUEL" },
+    { "id": 7, "valor_total": 6.90, "status": "CONCLUIDA", "id_cliente": 6, "id_funcionario": 2, "data_transacao": "2026-03-05", "tipo": "ALUGUEL" },
+    { "id": 8, "valor_total": 13.80, "status": "CONCLUIDA", "id_cliente": 3, "id_funcionario": 2, "data_transacao": "2026-02-27", "tipo": "ALUGUEL" },
+    { "id": 9, "valor_total": 7.90, "status": "CONCLUIDA", "id_cliente": 4, "id_funcionario": 1, "data_transacao": "2026-03-04", "tipo": "ALUGUEL" }
+  ],
+  "vendas": [
+    { "id_transacao": 1, "status": "FINALIZADA", "data_confirmacao": "2026-02-18" },
+    { "id_transacao": 2, "status": "FINALIZADA", "data_confirmacao": "2026-02-13" }
+  ],
+  "alugueis": [
+    { "id_transacao": 6, "periodo": 2, "data_devolucao": null, "status": "FINALIZADO", "data_inicio": "2026-02-28", "data_prevista_devolucao": "2026-03-02", "id_reserva": null },
+    { "id_transacao": 7, "periodo": 3, "data_devolucao": null, "status": "ATRASADO", "data_inicio": "2026-02-23", "data_prevista_devolucao": "2026-02-26", "id_reserva": null },
+    { "id_transacao": 8, "periodo": 3, "data_devolucao": null, "status": "ATIVO", "data_inicio": "2026-03-02", "data_prevista_devolucao": "2026-03-06", "id_reserva": null },
+    { "id_transacao": 9, "periodo": 2, "data_devolucao": null, "status": "ATIVO", "data_inicio": "2026-03-03", "data_prevista_devolucao": "2026-03-05", "id_reserva": null }
+  ],
+  "itens_transacao": [
+    { "id_transacao": 1, "id_exemplar": 8, "valor_unitario": 150.00 },
+    { "id_transacao": 2, "id_exemplar": 114, "valor_unitario": 8.90 },
+    { "id_transacao": 6, "id_exemplar": 115, "valor_unitario": 9.90 },
+    { "id_transacao": 7, "id_exemplar": 23, "valor_unitario": 99.90 },
+    { "id_transacao": 8, "id_exemplar": 105, "valor_unitario": 6.90 },
+    { "id_transacao": 9, "id_exemplar": 10, "valor_unitario": 6.90 }
+  ],
+  "comprovantes": [
+    { "id_transacao": 1, "tipo": "VENDA", "codigo_rastreio": "TRACK-MARIO-001", "data_envio": "2026-02-18", "tipo_comprovante": "VENDA" },
+    { "id_transacao": 2, "tipo": "VENDA", "codigo_rastreio": "TRACK-KRATOS-004", "data_envio": "2026-02-13", "tipo_comprovante": "VENDA" },
+    { "id_transacao": 6, "tipo": "ALUGUEL", "codigo_rastreio": "TRACK-SNAKE-003", "data_envio": "2026-02-23", "tipo_comprovante": "ALUGUEL" },
+    { "id_transacao": 7, "tipo": "ALUGUEL", "codigo_rastreio": "TRACK-TIFA-005", "data_envio": "2026-03-02", "tipo_comprovante": "ALUGUEL" },
+    { "id_transacao": 8, "tipo": "ALUGUEL", "codigo_rastreio": "TRACK-LUIGI-006", "data_envio": "2026-03-03", "tipo_comprovante": "ALUGUEL" },
+    { "id_transacao": 9, "tipo": "ALUGUEL", "codigo_rastreio": "TRACK-CHIEF-008", "data_envio": "2026-03-04", "tipo_comprovante": "ALUGUEL" }
+  ],
+  "multas": [
+    { "id_aluguel": 7, "dias_atraso": 3, "valor": 38.70, "status": "PENDENTE", "data_calculo": "2026-03-04" },
+    { "id_aluguel": 6, "dias_atraso": 2, "valor": 13.80, "status": "PAGO", "data_calculo": "2026-03-01" }
+  ],
+  "avaliacoes": [
+    { "id_transacao": 1, "nota": 5, "comentario": "Clássico incrível! Mario é foda! - Mario", "data_avaliacao": "2026-02-19" },
+    { "id_transacao": 2, "nota": 4, "comentario": "Muito divertido, mas podia ser mais rápido! - Sonic", "data_avaliacao": "2026-03-01" },
+    { "id_transacao": 3, "nota": 5, "comentario": "Kept you waiting, huh? - Solid Snake", "data_avaliacao": "2026-02-24" },
+    { "id_transacao": 4, "nota": 5, "comentario": "BOY! Excelente jogo! - Kratos", "data_avaliacao": "2026-02-14" },
+    { "id_transacao": 5, "nota": 4, "comentario": "O Cloud ficou lindo em 4K! - Tifa", "data_avaliacao": "2026-03-03" },
+    { "id_transacao": 6, "nota": 3, "comentario": "Por que eu sou sempre o player 2? - Luigi", "data_avaliacao": "2026-03-04" },
+    { "id_transacao": 7, "nota": 5, "comentario": "RIP AND TEAR! - Doomguy", "data_avaliacao": "2026-02-26" },
+    { "id_transacao": 8, "nota": 4, "comentario": "Cortana, me ajuda aqui... - Master Chief", "data_avaliacao": "2026-03-04" },
+    { "id_transacao": 10, "nota": 5, "comentario": "In my restless dreams, I see that town... Silent Hill - Pyramid Head", "data_avaliacao": "2026-03-02" },
+    { "id_transacao": 11, "nota": 5, "comentario": "Requiescat in pace. - Ezio Auditore", "data_avaliacao": "2026-02-22" },
+    { "id_transacao": 12, "nota": 4, "comentario": "Whoa! That was fun! - Crash Bandicoot", "data_avaliacao": "2026-02-28" },
+    { "id_transacao": 13, "nota": 5, "comentario": "Another planet saved. - Samus Aran", "data_avaliacao": "2026-03-04" },
+    { "id_transacao": 14, "nota": 2, "comentario": "Que jogo violento! Final Fight tem muita porradaria. Na minha época, lutávamos com honra no torneio de Mortal Kombat. - Liu Kang", "data_avaliacao": "2026-02-24" }
+  ]
+}
