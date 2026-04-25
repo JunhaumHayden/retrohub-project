@@ -13,7 +13,8 @@ class Funcionario(Usuario):
             email: str = None,
             senha: str = None,
             data_nascimento: date = None,
-            cargo: Optional[str] = None, setor: Optional[str] = None,
+            cargo: Optional[str] = None,
+            setor: Optional[str] = None,
             data_admissao: Optional[date] = None, **kwargs):
         super().__init__(
             id=id_usuario,

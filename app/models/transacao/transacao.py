@@ -14,28 +14,26 @@ class Transacao(ABC):
             self,
             id: int = None,
             valor_total: Optional[Decimal] = None,
-            pagamento: Optional[str] = None,
-            cliente: Optional[Cliente] = None,
-            funcionario: Optional[Funcionario] = None,
-            comprovante: Optional[Comprovante] = None,
-            avaliacao: Optional[Avaliacao] = None,
             tipo: str = "transacao",
             data_transacao: Optional[datetime] = None,
+            status_pagamento: Optional[str] = None,
+            cliente: Optional[Cliente] = None,
+            funcionario: Optional[Funcionario] = None,
+            comprovantes: Optional[Comprovante] = None,
             itens_transacao: Optional[list[ItemTransacao]] = None
     ):
         if type(self) is Transacao:
             raise TypeError("Erro: Operação Não permitida")
 
         self.id = id
-        self.data_transacao = data_transacao or datetime.utcnow()
         self.valor_total = valor_total
-        self.pagamento = pagamento or StatusPagamento.PENDENTE.value
+        self.tipo = tipo
+        self.data_transacao = data_transacao or datetime.utcnow()
+        self.pagamento = status_pagamento or StatusPagamento.PENDENTE.value
         self.cliente = cliente
         self.funcionario = funcionario
-        self.comprovante = comprovante
-        self.avaliacao = avaliacao
+        self.comprovantes = comprovantes or []
         self.itens_transacao = itens_transacao or []
-        self.tipo = tipo
 
     def __repr__(self):
         return f"<{self.__class__.__name__}(id={self.id})>"

@@ -9,8 +9,10 @@ class Multa:
             self,
             id: int = None,
             dias_atraso: Optional[int] = None,
-            valor: Optional[Decimal] = None, status: Optional[str] = None,
-            data_calculo: Optional[date] = None):
+            valor: Optional[Decimal] = None,
+            status: Optional[str] = None,
+            data_calculo: Optional[date] = None
+    ):
         self.id = id
         self.dias_atraso = dias_atraso
         self.valor = valor
