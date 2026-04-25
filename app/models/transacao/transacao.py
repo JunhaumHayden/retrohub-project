@@ -1,23 +1,40 @@
+from abc import ABC
 from datetime import datetime
 from typing import Optional
 from decimal import Decimal
 
-from app.models.enums import StatusTransacao
+from app.models import Comprovante, Avaliacao, ItemTransacao
 from app.models.enums import StatusPagamento
+from app.models.usuario.cliente import Cliente
+from app.models.usuario.funcionario import Funcionario
 
-class Transacao:
-    def __init__(self, id: int = None, valor_total: Optional[Decimal] = None,
-                 pagamento: Optional[str] = None, status: Optional[str] = None, 
-                 id_cliente: Optional[int] = None, id_funcionario: Optional[int] = None, 
-                 tipo: str = "transacao", data_transacao: Optional[datetime] = None):
-        # Removed protection to allow instantiation for data factory
+
+class Transacao(ABC):
+    def __init__(
+            self,
+            id: int = None,
+            valor_total: Optional[Decimal] = None,
+            pagamento: Optional[str] = None,
+            cliente: Optional[Cliente] = None,
+            funcionario: Optional[Funcionario] = None,
+            comprovante: Optional[Comprovante] = None,
+            avaliacao: Optional[Avaliacao] = None,
+            tipo: str = "transacao",
+            data_transacao: Optional[datetime] = None,
+            itens_transacao: Optional[list[ItemTransacao]] = None
+    ):
+        if type(self) is Transacao:
+            raise TypeError("Erro: Operação Não permitida")
+
         self.id = id
         self.data_transacao = data_transacao or datetime.utcnow()
         self.valor_total = valor_total
         self.pagamento = pagamento or StatusPagamento.PENDENTE.value
-        self.status = status or StatusTransacao.PENDENTE.value
-        self.id_cliente = id_cliente
-        self.id_funcionario = id_funcionario
+        self.cliente = cliente
+        self.funcionario = funcionario
+        self.comprovante = comprovante
+        self.avaliacao = avaliacao
+        self.itens_transacao = itens_transacao or []
         self.tipo = tipo
 
     def __repr__(self):

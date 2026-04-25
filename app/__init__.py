@@ -1,5 +1,7 @@
 from flask import Flask
 from flask_restx import Api
+
+from app.container.dependency_container import Container
 from app.routes.clientes_routes import clientes_ns
 from app.routes.funcionarios_routes import funcionarios_ns
 from app.routes.catalogo_routes import catalogo_ns
@@ -20,13 +22,8 @@ def create_app(test_config=None):
     )
 
     # Initialize data factory (mock mode by default)
-    if test_config is None:
-        from app.database.data_factory import data_factory
-        # Data factory is already initialized with mock data
-        pass
-    else:
-        # For testing, you can pass different configurations
-        pass
+    # injeta dependencias nas rotas
+    app.container = Container()
 
     # Registra os namespaces do Flask-RESTX
     api.add_namespace(clientes_ns)

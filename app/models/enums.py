@@ -1,16 +1,10 @@
 from enum import Enum
 
-
-class StatusTransacao(Enum):
-    PENDENTE = 'PENDENTE'
-    CONCLUIDA = 'CONCLUIDA'
-    CANCELADA = 'CANCELADA'
-
-
 class StatusVenda(Enum):
     FINALIZADA = 'FINALIZADA'
     PENDENTE = 'PENDENTE'
     ESTORNADA = 'ESTORNADA'
+    CANCELADA = 'CANCELADA'
 
 
 class StatusAluguel(Enum):
@@ -21,14 +15,12 @@ class StatusAluguel(Enum):
     SOLICITADO = 'SOLICITADO'
     APROVADO = 'APROVADO'
 
-
 class StatusReserva(Enum):
     ATIVA = 'ATIVA'
     PENDENTE = 'PENDENTE'
     CANCELADA = 'CANCELADA'
     EXPIRADA = 'EXPIRADA'
-    CONVERTIDA = 'CONVERTIDA'
-
+    ATENDIDA = 'ATENDIDA'
 
 class StatusPagamento(Enum):
     PENDENTE = 'PENDENTE'
@@ -36,13 +28,11 @@ class StatusPagamento(Enum):
     CANCELADO = 'CANCELADO'
     PAGO = 'PAGO'
 
-
 class TipoComprovante(Enum):
     VENDA = 'VENDA'
     ALUGUEL = 'ALUGUEL'
     RESERVA = 'RESERVA'
     DEVOLUCAO = 'DEVOLUCAO'
-
 
 class TipoCliente(Enum):
     REGULAR = 'REGULAR'

@@ -18,12 +18,12 @@
     { "id_usuario": 6, "dados_pagamento": "Pix - Chave aleatória", "tipo_cliente": "regular" }
   ],
   "catalogo": [
-    { "id": 1, "titulo": "Metal Gear Solid 3: Snake Eater", "descricao": "A origem de Naked Snake e The Boss", "plataforma": "PS2", "genero": "Stealth", "classificacao": "16+", "valor_venda": 89.90, "valor_diaria_aluguel": 5.90, "ativo": true },
-    { "id": 2, "titulo": "Tomb Raider", "descricao": "Lara Croft explora tumbas antigas", "plataforma": "PS4", "genero": "Aventura", "classificacao": "16+", "valor_venda": 129.90, "valor_diaria_aluguel": 6.90, "ativo": true },
-    { "id": 3, "titulo": "Uncharted 4: A Thief's End", "descricao": "Nathan Drake em busca de tesouros", "plataforma": "PS4", "genero": "Aventura", "classificacao": "16+", "valor_venda": null, "valor_diaria_aluguel": 7.90, "ativo": true },
-    { "id": 4, "titulo": "Resident Evil 3", "descricao": "Jill Valentine enfrenta Nemesis", "plataforma": "PS1", "genero": "Survival Horror", "classificacao": "18+", "valor_venda": 89.90, "valor_diaria_aluguel": 5.90, "ativo": true },
-    { "id": 5, "titulo": "Need for Speed: Heat", "descricao": "Corrida de rua e perseguição policial", "plataforma": "PS4", "genero": "Corrida", "classificacao": "14+", "valor_venda": 129.90, "valor_diaria_aluguel": 6.90, "ativo": true },
-    { "id": 6, "titulo": "Street Fighter V", "descricao": "Ryu, Ken e Chun-Li no torneio definitivo", "plataforma": "PS4", "genero": "Luta", "classificacao": "12+", "valor_venda": 79.90, "valor_diaria_aluguel": 5.90, "ativo": true }
+    { "id": 1, "titulo": "Metal Gear Solid 3: Snake Eater", "descricao": "A origem de Naked Snake e The Boss", "genero": "Stealth", "classificacao": "16+", "situacao": "DISPONIVEL" },
+    { "id": 2, "titulo": "Tomb Raider", "descricao": "Lara Croft explora tumbas antigas", "genero": "Aventura", "classificacao": "16+", "situacao": "DISPONIVEL" },
+    { "id": 3, "titulo": "Uncharted 4: A Thief's End", "descricao": "Nathan Drake em busca de tesouros", "genero": "Aventura", "classificacao": "16+", "situacao": "DISPONIVEL" },
+    { "id": 4, "titulo": "Resident Evil 3", "descricao": "Jill Valentine enfrenta Nemesis", "genero": "Survival Horror", "classificacao": "18+", "situacao": "DISPONIVEL" },
+    { "id": 5, "titulo": "Need for Speed: Heat", "descricao": "Corrida de rua e perseguição policial", "genero": "Corrida", "classificacao": "14+", "situacao": "DISPONIVEL" },
+    { "id": 6, "titulo": "Street Fighter V", "descricao": "Ryu, Ken e Chun-Li no torneio definitivo", "genero": "Luta", "classificacao": "12+", "situacao": "DISPONIVEL" }
   ],
   "exemplares": [
     { "id": 1, "id_catalogo": 1, "tipo_midia": "FISICA" },
@@ -38,36 +38,36 @@
     { "id": 10, "id_catalogo": 6, "tipo_midia": "DIGITAL" }
   ],
   "midias_fisicas": [
-    { "id_exemplar": 1, "codigo_barras": "MGS001-BR", "estado_conservacao": "EXCELENTE" },
-    { "id_exemplar": 3, "codigo_barras": "UNCHARTED01-BR", "estado_conservacao": "EXCELENTE" },
-    { "id_exemplar": 4, "codigo_barras": "RE301-BR", "estado_conservacao": "REGULAR" },
-    { "id_exemplar": 5, "codigo_barras": "NFS-BR", "estado_conservacao": "BOM" },
-    { "id_exemplar": 6, "codigo_barras": "SF5-BR", "estado_conservacao": "EXCELENTE" },
-    { "id_exemplar": 6, "codigo_barras": "SF5-BR-2", "estado_conservacao": "BOM" }
+    { "id_exemplar": 1, "codigo_barras": "MGS001-BR", "plataforma": "PS2", "valor_venda": 89.90, "valor_diaria_aluguel": 5.90, "estado_conservacao": "EXCELENTE" },
+    { "id_exemplar": 3, "codigo_barras": "UNCHARTED01-BR", "plataforma": "PS4", "valor_venda": null, "valor_diaria_aluguel": 7.90, "estado_conservacao": "EXCELENTE" },
+    { "id_exemplar": 4, "codigo_barras": "RE301-BR", "plataforma": "PS1", "valor_venda": 89.90, "valor_diaria_aluguel": 5.90, "estado_conservacao": "REGULAR" },
+    { "id_exemplar": 5, "codigo_barras": "NFS-BR", "plataforma": "PS4", "valor_venda": 129.90, "valor_diaria_aluguel": 6.90, "estado_conservacao": "BOM" },
+    { "id_exemplar": 6, "codigo_barras": "SF5-BR", "plataforma": "PS4", "valor_venda": 79.90, "valor_diaria_aluguel": 5.90, "estado_conservacao": "EXCELENTE" },
+    { "id_exemplar": 6, "codigo_barras": "SF5-BR-2", "plataforma": "PS4", "valor_venda": 50.20, "valor_diaria_aluguel": 5.90, "estado_conservacao": "BOM" }
   ],
   "midias_digitais": [
-    { "id_exemplar": 2, "chave_ativacao": "TOMB-LARA-008", "data_expiracao": "2030-12-31" },
-    { "id_exemplar": 7, "chave_ativacao": "UNCHARTED-DRAKE-009", "data_expiracao": "2030-12-31" },
-    { "id_exemplar": 8, "chave_ativacao": "RE3-JILL-010", "data_expiracao": "2030-12-31" },
-    { "id_exemplar": 9, "chave_ativacao": "NFS-RACHEL-030", "data_expiracao": "2030-12-31" },
-    { "id_exemplar": 10, "chave_ativacao": "SF5-RYU-032", "data_expiracao": "2030-12-31" }
+    { "id_exemplar": 2, "chave_ativacao": "TOMB-LARA-008", "plataforma": "Windows", "valor_venda": 129.90, "valor_diaria_aluguel": 6.90, "data_expiracao": "2030-12-31" },
+    { "id_exemplar": 7, "chave_ativacao": "UNCHARTED-DRAKE-009", "plataforma": "Windows", "valor_venda": 129.90, "valor_diaria_aluguel": 6.90, "data_expiracao": "2030-12-31" },
+    { "id_exemplar": 8, "chave_ativacao": "RE3-JILL-010", "plataforma": "Windows", "valor_venda": 129.90, "valor_diaria_aluguel": 6.90, "data_expiracao": "2030-12-31" },
+    { "id_exemplar": 9, "chave_ativacao": "NFS-RACHEL-030", "plataforma": "Windows", "valor_venda": 129.90, "valor_diaria_aluguel": 6.90, "data_expiracao": "2030-12-31" },
+    { "id_exemplar": 10, "chave_ativacao": "SF5-RYU-032", "plataforma": "Windows", "valor_venda": 129.90, "valor_diaria_aluguel": 6.90, "data_expiracao": "2030-12-31" }
   ],
   "reservas": [
     { "id": 1, "id_cliente": 3, "id_catalogo": 1, "status": "ATIVA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-07" },
     { "id": 2, "id_cliente": 4, "id_catalogo": 2, "status": "ATIVA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-07" },
     { "id": 3, "id_cliente": 5, "id_catalogo": 3, "status": "ATIVA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-07" },
     { "id": 4, "id_cliente": 6, "id_catalogo": 4, "status": "CANCELADA", "data_reserva": "2026-02-28", "data_expiracao": "2026-03-02" },
-    { "id": 5, "id_cliente": 3, "id_catalogo": 5, "status": "ATIVA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-06" },
-    { "id": 6, "id_cliente": 4, "id_catalogo": 6, "status": "ATIVA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-07" },
-    { "id": 7, "id_cliente": 5, "id_catalogo": 6, "status": "ATIVA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-08" }
+    { "id": 5, "id_cliente": 3, "id_catalogo": 5, "status": "ATENDIDA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-06" },
+    { "id": 6, "id_cliente": 4, "id_catalogo": 6, "status": "PENDENTE", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-07" },
+    { "id": 7, "id_cliente": 5, "id_catalogo": 6, "status": "EXPIRADA", "data_reserva": "2026-03-05", "data_expiracao": "2026-03-08" }
   ],
   "transacoes": [
-    { "id": 1, "valor_total": 150.00, "status": "CONCLUIDA", "id_cliente": 3, "id_funcionario": 1, "data_transacao": "2026-02-18", "tipo": "VENDA" },
-    { "id": 2, "valor_total": 299.90, "status": "CONCLUIDA", "id_cliente": 4, "id_funcionario": 2, "data_transacao": "2026-02-13", "tipo": "VENDA" },
-    { "id": 6, "valor_total": 17.80, "status": "CONCLUIDA", "id_cliente": 5, "id_funcionario": 2, "data_transacao": "2026-02-28", "tipo": "ALUGUEL" },
-    { "id": 7, "valor_total": 6.90, "status": "CONCLUIDA", "id_cliente": 6, "id_funcionario": 2, "data_transacao": "2026-03-05", "tipo": "ALUGUEL" },
-    { "id": 8, "valor_total": 13.80, "status": "CONCLUIDA", "id_cliente": 3, "id_funcionario": 2, "data_transacao": "2026-02-27", "tipo": "ALUGUEL" },
-    { "id": 9, "valor_total": 7.90, "status": "CONCLUIDA", "id_cliente": 4, "id_funcionario": 1, "data_transacao": "2026-03-04", "tipo": "ALUGUEL" }
+    { "id": 1, "valor_total": 150.00, "id_cliente": 3, "id_funcionario": 1, "data_transacao": "2026-02-18", "tipo": "VENDA" },
+    { "id": 2, "valor_total": 299.90, "id_cliente": 4, "id_funcionario": 2, "data_transacao": "2026-02-13", "tipo": "VENDA" },
+    { "id": 6, "valor_total": 17.80, "id_cliente": 5, "id_funcionario": 2, "data_transacao": "2026-02-28", "tipo": "ALUGUEL" },
+    { "id": 7, "valor_total": 6.90, "id_cliente": 6, "id_funcionario": 2, "data_transacao": "2026-03-05", "tipo": "ALUGUEL" },
+    { "id": 8, "valor_total": 13.80, "id_cliente": 3, "id_funcionario": 2, "data_transacao": "2026-02-27", "tipo": "ALUGUEL" },
+    { "id": 9, "valor_total": 7.90, "id_cliente": 4, "id_funcionario": 1, "data_transacao": "2026-03-04", "tipo": "ALUGUEL" }
   ],
   "vendas": [
     { "id_transacao": 1, "status": "FINALIZADA", "data_confirmacao": "2026-02-18" },
