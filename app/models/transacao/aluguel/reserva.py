@@ -1,18 +1,24 @@
-from datetime import date
-from typing import Optional
+from __future__ import annotations
 
-from app.models import Catalogo, Cliente
+from datetime import date
+from typing import TYPE_CHECKING, Optional
+
 from app.models.enums import StatusReserva
+
+if TYPE_CHECKING:
+    from app.models.catalogo.catalogo import Catalogo
+    from app.models.usuario.cliente import Cliente
+
 
 class Reserva:
     def __init__(
             self,
             id: int,
-            cliente: Cliente,
-            catalogo: Catalogo,
-            status: Optional[str],
-            data_reserva: Optional[date],
-            data_expiracao: Optional[date] = None
+            cliente: Optional["Cliente"] = None,
+            catalogo: Optional["Catalogo"] = None,
+            status: Optional[str] = None,
+            data_reserva: Optional[date] = None,
+            data_expiracao: Optional[date] = None,
     ):
         self.id = id
         self.cliente = cliente

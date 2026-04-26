@@ -33,6 +33,7 @@ class MockDataSource(DataSourceInterface):
     def __init__(self):
         self._data: Dict[str, List[Any]] = {}
         self._loaded = False
+        self._relations_built = False
         self._id_counters: Dict[str, int] = {}
         self._entity_type_mapping: Dict[str, Type] = {
             'usuarios': Usuario,
@@ -141,28 +142,96 @@ class MockDataSource(DataSourceInterface):
             self._data_cache['avaliacoes'] = self._create_avaliacoes(json_data.get('avaliacoes', []))
 
     def _build_relations(self):
-        """Build relationships between entities"""
-        if self._relations_built:
+        """Resolve todas as chaves estrangeiras pendentes em referências reais.
+
+        Esse método é chamado depois que TODAS as entidades foram instanciadas
+        em ``load_data``. Ele lê os atributos ``_pending_id_*`` que foram
+        marcados pelos métodos ``_create_*`` e popula os atributos de
+        navegação (``cliente``, ``funcionario``, ``transacao``, etc.) com os
+        objetos correspondentes.
+        """
+        if getattr(self, "_relations_built", False):
             return
 
-        # Build catalogo-exemplares relationships
+        # Índices auxiliares por id, para lookup O(1)
         catalogo_dict = {c.id: c for c in self._data["catalogo"]}
-        
-        # Resolve catalogo references in midias_fisicas
-        for midia in self._data["midias_fisicas"]:
+        cliente_dict = {c.id: c for c in self._data["clientes"]}
+        funcionario_dict = {f.id: f for f in self._data["funcionarios"]}
+        venda_dict = {v.id: v for v in self._data["vendas"]}
+        aluguel_dict = {a.id: a for a in self._data["alugueis"]}
+        reserva_dict = {r.id: r for r in self._data["reservas"]}
+
+        # Vista unificada de transações: vendas ∪ aluguéis (ambas extends Transacao).
+        transacao_dict = {**venda_dict, **aluguel_dict}
+
+        midias_fisicas = self._data["midias_fisicas"]
+        midias_digitais = self._data["midias_digitais"]
+        exemplar_dict = {m.id: m for m in (*midias_fisicas, *midias_digitais)}
+
+        for midia in (*midias_fisicas, *midias_digitais):
             if hasattr(midia, 'catalogo_ref') and midia.catalogo_ref:
                 catalogo = catalogo_dict.get(midia.catalogo_ref.id)
                 if catalogo:
                     midia.catalogo_ref.set_catalogo(catalogo)
                     catalogo.add_exemplar(midia)
-        
-        # Resolve catalogo references in midias_digitais
-        for midia in self._data["midias_digitais"]:
-            if hasattr(midia, 'catalogo_ref') and midia.catalogo_ref:
-                catalogo = catalogo_dict.get(midia.catalogo_ref.id)
-                if catalogo:
-                    midia.catalogo_ref.set_catalogo(catalogo)
-                    catalogo.add_exemplar(midia)
+
+        for reserva in self._data["reservas"]:
+            reserva.cliente = cliente_dict.get(
+                getattr(reserva, "_pending_id_cliente", None)
+            )
+            reserva.catalogo = catalogo_dict.get(
+                getattr(reserva, "_pending_id_catalogo", None)
+            )
+
+        for transacao in (*self._data["vendas"], *self._data["alugueis"]):
+            transacao.cliente = cliente_dict.get(
+                getattr(transacao, "_pending_id_cliente", None)
+            )
+            transacao.funcionario = funcionario_dict.get(
+                getattr(transacao, "_pending_id_funcionario", None)
+            )
+
+        for aluguel in self._data["alugueis"]:
+            aluguel.reserva = reserva_dict.get(
+                getattr(aluguel, "_pending_id_reserva", None)
+            )
+
+        for item in self._data["itens_transacao"]:
+            transacao = transacao_dict.get(
+                getattr(item, "_pending_id_transacao", None)
+            )
+            exemplar = exemplar_dict.get(
+                getattr(item, "_pending_id_exemplar", None)
+            )
+            item.exemplar = exemplar
+            if transacao is not None:
+                transacao.adicionar_item(item)
+
+        for comprovante in self._data["comprovantes"]:
+            transacao = transacao_dict.get(
+                getattr(comprovante, "_pending_id_transacao", None)
+            )
+            if transacao is not None:
+                transacao.adicionar_comprovante(comprovante)
+
+        for avaliacao in self._data["avaliacoes"]:
+            transacao = transacao_dict.get(
+                getattr(avaliacao, "_pending_id_transacao", None)
+            )
+            avaliacao.transacao = transacao
+            if transacao is not None:
+                transacao.avaliacao = avaliacao
+
+        for multa in self._data["multas"]:
+            aluguel = aluguel_dict.get(
+                getattr(multa, "_pending_id_aluguel", None)
+            )
+            if aluguel is not None:
+                aluguel.multa_aplicada = multa
+
+        # Mantém a chave "transacoes" como visão unificada para consultas
+        # genéricas via get_all(Transacao).
+        self._data["transacoes"] = list(transacao_dict.values())
 
         self._relations_built = True
 
@@ -284,141 +353,208 @@ class MockDataSource(DataSourceInterface):
         return midias
 
     def _create_reservas(self, reservas_data: List[Dict]) -> List[Reserva]:
-        """Create Reserva objects"""
+        """Create Reserva objects.
+
+        Os IDs estrangeiros (cliente, catalogo) são armazenados em atributos
+        privados (``_pending_id_*``) para serem resolvidos em
+        ``_build_relations`` após o carregamento completo.
+        """
         reservas = []
         for data in reservas_data:
             reserva = Reserva(
                 id=data['id'],
-                cliente=data.get('id_cliente'),
-                catalogo=data.get('id_catalogo'),
                 status=data.get('status'),
                 data_reserva=self._parse_date(data.get('data_reserva')),
-                data_expiracao=self._parse_date(data.get('data_expiracao'))
+                data_expiracao=self._parse_date(data.get('data_expiracao')),
             )
+            reserva._pending_id_cliente = data.get('id_cliente')
+            reserva._pending_id_catalogo = data.get('id_catalogo')
             reservas.append(reserva)
         return reservas
 
     def _create_transacoes(self, transacoes_data: List[Dict]) -> List[Transacao]:
-        """Create Transacao objects"""
-        transacoes = []
-        for data in transacoes_data:
-            transacao = Transacao(
-                id=data['id'],
-                valor_total=self._parse_decimal(data.get('valor_total')),
-                tipo=data['tipo'],
-                data_transacao=self._parse_datetime(data.get('data_transacao')),
-                status_pagamento=data.get('status_pagamento'),
-                cliente=data.get('id_cliente'),
-                funcionario=data.get('id_funcionario'),
-                comprovante=data.get('id_comprovante'),
-                itens_transacao=data.get('itens_transacao')
-            )
-            transacoes.append(transacao)
-        return transacoes
+        """Não cria nada: as transações são instanciadas em
+        ``_create_vendas`` e ``_create_alugueis`` (subclasses concretas).
+
+        Mantemos o método para compatibilidade com ``load_data``, mas o
+        índice ``self._data["transacoes"]`` é populado em ``_build_relations``
+        como a união das vendas e aluguéis.
+        """
+        return []
 
     def _create_vendas(self, vendas_data: List[Dict]) -> List[Venda]:
-        """Create Venda objects"""
+        """Cria objetos Venda a partir do JSON.
+
+        Combina os dados específicos de venda (status, data_confirmacao) com
+        os dados base da transação correspondente (id_cliente, valor_total,
+        etc.) usando o ``id_transacao`` como chave.
+        """
+        transacoes_dict = {
+            t['id']: t for t in self._load_json_data().get('transacoes', [])
+        }
+
         vendas = []
         for data in vendas_data:
+            transacao_data = transacoes_dict.get(data['id_transacao'], {})
             venda = Venda(
                 id_transacao=data['id_transacao'],
                 status=data.get('status'),
-                data_confirmacao=self._parse_date(data.get('data_confirmacao'))
+                data_confirmacao=self._parse_date(data.get('data_confirmacao')),
+                valor_total=self._parse_decimal(transacao_data.get('valor_total')),
+                data_transacao=self._parse_datetime(transacao_data.get('data_transacao')),
+                status_pagamento=transacao_data.get('status_pagamento'),
             )
+            venda._pending_id_cliente = transacao_data.get('id_cliente')
+            venda._pending_id_funcionario = transacao_data.get('id_funcionario')
             vendas.append(venda)
         return vendas
 
     def _create_alugueis(self, alugueis_data: List[Dict]) -> List[Aluguel]:
-        """Create Aluguel objects"""
+        """Cria objetos Aluguel combinando dados específicos de aluguel com
+        os dados base da transação correspondente.
+        """
+        transacoes_dict = {
+            t['id']: t for t in self._load_json_data().get('transacoes', [])
+        }
+
         alugueis = []
         for data in alugueis_data:
+            transacao_data = transacoes_dict.get(data['id_transacao'], {})
             aluguel = Aluguel(
                 id_transacao=data['id_transacao'],
+                valor_total=self._parse_decimal(transacao_data.get('valor_total')),
+                data_transacao=self._parse_datetime(transacao_data.get('data_transacao')),
+                status_pagamento=transacao_data.get('status_pagamento'),
                 periodo=data.get('periodo'),
                 data_devolucao=self._parse_date(data.get('data_devolucao')),
                 status=data.get('status'),
-                id_reserva=data.get('id_reserva'),
                 data_inicio=self._parse_date(data.get('data_inicio')),
-                data_prevista_devolucao=self._parse_date(data.get('data_prevista_devolucao'))
+                data_prevista_devolucao=self._parse_date(
+                    data.get('data_prevista_devolucao')
+                ),
             )
+            aluguel._pending_id_cliente = transacao_data.get('id_cliente')
+            aluguel._pending_id_funcionario = transacao_data.get('id_funcionario')
+            aluguel._pending_id_reserva = data.get('id_reserva')
             alugueis.append(aluguel)
         return alugueis
 
     def _create_itens_transacao(self, itens_data: List[Dict]) -> List[ItemTransacao]:
-        """Create ItemTransacao objects"""
+        """Cria objetos ItemTransacao com FKs pendentes."""
         itens = []
         for data in itens_data:
             item = ItemTransacao(
-                id=data['id'] if 'id' in data else None,  # Some items might not have ID
-                id_transacao=data['id_transacao'],
-                id_exemplar=data['id_exemplar'],
-                valor_unitario=self._parse_decimal(data.get('valor_unitario'))
+                id=data.get('id'),
+                valor_unitario=self._parse_decimal(data.get('valor_unitario')),
+                quantidade=data.get('quantidade', 1),
             )
+            item._pending_id_transacao = data.get('id_transacao')
+            item._pending_id_exemplar = data.get('id_exemplar')
             itens.append(item)
         return itens
 
     def _create_comprovantes(self, comprovantes_data: List[Dict]) -> List[Comprovante]:
-        """Create Comprovante objects"""
+        """Cria objetos Comprovante com FK ``id_transacao`` pendente."""
         comprovantes = []
         for data in comprovantes_data:
             comprovante = Comprovante(
-                id=data['id'] if 'id' in data else None,
-                id_transacao=data['id_transacao'],
+                id=data.get('id'),
                 tipo=data.get('tipo'),
                 data_envio=self._parse_datetime(data.get('data_envio')),
                 tipo_comprovante=data.get('tipo_comprovante'),
-                codigo_rastreio=data.get('codigo_rastreio')
+                codigo_rastreio=data.get('codigo_rastreio'),
             )
+            comprovante._pending_id_transacao = data.get('id_transacao')
             comprovantes.append(comprovante)
         return comprovantes
 
     def _create_multas(self, multas_data: List[Dict]) -> List[Multa]:
-        """Create Multa objects"""
+        """Cria objetos Multa.
+
+        Se a multa estiver vinculada a um aluguel (campo ``id_aluguel`` no
+        JSON), mantém a FK pendente para resolução posterior.
+        """
         multas = []
         for data in multas_data:
             multa = Multa(
-                id=data['id'] if 'id' in data else None,
+                id=data.get('id'),
                 dias_atraso=data.get('dias_atraso'),
                 valor=self._parse_decimal(data.get('valor')),
                 status=data.get('status'),
-                data_calculo=self._parse_date(data.get('data_calculo'))
+                data_calculo=self._parse_date(data.get('data_calculo')),
             )
+            multa._pending_id_aluguel = data.get('id_aluguel')
             multas.append(multa)
         return multas
 
     def _create_avaliacoes(self, avaliacoes_data: List[Dict]) -> List[Avaliacao]:
-        """Create Avaliacao objects"""
+        """Cria objetos Avaliacao com FK ``id_transacao`` pendente."""
         avaliacoes = []
         for data in avaliacoes_data:
             avaliacao = Avaliacao(
-                id=data['id'] if 'id' in data else None,
-                transacao=data['id_transacao'],
+                id=data.get('id'),
                 nota=data.get('nota'),
                 comentario=data.get('comentario'),
-                data_avaliacao=self._parse_date(data.get('data_avaliacao'))
+                data_avaliacao=self._parse_date(data.get('data_avaliacao')),
             )
+            avaliacao._pending_id_transacao = data.get('id_transacao')
             avaliacoes.append(avaliacao)
         return avaliacoes
 
     def _initialize_id_counters(self) -> None:
-        """Initialize ID counters based on current data"""
+        """Inicializa o contador de IDs por tipo de entidade.
+
+        Trata entidades sem ``id`` (ou ``id is None``) como id=0, evitando
+        ``TypeError`` ao comparar ``None`` no ``max(...)``.
+        """
         for entity_type, entities in self._data.items():
-            if entities:
-                max_id = max(getattr(entity, 'id', 0) for entity in entities if hasattr(entity, 'id'))
-                self._id_counters[entity_type] = max_id
-            else:
-                self._id_counters[entity_type] = 0
+            ids = [getattr(e, 'id', None) or 0 for e in entities]
+            self._id_counters[entity_type] = max(ids) if ids else 0
 
     def _get_entity_key(self, entity_type: Type[T]) -> str:
-        """Get the storage key for an entity type"""
+        """Retorna a chave de armazenamento para um tipo de entidade.
+
+        Faz duas passagens: primeiro busca correspondência EXATA de tipo
+        (para diferenciar ``Cliente`` de ``Usuario``, ``Venda`` de
+        ``Transacao``, etc.), só então cai para correspondência por
+        subclasse. Sem isso, ``Cliente`` resolveria para a chave
+        ``"usuarios"`` (que não é onde clientes ficam armazenados).
+        """
         for key, mapped_type in self._entity_type_mapping.items():
-            if mapped_type == entity_type or issubclass(entity_type, mapped_type):
+            if mapped_type is entity_type:
                 return key
+        for key, mapped_type in self._entity_type_mapping.items():
+            try:
+                if issubclass(entity_type, mapped_type):
+                    return key
+            except TypeError:
+                continue
         raise ValueError(f"Unknown entity type: {entity_type}")
 
     def get_all(self, entity_type: Type[T]) -> List[T]:
-        """Get all entities of a specific type"""
+        """Get all entities of a specific type.
+
+        Casos especiais (abstratos):
+        - ``Exemplar`` -> união de ``midias_fisicas`` + ``midias_digitais``.
+        - ``Transacao`` -> união de ``vendas`` + ``alugueis``.
+        - ``Usuario`` -> união de ``clientes`` + ``funcionarios``.
+        """
         self._ensure_loaded()
+        if entity_type is Exemplar:
+            return [
+                *self._data.get('midias_fisicas', []),
+                *self._data.get('midias_digitais', []),
+            ]
+        if entity_type is Transacao:
+            return [
+                *self._data.get('vendas', []),
+                *self._data.get('alugueis', []),
+            ]
+        if entity_type is Usuario:
+            return [
+                *self._data.get('clientes', []),
+                *self._data.get('funcionarios', []),
+            ]
         key = self._get_entity_key(entity_type)
         return self._data.get(key, [])
 

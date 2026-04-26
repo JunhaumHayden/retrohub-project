@@ -144,7 +144,7 @@ class TestCatalogoService:
             
             update_data = {'titulo': second_catalogo.titulo}
             
-            with pytest.raises(ValueError, match="Email .* já está em uso"):
+            with pytest.raises(ValueError, match="Jogo com título .* já existe"):
                 service.update(first_catalogo.id, update_data)
 
     def test_delete_catalogo_success(self, service):

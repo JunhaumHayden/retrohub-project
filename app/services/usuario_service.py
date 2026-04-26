@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from typing import List, Optional
 
 from app.models.usuario.usuario import Usuario
@@ -5,6 +6,16 @@ from app.models.usuario.cliente import Cliente
 from app.models.usuario.funcionario import Funcionario
 from app.repository.interface.usuario_repository_interface import UsuarioRepositoryInterface
 from app.models.enums import TipoCliente
+
+
+def _user_lookup(*, cpf: Optional[str] = None, email: Optional[str] = None) -> SimpleNamespace:
+    """Cria um objeto duck-typed para passar ao ``repository.get_by_user``.
+
+    `Usuario` é abstrato e não pode ser instanciado, então usamos um
+    ``SimpleNamespace`` que expõe apenas os campos que o repositório lê
+    (``cpf`` e/ou ``email``).
+    """
+    return SimpleNamespace(cpf=cpf, email=email)
 
 
 class UsuarioService:
@@ -48,8 +59,7 @@ class UsuarioService:
             return cliente
         
         # Try funcionario by CPF through get_by_user
-        temp_usuario = Usuario(cpf=cpf)
-        return self.repository.get_by_user(temp_usuario)
+        return self.repository.get_by_user(_user_lookup(cpf=cpf))
 
     def get_funcionario_by_matricula(self, matricula: str) -> Optional[Funcionario]:
         """Get funcionario by matricula"""
@@ -73,8 +83,7 @@ class UsuarioService:
             raise ValueError(f"Cliente com CPF '{cliente.cpf}' já existe")
         
         # Check if email already exists
-        temp_usuario = Usuario(email=cliente.email)
-        existing_email = self.repository.get_by_user(temp_usuario)
+        existing_email = self.repository.get_by_user(_user_lookup(email=cliente.email))
         if existing_email:
             raise ValueError(f"Email '{cliente.email}' já está em uso")
         
@@ -99,14 +108,12 @@ class UsuarioService:
             raise ValueError("Matrícula é obrigatória")
         
         # Check if CPF already exists
-        temp_usuario = Usuario(cpf=funcionario.cpf)
-        existing = self.repository.get_by_user(temp_usuario)
+        existing = self.repository.get_by_user(_user_lookup(cpf=funcionario.cpf))
         if existing:
             raise ValueError(f"Funcionário com CPF '{funcionario.cpf}' já existe")
         
         # Check if email already exists
-        temp_usuario = Usuario(email=funcionario.email)
-        existing_email = self.repository.get_by_user(temp_usuario)
+        existing_email = self.repository.get_by_user(_user_lookup(email=funcionario.email))
         if existing_email:
             raise ValueError(f"Email '{funcionario.email}' já está em uso")
         
@@ -130,14 +137,15 @@ class UsuarioService:
             new_email = usuario_data['email']
             # Check if email is being changed and if new email already exists
             if new_email != usuario.email:
-                temp_usuario = Usuario(email=new_email)
-                existing = self.repository.get_by_user(temp_usuario)
+                existing = self.repository.get_by_user(_user_lookup(email=new_email))
                 if existing and existing.id != id:
                     raise ValueError(f"Email '{new_email}' já está em uso")
             usuario.email = new_email
         if 'senha' in usuario_data:
             usuario.senha = usuario_data['senha']
-        
+        if 'data_nascimento' in usuario_data:
+            usuario.data_nascimento = usuario_data['data_nascimento']
+
         # Update cliente-specific fields
         if isinstance(usuario, Cliente):
             if 'dados_pagamento' in usuario_data:
@@ -151,6 +159,8 @@ class UsuarioService:
                 usuario.cargo = usuario_data['cargo']
             if 'setor' in usuario_data:
                 usuario.setor = usuario_data['setor']
+            if 'data_admissao' in usuario_data:
+                usuario.data_admissao = usuario_data['data_admissao']
             if 'matricula' in usuario_data:
                 new_matricula = usuario_data['matricula']
                 # Check if matricula is being changed and if new matricula already exists

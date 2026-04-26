@@ -4,8 +4,15 @@ from flask import request
 from flask_restx import Namespace, Resource, fields
 
 from app.models import Cliente, Catalogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao, Funcionario
-from app.database.MockDataSource import MockDataSource
-from app.services.aluguel_service import registrar_retirada, registrar_devolucao
+from app.container.container import container
+try:
+    from app.services.aluguel_service import registrar_retirada, registrar_devolucao
+except Exception:  # pragma: no cover - service legado pode estar indisponível em mock
+    def registrar_retirada(*_args, **_kwargs):
+        return None, "Operação de retirada indisponível no modo mock."
+
+    def registrar_devolucao(*_args, **_kwargs):
+        return None, "Operação de devolução indisponível no modo mock."
 
 # Criar namespace para aluguéis
 alugueis_ns = Namespace('alugueis', description='Operações relacionadas aos aluguéis de jogos', path='/api/alugueis')
@@ -25,8 +32,18 @@ aluguel_model = alugueis_ns.model('Aluguel', {
 })
 
 aluguel_solicitacao_model = alugueis_ns.model('AluguelSolicitacao', {
-    'itens': fields.List(fields.Integer, required=True, description='Lista de IDs dos jogos do catálogo'),
-    'tipo_midia': fields.String(required=True, description='Tipo de mídia (FISICO ou DIGITAL)')
+    'id_jogo': fields.Integer(required=True, description='ID do jogo no catálogo'),
+    'dias_alugados': fields.Integer(required=True, description='Período do aluguel em dias (1-30)'),
+    'data_inicio': fields.String(required=True, description='Data de início do aluguel (YYYY-MM-DD)'),
+    'tipo_midia': fields.String(required=True, description='Tipo de mídia (FISICA ou DIGITAL)')
+})
+
+aluguel_devolucao_model = alugueis_ns.model('AluguelDevolucao', {
+    'condicao_item': fields.String(required=True, description='Condição do item devolvido (EXCELENTE/BOM/REGULAR/RUIM)')
+})
+
+aluguel_renovacao_model = alugueis_ns.model('AluguelRenovacao', {
+    'dias_adicionais': fields.Integer(required=True, description='Número de dias adicionais (1-30)')
 })
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -41,10 +58,10 @@ def get_cliente_from_header():
     except ValueError:
         return None, "X-Cliente-Id inválido."
     
-    cliente = MockDataSource.get_by_id(Cliente, cliente_id)
+    cliente = container.data_source.get_by_id(Cliente, cliente_id)
     if not cliente:
         return None, "Cliente não cadastrado ou não encontrado."
-    
+
     return cliente, None
 
 def get_funcionario_from_header():
@@ -57,19 +74,19 @@ def get_funcionario_from_header():
         func_id = int(func_id)
     except ValueError:
         return None, "O ID do funcionário deve ser um número inteiro."
-    funcionario = MockDataSource.get_by_id(Funcionario, func_id)
+    funcionario = container.data_source.get_by_id(Funcionario, func_id)
     if not funcionario:
         return None, "Funcionário não encontrado."
     return funcionario, None
 
 def find_exemplar_disponivel(id_catalogo, tipo_midia):
     """Find available exemplar for rental"""
-    exemplares = MockDataSource.get_all(Exemplar)
-    alugueis = MockDataSource.get_all(Aluguel)
-    vendas = MockDataSource.get_all(Venda)
-    itens_transacao = MockDataSource.get_all(ItemTransacao)
-    midias_digitais = MockDataSource.get_all(MidiaDigital)
-    midias_fisicas = MockDataSource.get_all(MidiaFisica)
+    exemplares = container.data_source.get_all(Exemplar)
+    alugueis = container.data_source.get_all(Aluguel)
+    vendas = container.data_source.get_all(Venda)
+    itens_transacao = container.data_source.get_all(ItemTransacao)
+    midias_digitais = container.data_source.get_all(MidiaDigital)
+    midias_fisicas = container.data_source.get_all(MidiaFisica)
     
     # Get occupied exemplar IDs from active rentals
     alugueis_ativos_ids = {a.id for a in alugueis if a.status in ['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO']}
@@ -98,6 +115,19 @@ def find_exemplar_disponivel(id_catalogo, tipo_midia):
     
     return exemplares_disponiveis[0] if exemplares_disponiveis else None
 
+def _multa_to_float(multa):
+    """Converte uma multa (Decimal/float/objeto Multa) para float JSON-friendly."""
+    if multa is None:
+        return None
+    valor = getattr(multa, "valor", multa)
+    if valor is None:
+        return None
+    try:
+        return float(valor)
+    except (TypeError, ValueError):
+        return None
+
+
 def serialize_aluguel(aluguel: Aluguel):
     return {
         "id_transacao": aluguel.id,
@@ -114,7 +144,7 @@ def serialize_aluguel(aluguel: Aluguel):
         "data_retirada": aluguel.data_retirada.isoformat() if getattr(aluguel, 'data_retirada', None) else None,
         "condicao_item": getattr(aluguel, "condicao_item", None),
         "id_funcionario_recebimento": getattr(aluguel, "id_funcionario_recebimento", None),
-        "multa_aplicada": float(aluguel.multa_aplicada) if getattr(aluguel, "multa_aplicada", None) is not None else None,
+        "multa_aplicada": _multa_to_float(getattr(aluguel, "multa_aplicada", None)),
         "multa_paga": aluguel.multa_paga if getattr(aluguel, "multa_paga", None) is not None else None,
         "dias_atraso": getattr(aluguel, "dias_atraso", None),
         "status_aluguel": getattr(aluguel, 'status', 'ATIVO')
@@ -150,7 +180,7 @@ class SolicitarAluguelResource(Resource):
             if data_inicio < date.today():
                 return {"erro": "A data de início não pode ser anterior à data atual."}, 400
 
-            jogo = MockDataSource.get_by_id(Catalogo, data['id_jogo'])
+            jogo = container.data_source.get_by_id(Catalogo, data['id_jogo'])
             if not jogo or not jogo.ativo:
                 return {"erro": "Jogo não existe ou está inativo no catálogo."}, 404
 
@@ -205,7 +235,7 @@ class MeusAlugueisResource(Resource):
             cliente, erro = get_cliente_from_header()
             if erro: return {"erro": erro}, 403
 
-            alugueis = MockDataSource.get_all(Aluguel)
+            alugueis = container.data_source.get_all(Aluguel)
             meus_alugueis = [a for a in alugueis if a.id_cliente == cliente.id_usuario]
             return [serialize_aluguel(a) for a in meus_alugueis], 200
 
@@ -238,6 +268,7 @@ class RegistrarRetiradaAluguelResource(Resource):
 
 @alugueis_ns.route('/<int:id>/devolucao')
 class RegistrarDevolucaoAluguelResource(Resource):
+    @alugueis_ns.expect(aluguel_devolucao_model)
     def patch(self, id):
         """Registrar devolução de aluguel"""
         try:
@@ -269,7 +300,7 @@ class DetalhesAluguelResource(Resource):
             cliente, erro = get_cliente_from_header()
             if erro: return {"erro": erro}, 403
 
-            aluguel = MockDataSource.get_by_id(Aluguel, id)
+            aluguel = container.data_source.get_by_id(Aluguel, id)
             if not aluguel or aluguel.id_cliente != cliente.id_usuario:
                 return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
 
@@ -287,7 +318,7 @@ class CancelarAluguelResource(Resource):
             cliente, erro = get_cliente_from_header()
             if erro: return {"erro": erro}, 403
 
-            aluguel = MockDataSource.get_by_id(Aluguel, id)
+            aluguel = container.data_source.get_by_id(Aluguel, id)
             if not aluguel or aluguel.id_cliente != cliente.id_usuario:
                 return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
 
@@ -298,10 +329,10 @@ class CancelarAluguelResource(Resource):
             aluguel.status = 'FINALIZADO'
             
             # Find and update the associated item and exemplar
-            itens_transacao = MockDataSource.get_all(ItemTransacao)
+            itens_transacao = container.data_source.get_all(ItemTransacao)
             item_tr = next((it for it in itens_transacao if it.id_transacao == aluguel.id), None)
             if item_tr:
-                exemplar = MockDataSource.get_by_id(Exemplar, item_tr.id_exemplar)
+                exemplar = container.data_source.get_by_id(Exemplar, item_tr.id_exemplar)
                 if exemplar and exemplar.situacao == 'RESERVADO':
                     exemplar.situacao = 'DISPONIVEL'
 
@@ -318,6 +349,7 @@ class CancelarAluguelResource(Resource):
 
 @alugueis_ns.route('/<int:id>/renovar')
 class RenovarAluguelResource(Resource):
+    @alugueis_ns.expect(aluguel_renovacao_model)
     def patch(self, id):
         """Renovar um aluguel"""
         try:
@@ -332,7 +364,7 @@ class RenovarAluguelResource(Resource):
             if dias_adicionais <= 0 or dias_adicionais > 30:
                 return {"erro": "O período de renovação deve ser entre 1 e 30 dias."}, 400
 
-            aluguel = MockDataSource.get_by_id(Aluguel, id)
+            aluguel = container.data_source.get_by_id(Aluguel, id)
             if not aluguel or aluguel.id_cliente != cliente.id_usuario:
                 return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
 
@@ -340,17 +372,17 @@ class RenovarAluguelResource(Resource):
                 return {"erro": "Não é possível renovar um aluguel já finalizado."}, 400
 
             # Para renovar, pega o valor da diária atual do jogo
-            itens_transacao = MockDataSource.get_all(ItemTransacao)
+            itens_transacao = container.data_source.get_all(ItemTransacao)
             item_transacao = next((it for it in itens_transacao if it.id_transacao == aluguel.id), None)
             
             if not item_transacao:
                 return {"erro": "Item da transação não encontrado."}, 404
                 
-            exemplar = MockDataSource.get_by_id(Exemplar, item_transacao.id_exemplar)
+            exemplar = container.data_source.get_by_id(Exemplar, item_transacao.id_exemplar)
             if not exemplar:
                 return {"erro": "Exemplar não encontrado."}, 404
                 
-            jogo = MockDataSource.get_by_id(Catalogo, exemplar.id_catalogo)
+            jogo = container.data_source.get_by_id(Catalogo, exemplar.id_catalogo)
             if not jogo:
                 return {"erro": "Jogo não encontrado."}, 404
 

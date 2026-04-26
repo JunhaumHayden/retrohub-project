@@ -83,7 +83,7 @@ class TestContainer:
     def test_reset(self, container):
         """Test that reset clears all instances"""
         # Access all services to create instances
-        _ = container.data_source
+        old_ds = container.data_source
         _ = container.usuario_repository
         _ = container.catalogo_repository
         _ = container.usuario_service
@@ -92,11 +92,11 @@ class TestContainer:
         # Reset
         container.reset()
 
-        # Verify that new instances are created
-        ds1 = container.data_source
-        ds2 = container.data_source
-        assert ds1 is ds2
-        assert ds1 is not container._data_source  # Should be new instance
+        # Verify that a new instance is created after reset
+        new_ds = container.data_source
+        ds_again = container.data_source
+        assert new_ds is ds_again  # singleton after reset
+        assert new_ds is not old_ds  # different from pre-reset instance
 
     def test_container_integration(self, container):
         """Test full integration through container"""

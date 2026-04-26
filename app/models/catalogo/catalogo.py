@@ -8,21 +8,25 @@ from app.models.base import BaseModel, ExemplarCollection
 class Catalogo(BaseModel):
     def __init__(
             self,
-            id: int,
-            titulo: str,
-            situacao: Optional[str],
+            id: Optional[int] = None,
+            titulo: Optional[str] = None,
+            situacao: Optional[str] = None,
             descricao: Optional[str] = None,
             genero: Optional[str] = None,
             classificacao: Optional[str] = None,
-            exemplares: Optional[ExemplarCollection] = None
+            exemplares: Optional[ExemplarCollection] = None,
+            **kwargs,
     ):
         super().__init__(id)
         self.titulo = titulo
         self.descricao = descricao
-        self.situacao = situacao or StatusCatalogo.INDISPONIVEL.value
+        self.situacao = situacao or StatusCatalogo.DISPONIVEL.value
         self.genero = genero
         self.classificacao = classificacao
         self.exemplares = exemplares or ExemplarCollection()
+        # Permite que a coleção mantenha a navegação reversa exemplar -> catálogo
+        # quando exemplares são anexados após a criação do catálogo.
+        self.exemplares._owner_catalogo = self
 
     @property
     def estoque_disponivel(self) -> int:
