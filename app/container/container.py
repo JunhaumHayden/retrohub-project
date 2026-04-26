@@ -14,6 +14,7 @@ from app.repository.interface.usuario_repository_interface import UsuarioReposit
 from app.repository.interface.catalogo_repository_interface import CatalogoRepositoryInterface
 from app.services.usuario_service import UsuarioService
 from app.services.catalogo_service import CatalogoService
+from app.services.aluguel_service import AluguelService
 
 
 class Container:
@@ -27,6 +28,7 @@ class Container:
         self._catalogo_repository: Optional[CatalogoRepositoryInterface] = None
         self._usuario_service: Optional[UsuarioService] = None
         self._catalogo_service: Optional[CatalogoService] = None
+        self._aluguel_service: Optional[AluguelService] = None
     
     @property
     def data_source(self) -> DataSourceInterface:
@@ -74,7 +76,16 @@ class Container:
         if self._catalogo_service is None:
             self._catalogo_service = CatalogoService(self.catalogo_repository)
         return self._catalogo_service
-    
+
+    @property
+    def aluguel_service(self) -> AluguelService:
+        """Get the aluguel service instance"""
+        if self._aluguel_service is None:
+            self._aluguel_service = AluguelService(
+                self.data_source, self.catalogo_service,
+            )
+        return self._aluguel_service
+
     def reset(self) -> None:
         """Reset all instances (useful for testing)"""
         self._data_source = None
@@ -82,6 +93,7 @@ class Container:
         self._catalogo_repository = None
         self._usuario_service = None
         self._catalogo_service = None
+        self._aluguel_service = None
 
 
 # Global container instance
