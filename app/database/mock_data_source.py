@@ -226,6 +226,7 @@ class MockDataSource(DataSourceInterface):
             aluguel = aluguel_dict.get(
                 getattr(multa, "_pending_id_aluguel", None)
             )
+            multa.aluguel = aluguel
             if aluguel is not None:
                 aluguel.multa_aplicada = multa
 
@@ -326,7 +327,12 @@ class MockDataSource(DataSourceInterface):
                     id_exemplar=data['id_exemplar'],
                     codigo_barras=data['codigo_barras'],
                     catalogo=catalogo_ref,
-                    estado_conservacao=data.get('estado_conservacao')
+                    estado_conservacao=data.get('estado_conservacao'),
+                    plataforma=data.get('plataforma'),
+                    valor_venda=self._parse_decimal(data.get('valor_venda')),
+                    valor_diaria_aluguel=self._parse_decimal(
+                        data.get('valor_diaria_aluguel')
+                    ),
                 )
                 midias.append(midia)
         return midias
@@ -347,7 +353,12 @@ class MockDataSource(DataSourceInterface):
                     id_exemplar=data['id_exemplar'],
                     chave_ativacao=data['chave_ativacao'],
                     catalogo=catalogo_ref,
-                    data_expiracao=self._parse_date(data.get('data_expiracao'))
+                    data_expiracao=self._parse_date(data.get('data_expiracao')),
+                    plataforma=data.get('plataforma'),
+                    valor_venda=self._parse_decimal(data.get('valor_venda')),
+                    valor_diaria_aluguel=self._parse_decimal(
+                        data.get('valor_diaria_aluguel')
+                    ),
                 )
                 midias.append(midia)
         return midias
