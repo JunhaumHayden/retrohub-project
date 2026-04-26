@@ -1,11 +1,11 @@
 from typing import Optional
 from decimal import Decimal
 
-from app.models import Exemplar
 from app.models.enums import StatusCatalogo
+from app.models.base import BaseModel, ExemplarCollection
 
 
-class Catalogo:
+class Catalogo(BaseModel):
     def __init__(
             self,
             id: int,
@@ -14,24 +14,24 @@ class Catalogo:
             descricao: Optional[str] = None,
             genero: Optional[str] = None,
             classificacao: Optional[str] = None,
-            exemplares: Optional[list[Exemplar]] = None
+            exemplares: Optional[ExemplarCollection] = None
     ):
-        self.id = id or None
+        super().__init__(id)
         self.titulo = titulo
         self.descricao = descricao
         self.situacao = situacao or StatusCatalogo.INDISPONIVEL.value
         self.genero = genero
         self.classificacao = classificacao
-        self.exemplares = exemplares or []
+        self.exemplares = exemplares or ExemplarCollection()
 
     @property
     def estoque_disponivel(self) -> int:
         """Calcula o estoque disponível em memória."""
-        return sum(1 for ex in self.exemplares if ex.situacao == 'DISPONIVEL')
+        return self.exemplares.get_available_count()
 
-    def add_exemplar(self, exemplar: Exemplar) -> None:
-        # todo: implementar metodo para buscar e adicionar exemplares
-        self.exemplares.append(exemplar)
+    def add_exemplar(self, exemplar) -> None:
+        """Add an exemplar to the catalogo"""
+        self.exemplares.add_exemplar(exemplar)
 
 
     def __repr__(self) -> str:

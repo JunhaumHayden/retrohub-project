@@ -2,7 +2,6 @@ from datetime import date
 from decimal import Decimal
 from typing import Optional
 
-from app.models import Catalogo
 from app.models.estoque.exemplar import Exemplar
 
 class MidiaDigital(Exemplar):
@@ -10,7 +9,7 @@ class MidiaDigital(Exemplar):
             self,
             id_exemplar: int,
             chave_ativacao: str,
-            catalogo: Catalogo,
+            catalogo,
             data_expiracao: Optional[date] = None,
             plataforma: Optional[str] = None,
             valor_venda: Optional[Decimal] = None,

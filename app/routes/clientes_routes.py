@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models import Cliente, Usuario
 from app.database.factories.database_manager import DatabaseManager
-from app.database.data_factory import data_factory
+from app.database.MockDataSource import MockDataSource
 
 # Criar namespace para clientes
 clientes_ns = Namespace('clientes', description='Operações relacionadas aos clientes', path='/api/clientes')
@@ -124,7 +124,7 @@ class CadastroClienteResource(Resource):
 class ListaClientesResource(Resource):
     def get(self):
         try:
-            clientes = data_factory.get_all(Cliente)
+            clientes = MockDataSource.get_all(Cliente)
             # Retorna a lista mapeando todos os clientes usando a função serializadora
             return [serialize_cliente(c) for c in clientes], 200
         except Exception as e:
@@ -140,7 +140,7 @@ class ClienteResource(Resource):
     def get(self, id):
         """Busca cliente por ID"""
         try:
-            cliente = data_factory.get_by_id(Cliente, id)
+            cliente = MockDataSource.get_by_id(Cliente, id)
             if not cliente:
                 return {"erro": "Cliente não encontrado."}, 404
             

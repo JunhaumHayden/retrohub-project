@@ -4,7 +4,8 @@ from flask import request
 from flask_restx import Namespace, Resource, fields
 
 from app.models import Catalogo, Funcionario
-from app.database.data_factory import data_factory
+from app.container.container import container
+from app.models.enums import StatusCatalogo
 
 # Criar namespace para catálogo
 catalogo_ns = Namespace('catalogo', description='Operações relacionadas ao catálogo de jogos', path='/api/catalogo/itens')
@@ -14,23 +15,17 @@ catalogo_model = catalogo_ns.model('Catalogo', {
     'id': fields.Integer(description='ID do jogo'),
     'titulo': fields.String(description='Título do jogo'),
     'descricao': fields.String(description='Descrição do jogo'),
-    'plataforma': fields.String(description='Plataforma do jogo'),
-    'ativo': fields.Boolean(description='Status ativo do jogo'),
+    'situacao': fields.String(description='Situação do jogo'),
     'genero': fields.String(description='Gênero do jogo'),
-    'classificacao': fields.String(description='Classificação do jogo'),
-    'valor_venda': fields.Float(description='Valor de venda'),
-    'valor_diaria_aluguel': fields.Float(description='Valor diário do aluguel')
+    'classificacao': fields.String(description='Classificação do jogo')
 })
 
 catalogo_input_model = catalogo_ns.model('CatalogoInput', {
     'titulo': fields.String(required=True, description='Título do jogo'),
     'descricao': fields.String(description='Descrição do jogo'),
-    'plataforma': fields.String(required=True, description='Plataforma do jogo'),
     'genero': fields.String(description='Gênero do jogo'),
     'classificacao': fields.String(description='Classificação do jogo'),
-    'valor_venda': fields.Float(description='Valor de venda'),
-    'valor_diaria_aluguel': fields.Float(description='Valor diário do aluguel'),
-    'ativo': fields.Boolean(description='Status ativo do jogo', default=True)
+    'situacao': fields.String(description='Situação do jogo', default=StatusCatalogo.DISPONIVEL.value)
 })
 
 # Configuração de log
@@ -43,12 +38,10 @@ def serialize_catalogo(jogo: Catalogo):
         "id": jogo.id,
         "titulo": jogo.titulo,
         "descricao": jogo.descricao,
-        "plataforma": jogo.plataforma,
-        "ativo": jogo.ativo,
+        "situacao": jogo.situacao,
         "genero": jogo.genero,
         "classificacao": jogo.classificacao,
-        "valor_venda": float(jogo.valor_venda) if jogo.valor_venda else None,
-        "valor_diaria_aluguel": float(jogo.valor_diaria_aluguel) if jogo.valor_diaria_aluguel else None
+        "estoque_disponivel": jogo.estoque_disponivel if hasattr(jogo, 'estoque_disponivel') else 0
     }
 
 def get_funcionario_from_header():
@@ -67,7 +60,7 @@ def get_funcionario_from_header():
     except ValueError:
         return None, "O ID do funcionário deve ser um número inteiro."
 
-    funcionario = data_factory.get_by_id(Funcionario, func_id)
+    funcionario = container.usuario_service.get_funcionario_by_id(func_id)
     if not funcionario:
         return None, "Funcionário não encontrado."
         
@@ -92,47 +85,35 @@ class CatalogoCreate(Resource):
                 return {"erro": "Dados não fornecidos."}, 400
 
             # Validação de campos obrigatórios
-            required_fields = ['titulo', 'plataforma']
+            required_fields = ['titulo']
             for field in required_fields:
                 if field not in data or not str(data[field]).strip():
                     return {"erro": f"O campo '{field}' é obrigatório."}, 400
 
-            # Prevenção contra duplicidade (título + plataforma)
-            catalogos = data_factory.get_all(Catalogo)
-            jogo_duplicado = None
-            for jogo in catalogos:
-                if (jogo.titulo.lower() == data['titulo'].lower() and 
-                    jogo.plataforma.lower() == data['plataforma'].lower()):
-                    jogo_duplicado = jogo
-                    break
-            
-            if jogo_duplicado:
-                return {"erro": f"O jogo '{data['titulo']}' já está cadastrado para a plataforma '{data['plataforma']}'."}, 400
+            # Check for existing title
+            existing_jogo = container.catalogo_service.get_by_title(data['titulo'])
+            if existing_jogo:
+                return {"erro": f"O jogo '{data['titulo']}' já está cadastrado."}, 400
 
-            valor_venda = Decimal(str(data['valor_venda'])) if data.get('valor_venda') else None
-            valor_diaria_aluguel = Decimal(str(data['valor_diaria_aluguel'])) if data.get('valor_diaria_aluguel') else None
-
-            # Note: In mock mode, we can't actually save new catalog items
+            # Create new catalog item using service
             novo_catalogo = Catalogo(
-                id=1,  # Placeholder ID
+                id=None,  # Service will assign ID
                 titulo=data['titulo'],
                 descricao=data.get('descricao'),
-                plataforma=data['plataforma'],
-                ativo=data.get('ativo', True),
                 genero=data.get('genero'),
                 classificacao=data.get('classificacao'),
-                valor_venda=valor_venda,
-                valor_diaria_aluguel=valor_diaria_aluguel
+                situacao=data.get('situacao', StatusCatalogo.DISPONIVEL.value)
             )
 
-            # In a real implementation, you would save this:
-            # data_factory.save(novo_catalogo)
-
-            logger.info(f"Funcionário ID {funcionario.id_usuario} criou novo item no catálogo: '{data['titulo']}'")
-            return {
-                "mensagem": "Item criado com sucesso!",
-                "item": serialize_catalogo(novo_catalogo)
-            }, 201
+            try:
+                created_catalogo = container.catalogo_service.create(novo_catalogo)
+                logger.info(f"Funcionário ID {funcionario.id_usuario} criou novo item no catálogo: '{data['titulo']}'")
+                return {
+                    "mensagem": "Item criado com sucesso!",
+                    "item": serialize_catalogo(created_catalogo)
+                }, 201
+            except ValueError as e:
+                return {"erro": str(e)}, 400
 
         except Exception as e:
             logger.error(f"Erro em criar_catalogo: {str(e)}")
@@ -146,13 +127,16 @@ class CatalogoCreate(Resource):
 class CatalogoList(Resource):
     def get(self):
         try:
-            # Permite filtrar por status ativo (ex: ?ativo=true)
-            ativo_param = request.args.get('ativo')
-            catalogos = data_factory.get_all(Catalogo)
+            # Permite filtrar por status (ex: ?situacao=DISPONIVEL)
+            situacao_param = request.args.get('situacao')
+            ativo_param = request.args.get('ativo')  # Legacy support
             
+            # Convert legacy 'ativo' parameter to 'situacao'
             if ativo_param is not None:
                 is_ativo = ativo_param.lower() == 'true'
-                catalogos = [c for c in catalogos if c.ativo == is_ativo]
+                situacao_param = StatusCatalogo.DISPONIVEL.value if is_ativo else StatusCatalogo.INDISPONIVEL.value
+            
+            catalogos = container.catalogo_service.list_all(situacao_param)
                 
             return [serialize_catalogo(j) for j in catalogos], 200
         except Exception as e:
@@ -174,7 +158,7 @@ class CatalogoListDTO(Resource):
 class CatalogoDetail(Resource):
     def get(self, id):
         try:
-            jogo = data_factory.get_by_id(Catalogo, id)
+            jogo = container.catalogo_service.get_by_id(id)
             if not jogo:
                 return {"erro": "Catalogo não encontrado no catálogo."}, 404
                 
@@ -209,7 +193,7 @@ class CatalogoUpdate(Resource):
             if not data:
                 return {"erro": "Dados não fornecidos."}, 400
 
-            jogo = data_factory.get_by_id(Catalogo, id)
+            jogo = container.catalogo_service.get_by_id(id)
             if not jogo:
                 return {"erro": "Catalogo não encontrado."}, 404
 
@@ -218,7 +202,7 @@ class CatalogoUpdate(Resource):
             nova_plataforma = data.get('plataforma', jogo.plataforma)
 
             if novo_titulo != jogo.titulo or nova_plataforma != jogo.plataforma:
-                catalogos = data_factory.get_all(Catalogo)
+                catalogos = container.catalogo_service.list_all()
                 jogo_duplicado = None
                 for j in catalogos:
                     if (j.titulo.lower() == novo_titulo.lower() and 
@@ -245,7 +229,7 @@ class CatalogoUpdate(Resource):
                 jogo.valor_diaria_aluguel = Decimal(str(data['valor_diaria_aluguel'])) if data['valor_diaria_aluguel'] is not None else None
 
             # In a real implementation, you would save this:
-            # data_factory.save(jogo)
+            # MockDataSource.save(jogo)
 
             logger.info(f"Funcionário ID {funcionario.id_usuario} atualizou o jogo ID {id}")
             return {
@@ -269,22 +253,23 @@ class CatalogoDelete(Resource):
             if erro:
                 return {"erro": erro}, 403
 
-            jogo = data_factory.get_by_id(Catalogo, id)
+            jogo = container.catalogo_service.get_by_id(id)
             if not jogo:
                 return {"erro": "Catalogo não encontrado."}, 404
 
-            # Note: In mock mode, we can't actually save changes
-            # Soft delete: inativar em vez de excluir
-            jogo.ativo = False
-            
-            # In a real implementation, you would save this:
-            # data_factory.save(jogo)
+            try:
+                # Soft delete: inativar em vez de excluir
+                inactivated_jogo = container.catalogo_service.inactivate(id)
+                if not inactivated_jogo:
+                    return {"erro": "Catalogo não encontrado."}, 404
 
-            logger.info(f"Funcionário ID {funcionario.id_usuario} inativou o jogo ID {id}")
-            return {
-                "mensagem": "Item inativado com sucesso.",
-                "item": serialize_catalogo(jogo)
-            }, 200
+                logger.info(f"Funcionário ID {funcionario.id_usuario} inativou o jogo ID {id}")
+                return {
+                    "mensagem": "Item inativado com sucesso.",
+                    "item": serialize_catalogo(inactivated_jogo)
+                }, 200
+            except ValueError as e:
+                return {"erro": str(e)}, 400
 
         except Exception as e:
             logger.error(f"Erro em excluir_catalogo: {str(e)}")

@@ -1,4 +1,4 @@
-<h1 align="center"> <img src="https://github.com/user-attachments/assets/61463e20-5ba3-4ce4-a632-8905ed1357b0" width="48" height="48" alt="RetroHub Logo" align="center" />RetroHub Web</h1>
+span
 
 <p align="center">
   <img src="http://img.shields.io/static/v1?label=STATUS&message=Em%20Desenvolvimento&color=brightgreen&style=for-the-badge"/>
@@ -26,7 +26,6 @@
 
 </div>
 
-
 ---
 
 [English Version](#english-version) | [Versão em Português](#versão-em-português)
@@ -46,42 +45,44 @@ This is a digital platform for retro gaming enthusiasts, not only modernizing an
 - **Dockerized**: Fully automated setup with Docker Compose.
 
 ### 🔌 API Endpoints (Current Progress)
+
 - **Clients (CRUD)**
+
   - `POST /api/clientes/cadastro`: Registers a new client (Validates 18+ age, unique CPF/Email, password hashing).
   - `GET /api/clientes/`: Lists all clients.
   - `GET /api/clientes/<id>`: Retrieves a specific client.
   - `PUT /api/clientes/<id>`: Updates client data.
   - `DELETE /api/clientes/<id>`: Removes a client.
-
 - **Employees (CRUD)**
+
   - `POST /api/funcionarios/`: Registers a new employee (Requires Admin via `X-Admin-Id` header).
   - `GET /api/funcionarios/`: Lists all employees.
   - `GET /api/funcionarios/<id>`: Retrieves a specific employee.
   - `PUT /api/funcionarios/<id>`: Updates employee data.
   - `DELETE /api/funcionarios/<id>`: Inactivates/removes an employee.
-
 - **Catalog (CRUD)**
+
   - `POST /api/catalogo/itens/`: Registers a new game in the storefront catalog (Requires Employee via `X-Funcionario-Id`).
   - `GET /api/catalogo/itens/`: Lists all available games in the catalog.
   - `GET /api/catalogo/itens/<id>`: Retrieves a specific game.
   - `PUT /api/catalogo/itens/<id>`: Updates game details (Prevents title+platform duplication).
   - `DELETE /api/catalogo/itens/<id>`: Logically deletes (inactivates) a game from the catalog.
-
 - **Inventory (Stock)**
+
   - `POST /api/estoque/fisico`: Registers a physical cartridge (Barcode, Condition).
   - `POST /api/estoque/digital`: Registers a digital key (Activation key, Expiration date).
   - `GET /api/estoque/jogo/<id_jogo>`: Lists all physical and digital copies available for a specific game in the catalog.
   - `PUT /api/estoque/fisico/<id>`: Updates the condition of a physical copy.
   - `DELETE /api/estoque/<id>`: Logically deletes an item from the inventory.
-
 - **Rentals (Aluguéis)** (Requires Employee via `X-Cliente-Id`).
+
   - `POST /api/alugueis/solicitar`: Requests a new rental (Validates stock, customer debts, and calculates total price).
   - `GET /api/alugueis/meus-alugueis`: Lists all rentals for the authenticated client.
   - `GET /api/alugueis/<id>`: Retrieves details of a specific rental.
   - `PATCH /api/alugueis/<id>/cancelar`: Cancels a rental before its start date.
   - `PATCH /api/alugueis/<id>/renovar`: Renews an active rental for extra days.
-
 - **Sales (Vendas)** (Requires Employee via `X-Cliente-Id`).
+
   - `POST /api/vendas/solicitar`: Requests a new game purchase (Automatically drops stock).
   - `GET /api/vendas/minhas-vendas`: Lists all purchases for the authenticated client.
   - `GET /api/vendas/<id>`: Retrieves details of a specific purchase.
@@ -92,6 +93,7 @@ This is a digital platform for retro gaming enthusiasts, not only modernizing an
 The project includes an automated test suite utilizing an in-memory SQLite database to avoid interfering with the main PostgreSQL data.
 
 To run all test cases (Database Connections, ORM Models, and API Routes), execute:
+
 ```bash
 python -m unittest discover tests -v
 ```
@@ -307,6 +309,7 @@ Esta é uma plataforma digital para entusiastas de jogos retrô, não apenas mod
 O projeto conta com uma robusta bateria de testes automatizados. Eles rodam isolados utilizando um banco SQLite em memória `sqlite:///:memory:`, o que garante velocidade extrema e zero poluição no seu banco de dados principal de desenvolvimento.
 
 Para executar todos os testes (Conexão com Banco, Mapeamento de Modelos ORM e Rotas de API), abra o terminal na raiz do projeto e rode:
+
 ```bash
 python -m unittest discover tests -v
 ```
@@ -398,13 +401,15 @@ Crie um arquivo `.env` na raiz ou exporte as variáveis:
 </table>
 
 ---
-##  Licença
+
+## Licença
 
 MIT — ou seja: use, quebre, refaça, mas me cite se for ficar famoso com isso 😎
 
 ---
 
 🧙‍♂️ Autores
+
 <table>
     <tr>
     <td align="center">

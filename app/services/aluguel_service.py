@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional, Tuple
 
-from app.database.data_factory import data_factory
+from app.database.mock_data_source import MockDataSource
 from app.models import Aluguel, Exemplar, ItemTransacao, Catalogo, Multa
 
 _CONDICOES_DEVOLUCAO = frozenset({"bom", "danificado", "extraviado"})
@@ -17,7 +17,7 @@ def registrar_retirada(aluguel_id: int) -> Tuple[Optional[Aluguel], Optional[str
     Registra a saída física/digital do item: status ATIVO, data de retirada,
     previsão de fim com base no período e atualização do exemplar/catálogo.
     """
-    aluguel = data_factory.get_by_id(Aluguel, aluguel_id)
+    aluguel = MockDataSource.get_by_id(Aluguel, aluguel_id)
     if not aluguel:
         return None, "Aluguel não encontrado."
     if aluguel.status not in ("SOLICITADO", "APROVADO"):
@@ -32,11 +32,11 @@ def registrar_retirada(aluguel_id: int) -> Tuple[Optional[Aluguel], Optional[str
     if periodo > 0:
         aluguel.data_prevista_devolucao = di + timedelta(days=periodo)
 
-    items = data_factory.get_all(ItemTransacao)
+    items = MockDataSource.get_all(ItemTransacao)
     item = next((i for i in items if i.id_transacao == aluguel.id), None)
     if not item:
         return None, "Item da transação não encontrado."
-    exemplar = data_factory.get_by_id(Exemplar, item.id_exemplar)
+    exemplar = MockDataSource.get_by_id(Exemplar, item.id_exemplar)
     if exemplar:
         exemplar.situacao = "ALUGADO"
 
@@ -58,7 +58,7 @@ def registrar_devolucao(
     if cond_norm not in _CONDICOES_DEVOLUCAO:
         return None, "condicao_item deve ser: bom, danificado ou extraviado."
 
-    aluguel = data_factory.get_by_id(Aluguel, aluguel_id)
+    aluguel = MockDataSource.get_by_id(Aluguel, aluguel_id)
     if not aluguel:
         return None, "Aluguel não encontrado."
     if aluguel.status != "ATIVO":
@@ -69,13 +69,13 @@ def registrar_devolucao(
     agora = datetime.utcnow()
     d_real = agora.date()
 
-    items = data_factory.get_all(ItemTransacao)
+    items = MockDataSource.get_all(ItemTransacao)
     item = next((i for i in items if i.id_transacao == aluguel.id), None)
     if not item:
         return None, "Item da transação não encontrado."
 
-    exemplar = data_factory.get_by_id(Exemplar, item.id_exemplar)
-    jogo = data_factory.get_by_id(Catalogo, exemplar.id_catalogo) if exemplar else None
+    exemplar = MockDataSource.get_by_id(Exemplar, item.id_exemplar)
+    jogo = MockDataSource.get_by_id(Catalogo, exemplar.id_catalogo) if exemplar else None
     valor_diaria = jogo.valor_diaria_aluguel if jogo and jogo.valor_diaria_aluguel else Decimal("0")
     valor_total = aluguel.valor_total if aluguel.valor_total is not None else Decimal("0")
 
@@ -118,6 +118,6 @@ def registrar_devolucao(
             data_calculo=d_real,
         )
         # In a real implementation, you would save this:
-        # data_factory.save(multa)
+        # MockDataSource.save(multa)
 
     return aluguel, None

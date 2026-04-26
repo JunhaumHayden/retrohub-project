@@ -4,7 +4,7 @@ from flask import request
 from flask_restx import Namespace, Resource, fields
 
 from app.models import Cliente, Catalogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao, Funcionario
-from app.database.data_factory import data_factory
+from app.database.MockDataSource import MockDataSource
 from app.services.aluguel_service import registrar_retirada, registrar_devolucao
 
 # Criar namespace para aluguéis
@@ -41,7 +41,7 @@ def get_cliente_from_header():
     except ValueError:
         return None, "X-Cliente-Id inválido."
     
-    cliente = data_factory.get_by_id(Cliente, cliente_id)
+    cliente = MockDataSource.get_by_id(Cliente, cliente_id)
     if not cliente:
         return None, "Cliente não cadastrado ou não encontrado."
     
@@ -57,19 +57,19 @@ def get_funcionario_from_header():
         func_id = int(func_id)
     except ValueError:
         return None, "O ID do funcionário deve ser um número inteiro."
-    funcionario = data_factory.get_by_id(Funcionario, func_id)
+    funcionario = MockDataSource.get_by_id(Funcionario, func_id)
     if not funcionario:
         return None, "Funcionário não encontrado."
     return funcionario, None
 
 def find_exemplar_disponivel(id_catalogo, tipo_midia):
     """Find available exemplar for rental"""
-    exemplares = data_factory.get_all(Exemplar)
-    alugueis = data_factory.get_all(Aluguel)
-    vendas = data_factory.get_all(Venda)
-    itens_transacao = data_factory.get_all(ItemTransacao)
-    midias_digitais = data_factory.get_all(MidiaDigital)
-    midias_fisicas = data_factory.get_all(MidiaFisica)
+    exemplares = MockDataSource.get_all(Exemplar)
+    alugueis = MockDataSource.get_all(Aluguel)
+    vendas = MockDataSource.get_all(Venda)
+    itens_transacao = MockDataSource.get_all(ItemTransacao)
+    midias_digitais = MockDataSource.get_all(MidiaDigital)
+    midias_fisicas = MockDataSource.get_all(MidiaFisica)
     
     # Get occupied exemplar IDs from active rentals
     alugueis_ativos_ids = {a.id for a in alugueis if a.status in ['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO']}
@@ -150,7 +150,7 @@ class SolicitarAluguelResource(Resource):
             if data_inicio < date.today():
                 return {"erro": "A data de início não pode ser anterior à data atual."}, 400
 
-            jogo = data_factory.get_by_id(Catalogo, data['id_jogo'])
+            jogo = MockDataSource.get_by_id(Catalogo, data['id_jogo'])
             if not jogo or not jogo.ativo:
                 return {"erro": "Jogo não existe ou está inativo no catálogo."}, 404
 
@@ -183,8 +183,8 @@ class SolicitarAluguelResource(Resource):
                 data_prevista_devolucao=data_prevista_devolucao
             )
             # In a real implementation, you would save this:
-            # data_factory.save(novo_aluguel)
-            # data_factory.save(ItemTransacao(...))
+            # MockDataSource.save(novo_aluguel)
+            # MockDataSource.save(ItemTransacao(...))
 
             return {
                 "mensagem": "Aluguel solicitado com sucesso!",
@@ -205,7 +205,7 @@ class MeusAlugueisResource(Resource):
             cliente, erro = get_cliente_from_header()
             if erro: return {"erro": erro}, 403
 
-            alugueis = data_factory.get_all(Aluguel)
+            alugueis = MockDataSource.get_all(Aluguel)
             meus_alugueis = [a for a in alugueis if a.id_cliente == cliente.id_usuario]
             return [serialize_aluguel(a) for a in meus_alugueis], 200
 
@@ -269,7 +269,7 @@ class DetalhesAluguelResource(Resource):
             cliente, erro = get_cliente_from_header()
             if erro: return {"erro": erro}, 403
 
-            aluguel = data_factory.get_by_id(Aluguel, id)
+            aluguel = MockDataSource.get_by_id(Aluguel, id)
             if not aluguel or aluguel.id_cliente != cliente.id_usuario:
                 return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
 
@@ -287,7 +287,7 @@ class CancelarAluguelResource(Resource):
             cliente, erro = get_cliente_from_header()
             if erro: return {"erro": erro}, 403
 
-            aluguel = data_factory.get_by_id(Aluguel, id)
+            aluguel = MockDataSource.get_by_id(Aluguel, id)
             if not aluguel or aluguel.id_cliente != cliente.id_usuario:
                 return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
 
@@ -298,16 +298,16 @@ class CancelarAluguelResource(Resource):
             aluguel.status = 'FINALIZADO'
             
             # Find and update the associated item and exemplar
-            itens_transacao = data_factory.get_all(ItemTransacao)
+            itens_transacao = MockDataSource.get_all(ItemTransacao)
             item_tr = next((it for it in itens_transacao if it.id_transacao == aluguel.id), None)
             if item_tr:
-                exemplar = data_factory.get_by_id(Exemplar, item_tr.id_exemplar)
+                exemplar = MockDataSource.get_by_id(Exemplar, item_tr.id_exemplar)
                 if exemplar and exemplar.situacao == 'RESERVADO':
                     exemplar.situacao = 'DISPONIVEL'
 
             # In a real implementation, you would save this:
-            # data_factory.save(aluguel)
-            # data_factory.save(exemplar)
+            # MockDataSource.save(aluguel)
+            # MockDataSource.save(exemplar)
 
             logger.info(f"Cliente ID {cliente.id_usuario} cancelou aluguel ID {id}")
             return {"mensagem": "Aluguel cancelado com sucesso."}, 200
@@ -332,7 +332,7 @@ class RenovarAluguelResource(Resource):
             if dias_adicionais <= 0 or dias_adicionais > 30:
                 return {"erro": "O período de renovação deve ser entre 1 e 30 dias."}, 400
 
-            aluguel = data_factory.get_by_id(Aluguel, id)
+            aluguel = MockDataSource.get_by_id(Aluguel, id)
             if not aluguel or aluguel.id_cliente != cliente.id_usuario:
                 return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
 
@@ -340,17 +340,17 @@ class RenovarAluguelResource(Resource):
                 return {"erro": "Não é possível renovar um aluguel já finalizado."}, 400
 
             # Para renovar, pega o valor da diária atual do jogo
-            itens_transacao = data_factory.get_all(ItemTransacao)
+            itens_transacao = MockDataSource.get_all(ItemTransacao)
             item_transacao = next((it for it in itens_transacao if it.id_transacao == aluguel.id), None)
             
             if not item_transacao:
                 return {"erro": "Item da transação não encontrado."}, 404
                 
-            exemplar = data_factory.get_by_id(Exemplar, item_transacao.id_exemplar)
+            exemplar = MockDataSource.get_by_id(Exemplar, item_transacao.id_exemplar)
             if not exemplar:
                 return {"erro": "Exemplar não encontrado."}, 404
                 
-            jogo = data_factory.get_by_id(Catalogo, exemplar.id_catalogo)
+            jogo = MockDataSource.get_by_id(Catalogo, exemplar.id_catalogo)
             if not jogo:
                 return {"erro": "Jogo não encontrado."}, 404
 
@@ -361,7 +361,7 @@ class RenovarAluguelResource(Resource):
             aluguel.valor_total += acrescimo
 
             # In a real implementation, you would save this:
-            # data_factory.save(aluguel)
+            # MockDataSource.save(aluguel)
 
             logger.info(f"Cliente ID {cliente.id_usuario} RENOVOU o aluguel ID {aluguel.id} por mais {dias_adicionais} dias.")
             return {

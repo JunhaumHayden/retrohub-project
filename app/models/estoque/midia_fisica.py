@@ -1,7 +1,6 @@
 from decimal import Decimal
 from typing import Optional
 
-from app.models import Catalogo
 from app.models.estoque.exemplar import Exemplar
 
 class MidiaFisica(Exemplar):
@@ -9,7 +8,7 @@ class MidiaFisica(Exemplar):
             self,
             id_exemplar: int,
             codigo_barras: str,
-            catalogo: Catalogo,
+            catalogo,
             estado_conservacao: Optional[str] = None,
             plataforma: Optional[str] = None,
             valor_venda: Optional[Decimal] = None,

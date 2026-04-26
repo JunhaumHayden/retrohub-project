@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_restx import Api
 
-from app.container.dependency_container import Container
+from app.container.container import Container
 from app.routes.clientes_routes import clientes_ns
 from app.routes.funcionarios_routes import funcionarios_ns
 from app.routes.catalogo_routes import catalogo_ns
