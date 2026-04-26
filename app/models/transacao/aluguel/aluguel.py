@@ -1,12 +1,20 @@
-from datetime import date, datetime
-from typing import Optional
-from decimal import Decimal
+from __future__ import annotations
 
-from app.models import Multa, Cliente, Comprovante, ItemTransacao
+from datetime import date, datetime
+from decimal import Decimal
+from typing import TYPE_CHECKING, Optional
+
 from app.models.transacao.transacao import Transacao
+from app.models.transacao.aluguel.multa import Multa
 from app.models.transacao.aluguel.reserva import Reserva
 from app.models.enums import StatusAluguel
-from app.models.usuario.funcionario import Funcionario
+
+if TYPE_CHECKING:
+    from app.models.usuario.cliente import Cliente
+    from app.models.usuario.funcionario import Funcionario
+    from app.models.transacao.comprovante import Comprovante
+    from app.models.transacao.item_transacao import ItemTransacao
+
 
 class Aluguel(Transacao):
     def __init__(
@@ -15,10 +23,10 @@ class Aluguel(Transacao):
             valor_total: Optional[Decimal] = None,
             data_transacao: Optional[datetime] = None,
             status_pagamento: Optional[str] = None,
-            cliente: Optional[Cliente] = None,
-            funcionario: Optional[Funcionario] = None,
-            comprovante: Optional[Comprovante] = None,
-            itens_transacao: Optional[list[ItemTransacao]] = None,
+            cliente: Optional["Cliente"] = None,
+            funcionario: Optional["Funcionario"] = None,
+            comprovantes: Optional[list["Comprovante"]] = None,
+            itens_transacao: Optional[list["ItemTransacao"]] = None,
             periodo: Optional[int] = None,
             data_devolucao: Optional[date] = None,
             status: Optional[str] = None,
@@ -28,11 +36,11 @@ class Aluguel(Transacao):
             data_retirada: Optional[datetime] = None,
             data_devolucao_real: Optional[datetime] = None,
             condicao_item: Optional[str] = None,
-            funcionario_recebimento: Optional[Funcionario] = None,
-            multa_aplicada = Multa(),
+            funcionario_recebimento: Optional["Funcionario"] = None,
+            multa_aplicada: Optional[Multa] = None,
             multa_paga: Optional[bool] = None,
             dias_atraso: Optional[int] = None,
-            **kwargs
+            **kwargs,
     ):
         super().__init__(
             id=id_transacao,
@@ -41,10 +49,10 @@ class Aluguel(Transacao):
             status_pagamento=status_pagamento,
             cliente=cliente,
             funcionario=funcionario,
-            comprovante=comprovante,
+            comprovantes=comprovantes,
             itens_transacao=itens_transacao,
             tipo="aluguel",
-            **kwargs
+            **kwargs,
         )
         self.periodo = periodo
         self.data_devolucao = data_devolucao
@@ -56,6 +64,7 @@ class Aluguel(Transacao):
         self.data_devolucao_real = data_devolucao_real
         self.condicao_item = condicao_item
         self.funcionario_recebimento = funcionario_recebimento
-        self.multa_aplicada = multa_aplicada
-        self.multa_paga = multa_paga or False
-        self.multa_aplicada.dias_atraso = dias_atraso
+        self.multa_aplicada = multa_aplicada if multa_aplicada is not None else Multa()
+        self.multa_paga = multa_paga if multa_paga is not None else False
+        if dias_atraso is not None:
+            self.multa_aplicada.dias_atraso = dias_atraso

@@ -65,18 +65,37 @@ class ExemplarCollection:
     
     def add_exemplar(self, exemplar):
         """Add an exemplar to the collection"""
+        if exemplar in self._exemplares:
+            return
         self._exemplares.append(exemplar)
-    
+        # Mantém a navegação reversa exemplar -> catálogo se a coleção pertencer
+        # a um catálogo específico.
+        owner = getattr(self, "_owner_catalogo", None)
+        if owner is not None and getattr(exemplar, "catalogo_ref", None) is None:
+            ref = CatalogoReference(getattr(owner, "id", None))
+            ref.set_catalogo(owner)
+            exemplar.catalogo_ref = ref
+
+    def append(self, exemplar):
+        """Alias para `add_exemplar` para uso list-like em testes."""
+        self.add_exemplar(exemplar)
+
     def get_exemplares(self):
         """Get all exemplares"""
         return self._exemplares
-    
+
     def get_available_count(self):
         """Get count of available exemplares"""
         return sum(1 for ex in self._exemplares if getattr(ex, 'situacao', None) == 'DISPONIVEL')
-    
+
     def __len__(self):
         return len(self._exemplares)
-    
+
     def __iter__(self):
         return iter(self._exemplares)
+
+    def __contains__(self, item):
+        return item in self._exemplares
+
+    def __getitem__(self, index):
+        return self._exemplares[index]

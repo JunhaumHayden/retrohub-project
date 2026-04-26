@@ -6,15 +6,16 @@ from app.models.estoque.exemplar import Exemplar
 class MidiaFisica(Exemplar):
     def __init__(
             self,
-            id_exemplar: int,
-            codigo_barras: str,
-            catalogo,
+            id_exemplar: Optional[int] = None,
+            codigo_barras: Optional[str] = None,
+            catalogo=None,
             estado_conservacao: Optional[str] = None,
             plataforma: Optional[str] = None,
             valor_venda: Optional[Decimal] = None,
             valor_diaria_aluguel: Optional[Decimal] = None,
             **kwargs
     ):
+        kwargs.pop("tipo_midia", None)
         super().__init__(
             id=id_exemplar,
             catalogo=catalogo,

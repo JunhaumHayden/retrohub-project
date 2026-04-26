@@ -55,65 +55,43 @@ class TestVenda(unittest.TestCase):
             data_admissao=data_admissao
         )
 
-        # Dados para criar o venda
-        nome = "João Silva"
-        cpf = "12345678901"
-        email = "joao.silva@example.com"
-        senha = "senha123"
-        data_confirmacao = date(1990, 5, 15)
+        # Dados para criar a venda
+        data_confirmacao = date(2026, 5, 15)
         status = StatusVenda.FINALIZADA.value
-        dados_pagamento = "Cartão de Crédito ****1234"
 
         # Criar instância da venda
         venda = Venda(
-            id_usuario=1,
-            nome=nome,
-            cpf=cpf,
-            email=email,
-            senha=senha,
-            data_nascimento=data_nascimento,
-            dados_pagamento=dados_pagamento
+            id_transacao=10,
+            status=status,
+            data_confirmacao=data_confirmacao,
+            cliente=cliente,
+            funcionario=funcionario,
         )
 
-        # ===== FORMAS DE IMPRIMIR O OBJETO =====
-        # Forma 1: Usar print() com -s flag do pytest
-        print("\n[FORMA 1] print(cliente):")
-        print(cliente)
+        print("\n[FORMA 1] print(venda):")
+        print(venda)
 
-        # Forma 2: Usar repr()
-        print("\n[FORMA 2] repr(cliente):")
-        print(repr(cliente))
+        print("\n[FORMA 2] repr(venda):")
+        print(repr(venda))
 
-        # Forma 3: Imprimir atributos específicos
         print("\n[FORMA 3] Atributos específicos:")
-        print(f"  Nome: {cliente.nome}")
-        print(f"  CPF: {cliente.cpf}")
-        print(f"  Email: {cliente.email}")
-        print(f"  Tipo Cliente: {cliente.tipo_cliente}")
-
-        # Forma 4: Usar vars() para ver todos os atributos
-        print("\n[FORMA 4] vars(cliente) - Todos os atributos:")
-        print(vars(cliente))
+        print(f"  ID: {venda.id}")
+        print(f"  Status: {venda.status}")
+        print(f"  Cliente: {venda.cliente.nome}")
+        print(f"  Funcionario: {venda.funcionario.nome}")
 
         # Verificar se os atributos foram definidos corretamente
-        self.assertEqual(cliente.nome, nome)
-        self.assertEqual(cliente.cpf, cpf)
-        self.assertEqual(cliente.email, email)
-        self.assertEqual(cliente.senha, senha)
-        self.assertEqual(cliente.data_nascimento, data_nascimento)
-        self.assertEqual(cliente.dados_pagamento, dados_pagamento)
-
-        # Verificar valores padrão
-        # Nota: defaults do SQLAlchemy são aplicados apenas quando o objeto é adicionado a uma sessão
-        # Para teste em memória, data_cadastro e tipo_cliente podem ser None se não definidos explicitamente
-        # self.assertIsNotNone(cliente.data_cadastro)
-        # self.assertEqual(cliente.tipo_cliente, 'regular')
+        self.assertEqual(venda.id, 10)
+        self.assertEqual(venda.status, status)
+        self.assertEqual(venda.data_confirmacao, data_confirmacao)
+        self.assertIs(venda.cliente, cliente)
+        self.assertIs(venda.funcionario, funcionario)
+        self.assertEqual(venda.tipo, "venda")
 
         # Testar representação string
-        repr_str = repr(cliente)
-        self.assertIn("Cliente", repr_str)
-        self.assertIn("João Silva", repr_str)
-        self.assertIn("cliente", repr_str)
+        repr_str = repr(venda)
+        self.assertIn("Venda", repr_str)
+        self.assertIn("id=10", repr_str)
 
 
 if __name__ == '__main__':

@@ -135,7 +135,7 @@ class TestIntegration:
         catalogos = []
         for i in range(3):
             catalogo = Catalogo(
-                title=f"Integration Game {i+1}",
+                titulo=f"Integration Game {i+1}",
                 descricao=f"Game {i+1} for integration testing",
                 genero="Test",
                 situacao=StatusCatalogo.DISPONIVEL.value
@@ -260,7 +260,7 @@ class TestIntegration:
         # Create entities through different services
         cliente = Cliente(
             nome="Isolation Cliente",
-            cpf="777.777.777-77",
+            cpf="888.888.888-88",
             email="isolation@test.com",
             senha="password123"
         )

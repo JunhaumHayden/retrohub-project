@@ -1,18 +1,27 @@
-import re
+"""Rotas REST para o recurso Funcionario.
+
+Refatorado para usar o `Container` + `UsuarioService` em vez de SQLAlchemy.
+A autorização por header ``X-Admin-Id`` foi mantida, mas agora consulta
+funcionários através do serviço.
+"""
+
 import logging
+import re
 from datetime import datetime
+
 from flask import request
 from flask_restx import Namespace, Resource, fields
 from werkzeug.security import generate_password_hash
-from sqlalchemy.exc import IntegrityError
 
-from app.models import Funcionario, Usuario
-from app.database.factories.database_manager import DatabaseManager
+from app.container.container import container
+from app.models import Funcionario
 
-# Criar namespace para funcionários
-funcionarios_ns = Namespace('funcionarios', description='Operações relacionadas aos funcionários', path='/api/funcionarios')
+funcionarios_ns = Namespace(
+    'funcionarios',
+    description='Operações relacionadas aos funcionários',
+    path='/api/funcionarios',
+)
 
-# Modelos para documentação Swagger
 funcionario_model = funcionarios_ns.model('Funcionario', {
     'id': fields.Integer(description='ID do funcionário'),
     'nome': fields.String(description='Nome do funcionário'),
@@ -23,7 +32,7 @@ funcionario_model = funcionarios_ns.model('Funcionario', {
     'setor': fields.String(description='Setor do funcionário'),
     'data_admissao': fields.Date(description='Data de admissão'),
     'data_cadastro': fields.Date(description='Data de cadastro'),
-    'data_nascimento': fields.Date(description='Data de nascimento')
+    'data_nascimento': fields.Date(description='Data de nascimento'),
 })
 
 funcionario_input_model = funcionarios_ns.model('FuncionarioInput', {
@@ -34,286 +43,240 @@ funcionario_input_model = funcionarios_ns.model('FuncionarioInput', {
     'matricula': fields.String(required=True, description='Matrícula do funcionário'),
     'cargo': fields.String(description='Cargo do funcionário'),
     'setor': fields.String(description='Setor do funcionário'),
-    'data_nascimento': fields.String(required=True, description='Data de nascimento (YYYY-MM-DD)'),
-    'data_admissao': fields.String(description='Data de admissão (YYYY-MM-DD)')
+    'data_nascimento': fields.String(
+        required=True, description='Data de nascimento (YYYY-MM-DD)'
+    ),
+    'data_admissao': fields.String(description='Data de admissão (YYYY-MM-DD)'),
 })
 
-# Configuração simples de log
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def is_valid_email(email):
-    pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
-    return re.match(pattern, email) is not None
 
-def calculate_age(birthdate):
-    today = datetime.today()
-    age = today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day))
-    return age
+def _is_valid_email(email: str) -> bool:
+    return re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email) is not None
 
-def serialize_funcionario(func: Funcionario):
-    """Função utilitária para serializar um objeto Funcionario."""
+
+def _calculate_age(birthdate) -> int:
+    today = datetime.today().date()
+    return (
+        today.year
+        - birthdate.year
+        - ((today.month, today.day) < (birthdate.month, birthdate.day))
+    )
+
+
+def _serialize_funcionario(func: Funcionario) -> dict:
     return {
-        "id": func.id,
-        "nome": func.nome,
-        "cpf": func.cpf,
-        "email": func.email,
-        "matricula": func.matricula,
-        "cargo": func.cargo,
-        "setor": func.setor,
-        "data_admissao": func.data_admissao.isoformat() if func.data_admissao else None,
-        "data_cadastro": func.data_cadastro.isoformat() if func.data_cadastro else None,
-        "data_nascimento": func.data_nascimento.isoformat() if func.data_nascimento else None
+        'id': func.id,
+        'nome': func.nome,
+        'cpf': func.cpf,
+        'email': func.email,
+        'matricula': func.matricula,
+        'cargo': func.cargo,
+        'setor': func.setor,
+        'data_admissao': (
+            func.data_admissao.isoformat() if func.data_admissao else None
+        ),
+        'data_cadastro': (
+            func.data_cadastro.isoformat() if func.data_cadastro else None
+        ),
+        'data_nascimento': (
+            func.data_nascimento.isoformat() if func.data_nascimento else None
+        ),
     }
 
-def get_admin_from_header(session):
-    """Verifica se o header X-Admin-Id foi passado e se ele é um administrador válido."""
+
+def _get_admin_from_header():
+    """Recupera (e valida) o admin a partir de ``X-Admin-Id``."""
     admin_id = request.headers.get('X-Admin-Id')
     if not admin_id:
-        return None, "Header X-Admin-Id é obrigatório para esta operação."
-    
+        return None, 'Header X-Admin-Id é obrigatório para esta operação.'
     try:
         admin_id = int(admin_id)
     except ValueError:
-        return None, "X-Admin-Id deve ser um número inteiro."
+        return None, 'X-Admin-Id deve ser um número inteiro.'
 
-    admin = session.query(Funcionario).get(admin_id)
+    admin = container.usuario_service.get_funcionario_by_id(admin_id)
     if not admin:
-        return None, "Administrador não encontrado."
-    
-    # Valida se o cargo é Administrador (ignorando case)
+        return None, 'Administrador não encontrado.'
     if not admin.cargo or admin.cargo.lower() != 'administrador':
-        return None, "Usuário não tem permissão de Administrador."
-        
+        return None, 'Usuário não tem permissão de Administrador.'
     return admin, None
 
-# ==========================================
-# CREATE (C) - Cria novo funcionário
-# ==========================================
+
 @funcionarios_ns.route('/')
-class FuncionarioCadastro(Resource):
-    @funcionarios_ns.expect(funcionario_input_model)
-    @funcionarios_ns.marshal_with(funcionario_model, code=201)
-    def post(self):
-        session = DatabaseManager.get_session()
-        try:
-            # Apenas Admin
-            admin, erro = get_admin_from_header(session)
-            if erro:
-                return {"erro": erro}, 403
-
-            data = request.get_json()
-            if not data:
-                return {"erro": "Dados não fornecidos."}, 400
-
-            required_fields = ['nome', 'cpf', 'email', 'senha', 'data_nascimento', 'matricula', 'cargo']
-            for field in required_fields:
-                if field not in data or not data[field]:
-                    return {"erro": f"O campo '{field}' é obrigatório."}, 400
-
-            if not is_valid_email(data['email']):
-                return {"erro": "Formato de e-mail inválido."}, 400
-
-            try:
-                data_nascimento = datetime.strptime(data['data_nascimento'], '%Y-%m-%d').date()
-            except ValueError:
-                return {"erro": "Formato de data de nascimento inválido. Use AAAA-MM-DD."}, 400
-
-            if calculate_age(data_nascimento) < 18:
-                return {"erro": "O funcionário deve ter pelo menos 18 anos."}, 400
-
-            # Verifica duplicidade
-            email_exists = session.query(Usuario).filter_by(email=data['email']).first()
-            if email_exists:
-                return {"erro": "E-mail já cadastrado no sistema."}, 400
-                
-            cpf_exists = session.query(Usuario).filter_by(cpf=data['cpf']).first()
-            if cpf_exists:
-                return {"erro": "CPF já cadastrado no sistema."}, 400
-
-            matricula_exists = session.query(Funcionario).filter_by(matricula=data['matricula']).first()
-            if matricula_exists:
-                return {"erro": "Matrícula já cadastrada."}, 400
-
-            # Hash da senha
-            senha_hash = generate_password_hash(data['senha'])
-
-            data_admissao = datetime.strptime(data.get('data_admissao', datetime.today().strftime('%Y-%m-%d')), '%Y-%m-%d').date()
-
-            novo_func = Funcionario(
-                nome=data['nome'],
-                cpf=data['cpf'],
-                email=data['email'],
-                senha=senha_hash,
-                data_nascimento=data_nascimento,
-                matricula=data['matricula'],
-                cargo=data['cargo'],
-                setor=data.get('setor'),
-                data_admissao=data_admissao
-            )
-
-            session.add(novo_func)
-            session.commit()
-
-            logger.info(f"Admin ID {admin.id} ({admin.nome}) CRIOU o funcionário ID {novo_func.id} ({novo_func.nome}).")
-
-            return serialize_funcionario(novo_func), 201
-
-        except IntegrityError as e:
-            session.rollback()
-            return {"erro": "Conflito de dados de integridade no banco."}, 400
-        except Exception as e:
-            session.rollback()
-            return {"erro": f"Erro interno do servidor: {str(e)}"}, 500
-        finally:
-            session.close()
-
-# ==========================================
-# READ ALL (R)
-# ==========================================
-@funcionarios_ns.route('/')
-class FuncionarioList(Resource):
-    @funcionarios_ns.marshal_with(funcionario_model)
+class FuncionariosListResource(Resource):
     def get(self):
-        session = DatabaseManager.get_session()
         try:
-            funcionarios = session.query(Funcionario).all()
-            return [serialize_funcionario(f) for f in funcionarios], 200
-        except Exception as e:
-            return {"erro": f"Erro ao buscar funcionários: {str(e)}"}, 500
-        finally:
-            session.close()
+            funcionarios = container.usuario_service.list_funcionarios()
+            return [_serialize_funcionario(f) for f in funcionarios], 200
+        except Exception as exc:  # noqa: BLE001
+            logger.exception('Erro ao listar funcionários')
+            return {'erro': f'Erro ao buscar funcionários: {exc}'}, 500
 
-# ==========================================
-# READ ONE (R)
-# ==========================================
+    @funcionarios_ns.expect(funcionario_input_model)
+    def post(self):
+        admin, erro = _get_admin_from_header()
+        if erro:
+            return {'erro': erro}, 403
+
+        data = request.get_json() or {}
+        required = ['nome', 'cpf', 'email', 'senha', 'data_nascimento',
+                    'matricula', 'cargo']
+        for field in required:
+            if not data.get(field):
+                return {'erro': f"O campo '{field}' é obrigatório."}, 400
+
+        if not _is_valid_email(data['email']):
+            return {'erro': 'Formato de e-mail inválido.'}, 400
+
+        try:
+            data_nascimento = datetime.strptime(
+                data['data_nascimento'], '%Y-%m-%d'
+            ).date()
+        except ValueError:
+            return {
+                'erro': 'Formato de data de nascimento inválido. Use AAAA-MM-DD.'
+            }, 400
+        if _calculate_age(data_nascimento) < 18:
+            return {'erro': 'O funcionário deve ter pelo menos 18 anos.'}, 400
+
+        data_admissao = data.get('data_admissao') or datetime.today().strftime(
+            '%Y-%m-%d'
+        )
+        try:
+            data_admissao = datetime.strptime(data_admissao, '%Y-%m-%d').date()
+        except ValueError:
+            return {'erro': 'Formato de data de admissão inválido.'}, 400
+
+        novo = Funcionario(
+            nome=data['nome'],
+            cpf=data['cpf'],
+            email=data['email'],
+            senha=generate_password_hash(data['senha']),
+            data_nascimento=data_nascimento,
+            matricula=data['matricula'],
+            cargo=data['cargo'],
+            setor=data.get('setor'),
+            data_admissao=data_admissao,
+        )
+
+        try:
+            criado = container.usuario_service.create_funcionario(novo)
+        except ValueError as exc:
+            return {'erro': str(exc)}, 400
+        except Exception as exc:  # noqa: BLE001
+            logger.exception('Erro ao criar funcionário')
+            return {'erro': f'Erro interno do servidor: {exc}'}, 500
+
+        logger.info(
+            'Admin ID %s (%s) CRIOU o funcionário ID %s (%s).',
+            admin.id, admin.nome, criado.id, criado.nome,
+        )
+        return _serialize_funcionario(criado), 201
+
+
 @funcionarios_ns.route('/<int:id>')
-@funcionarios_ns.response(404, 'Funcionário não encontrado.')
 class FuncionarioResource(Resource):
-    @funcionarios_ns.marshal_with(funcionario_model)
     def get(self, id):
-        session = DatabaseManager.get_session()
-        try:
-            func = session.query(Funcionario).get(id)
-            if not func:
-                return {"erro": "Funcionário não encontrado."}, 404
-            
-            return serialize_funcionario(func), 200
-        except Exception as e:
-            return {"erro": f"Erro ao buscar funcionário: {str(e)}"}, 500
-        finally:
-            session.close()
+        func = container.usuario_service.get_funcionario_by_id(id)
+        if not func:
+            return {'erro': 'Funcionário não encontrado.'}, 404
+        return _serialize_funcionario(func), 200
 
-# ==========================================
-# UPDATE (U)
-# ==========================================
-@funcionarios_ns.route('/<int:id>')
-@funcionarios_ns.expect(funcionario_input_model)
-@funcionarios_ns.response(404, 'Funcionário não encontrado.')
-class FuncionarioUpdate(Resource):
+    @funcionarios_ns.expect(funcionario_input_model)
     def put(self, id):
-        session = DatabaseManager.get_session()
+        admin, erro = _get_admin_from_header()
+        if erro:
+            return {'erro': erro}, 403
+
+        data = request.get_json() or {}
+        if not data:
+            return {'erro': 'Dados não fornecidos.'}, 400
+
+        func = container.usuario_service.get_funcionario_by_id(id)
+        if not func:
+            return {'erro': 'Funcionário não encontrado.'}, 404
+
+        if 'email' in data and data['email'] != func.email:
+            if not _is_valid_email(data['email']):
+                return {'erro': 'Formato de e-mail inválido.'}, 400
+
+        if 'data_nascimento' in data and data['data_nascimento']:
+            try:
+                data_nasc = datetime.strptime(
+                    data['data_nascimento'], '%Y-%m-%d'
+                ).date()
+            except ValueError:
+                return {'erro': 'Formato de data de nascimento inválido.'}, 400
+            if _calculate_age(data_nasc) < 18:
+                return {'erro': 'A nova idade seria menor que 18 anos.'}, 400
+            data['data_nascimento'] = data_nasc
+
+        if 'data_admissao' in data and data['data_admissao']:
+            try:
+                data['data_admissao'] = datetime.strptime(
+                    data['data_admissao'], '%Y-%m-%d'
+                ).date()
+            except ValueError:
+                return {'erro': 'Formato de data de admissão inválido.'}, 400
+
+        if data.get('senha'):
+            data['senha'] = generate_password_hash(data['senha'])
+
         try:
-            # Apenas Admin pode atualizar cargos ou outros dados sensíveis de funcionários (regra geral)
-            admin, erro = get_admin_from_header(session)
-            if erro:
-                return {"erro": erro}, 403
+            atualizado = container.usuario_service.update_usuario(id, data)
+        except ValueError as exc:
+            return {'erro': str(exc)}, 400
+        except Exception as exc:  # noqa: BLE001
+            logger.exception('Erro ao atualizar funcionário')
+            return {'erro': f'Erro interno: {exc}'}, 500
 
-            data = request.get_json()
-            if not data:
-                return {"erro": "Dados não fornecidos."}, 400
+        if not atualizado:
+            return {'erro': 'Funcionário não encontrado.'}, 404
 
-            func = session.query(Funcionario).get(id)
-            if not func:
-                return {"erro": "Funcionário não encontrado."}, 404
+        logger.info(
+            'Admin ID %s (%s) ATUALIZOU o funcionário ID %s.',
+            admin.id, admin.nome, id,
+        )
+        return _serialize_funcionario(atualizado), 200
 
-            # Impede rebaixamento de último administrador
-            if func.cargo and func.cargo.lower() == 'administrador' and 'cargo' in data and data['cargo'].lower() != 'administrador':
-                total_admins = session.query(Funcionario).filter(Funcionario.cargo.ilike('administrador')).count()
-                if total_admins <= 1:
-                    return {"erro": "Não é possível rebaixar o último administrador do sistema."}, 400
-
-            # Atualização de email
-            if 'email' in data and data['email'] != func.email:
-                if not is_valid_email(data['email']):
-                    return {"erro": "Formato de e-mail inválido."}, 400
-                email_exists = session.query(Usuario).filter_by(email=data['email']).first()
-                if email_exists:
-                    return {"erro": "E-mail já cadastrado por outro usuário."}, 400
-                func.email = data['email']
-
-            if 'nome' in data: func.nome = data['nome']
-            if 'setor' in data: func.setor = data['setor']
-            if 'cargo' in data: func.cargo = data['cargo']
-
-            if 'senha' in data and data['senha']:
-                func.senha = generate_password_hash(data['senha'])
-                
-            if 'data_nascimento' in data:
-                try:
-                    data_nascimento = datetime.strptime(data['data_nascimento'], '%Y-%m-%d').date()
-                    if calculate_age(data_nascimento) < 18:
-                        return {"erro": "A nova idade seria menor que 18 anos."}, 400
-                    func.data_nascimento = data_nascimento
-                except ValueError:
-                    return {"erro": "Formato de data de nascimento inválido."}, 400
-
-            session.commit()
-            logger.info(f"Admin ID {admin.id} ({admin.nome}) ATUALIZOU o funcionário ID {func.id} ({func.nome}).")
-            
-            return serialize_funcionario(func), 200
-
-        except IntegrityError as e:
-            session.rollback()
-            return {"erro": "Conflito de dados no banco."}, 400
-        except Exception as e:
-            session.rollback()
-            return {"erro": f"Erro interno: {str(e)}"}, 500
-        finally:
-            session.close()
-
-# ==========================================
-# DELETE / INACTIVATE (D)
-# ==========================================
-@funcionarios_ns.route('/<int:id>')
-@funcionarios_ns.response(404, 'Funcionário não encontrado.')
-class FuncionarioDelete(Resource):
     def delete(self, id):
-        session = DatabaseManager.get_session()
+        admin, erro = _get_admin_from_header()
+        if erro:
+            return {'erro': erro}, 403
+
+        func = container.usuario_service.get_funcionario_by_id(id)
+        if not func:
+            return {'erro': 'Funcionário não encontrado.'}, 404
+
+        if admin.id == func.id:
+            return {
+                'erro': 'Um administrador não pode excluir ou inativar a si mesmo.'
+            }, 400
+
+        # Bloqueia exclusão do último admin
+        if func.cargo and func.cargo.lower() == 'administrador':
+            todos = container.usuario_service.list_funcionarios()
+            total_admins = sum(
+                1 for f in todos
+                if f.cargo and f.cargo.lower() == 'administrador'
+            )
+            if total_admins <= 1:
+                return {
+                    'erro': 'Não é possível remover o último administrador do sistema.'
+                }, 400
+
         try:
-            admin, erro = get_admin_from_header(session)
-            if erro:
-                return {"erro": erro}, 403
+            removido = container.usuario_service.delete_usuario(id)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception('Erro ao excluir funcionário')
+            return {'erro': f'Erro ao excluir funcionário: {exc}'}, 500
 
-            func = session.query(Funcionario).get(id)
-            if not func:
-                return {"erro": "Funcionário não encontrado."}, 404
-
-            # Impedir auto-exclusão
-            if admin.id == func.id:
-                return {"erro": "Um administrador não pode excluir ou inativar a si mesmo."}, 400
-
-            # Impedir exclusão do último administrador
-            if func.cargo and func.cargo.lower() == 'administrador':
-                total_admins = session.query(Funcionario).filter(Funcionario.cargo.ilike('administrador')).count()
-                if total_admins <= 1:
-                    return {"erro": "Não é possível remover o último administrador do sistema."}, 400
-
-            # Removemos o funcionário (neste caso, delete real para simplificar, mas o critério pede para inativar ou excluir)
-            # O CASCADE removeria o usuário também, o que deleta o funcionário.
-            nome_removido = func.nome
-            session.delete(func)
-            session.commit()
-            
-            logger.warning(f"Admin ID {admin.id} ({admin.nome}) EXCLUIU o funcionário ID {id} ({nome_removido}).")
-            
-            return {"mensagem": "Funcionário excluído/inativado com sucesso."}, 200
-            
-        except IntegrityError as e:
-            session.rollback()
-            return {"erro": "Não é possível excluir o funcionário pois ele possui transações vinculadas (sugere-se inativação lógica)."}, 400
-        except Exception as e:
-            session.rollback()
-            return {"erro": f"Erro ao excluir funcionário: {str(e)}"}, 500
-        finally:
-            session.close()
+        if not removido:
+            return {'erro': 'Funcionário não encontrado.'}, 404
+        logger.warning(
+            'Admin ID %s (%s) EXCLUIU o funcionário ID %s.',
+            admin.id, admin.nome, id,
+        )
+        return {'mensagem': 'Funcionário excluído/inativado com sucesso.'}, 200
