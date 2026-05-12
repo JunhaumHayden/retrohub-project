@@ -67,6 +67,7 @@
     { "id": 6, "valor_total": 17.80, "id_cliente": 5, "id_funcionario": 2, "data_transacao": "2026-02-28", "tipo": "ALUGUEL" },
     { "id": 7, "valor_total": 6.90, "id_cliente": 6, "id_funcionario": 2, "data_transacao": "2026-03-05", "tipo": "ALUGUEL" },
     { "id": 8, "valor_total": 13.80, "id_cliente": 3, "id_funcionario": 2, "data_transacao": "2026-02-27", "tipo": "ALUGUEL" },
+    { "id": 10, "valor_total": 20.70, "id_cliente": 3, "id_funcionario": 1, "data_transacao": "2026-05-10", "tipo": "ALUGUEL" },
     { "id": 9, "valor_total": 7.90, "id_cliente": 4, "id_funcionario": 1, "data_transacao": "2026-03-04", "tipo": "ALUGUEL" }
   ],
   "vendas": [
@@ -77,12 +78,14 @@
     { "id_transacao": 6, "periodo": 2, "data_devolucao": null, "status": "FINALIZADO", "data_inicio": "2026-02-28", "data_prevista_devolucao": "2026-03-02", "id_reserva": null },
     { "id_transacao": 7, "periodo": 3, "data_devolucao": null, "status": "ATRASADO", "data_inicio": "2026-02-23", "data_prevista_devolucao": "2026-02-26", "id_reserva": null },
     { "id_transacao": 8, "periodo": 3, "data_devolucao": null, "status": "ATIVO", "data_inicio": "2026-03-02", "data_prevista_devolucao": "2026-03-06", "id_reserva": null },
+    { "id_transacao": 10, "periodo": 3, "data_devolucao": null, "status": "SOLICITADO", "data_inicio": null, "data_prevista_devolucao": null, "id_reserva": null },
     { "id_transacao": 9, "periodo": 2, "data_devolucao": null, "status": "ATIVO", "data_inicio": "2026-03-03", "data_prevista_devolucao": "2026-03-05", "id_reserva": null }
   ],
   "itens_transacao": [
     { "id_transacao": 1, "id_exemplar": 8, "valor_unitario": 150.00 },
     { "id_transacao": 2, "id_exemplar": 114, "valor_unitario": 8.90 },
     { "id_transacao": 6, "id_exemplar": 115, "valor_unitario": 9.90 },
+    { "id_transacao": 10, "id_exemplar": 5, "valor_unitario": 6.90 },
     { "id_transacao": 7, "id_exemplar": 23, "valor_unitario": 99.90 },
     { "id_transacao": 8, "id_exemplar": 105, "valor_unitario": 6.90 },
     { "id_transacao": 9, "id_exemplar": 10, "valor_unitario": 6.90 }

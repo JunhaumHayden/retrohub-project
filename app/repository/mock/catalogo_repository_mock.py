@@ -3,6 +3,7 @@ from typing import List, Optional
 from app.models.catalogo.catalogo import Catalogo
 from app.repository.interface.catalogo_repository_interface import CatalogoRepositoryInterface
 from app.database.mock_data_source import MockDataSource
+from app.database.interfaces.data_source_interface import DataSourceInterface
 
 
 class CatalogoRepositoryMock(CatalogoRepositoryInterface):
@@ -10,7 +11,8 @@ class CatalogoRepositoryMock(CatalogoRepositoryInterface):
     Mock implementation of Catalogo repository using in-memory data source
     """
 
-    def __init__(self, data_source: Optional[MockDataSource] = None):
+    def __init__(self, data_source: Optional[DataSourceInterface] = None):
+        # accept generic DataSourceInterface implementations
         self.data_source = data_source or MockDataSource()
         self.data_source.load_data()
 

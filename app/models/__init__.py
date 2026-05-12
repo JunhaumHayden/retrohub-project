@@ -12,3 +12,8 @@ __all__ = [
     "Transacao", "Venda", "Aluguel", "Reserva",
     "ItemTransacao", "Comprovante", "Multa", "Avaliacao"
 ]
+
+# Backwards compatibility: historically the domain used the name `Jogo`.
+# Provide an alias so older tests and code importing `Jogo` continue to work.
+Jogo = Catalogo
+__all__.insert(3, "Jogo")

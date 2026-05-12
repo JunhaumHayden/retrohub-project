@@ -1,3 +1,5 @@
+from typing import Optional, Any
+
 from flask_sqlalchemy.session import Session
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -12,8 +14,9 @@ class DatabaseConfig:
 
     def __init__(self, db_url: str, **kwargs):
         self.db_url = db_url
-        self.engine = None
-        self.session_factory = None
+        self.engine: Optional[Engine] = None
+        # session_factory will hold a scoped_session instance
+        self.session_factory: Optional[Any] = None
         self.kwargs = kwargs
 
     def create_engine(self) -> Engine:
@@ -26,9 +29,11 @@ class DatabaseConfig:
             self.engine = self.create_engine()
 
         if not self.session_factory:
+            # scoped_session returns a callable that produces Session instances
             self.session_factory = scoped_session(
                 sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
             )
             Base.metadata.create_all(bind=self.engine)
 
+        # mypy can't always infer the callable type from scoped_session; return runtime value
         return self.session_factory()

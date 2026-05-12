@@ -1,7 +1,7 @@
 import os
+from typing import Optional, Union
 
 from ..adapters.postgres_adapter import PostgresConfig
-
 from ..adapters.sqlite_adapter import SQLiteConfig
 from flask_sqlalchemy.session import Session
 from dotenv import load_dotenv
@@ -13,10 +13,12 @@ load_dotenv()
 class DatabaseManager:
     """Database factory class"""
     _instance = None
+    _db_config: Optional[Union[SQLiteConfig, PostgresConfig]] = None
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+            # ensure typed attribute exists
             cls._db_config = None
         return cls._instance
 

@@ -154,6 +154,9 @@ def serialize_aluguel(aluguel: Aluguel):
 @alugueis_ns.route('/solicitar')
 class SolicitarAluguelResource(Resource):
     @alugueis_ns.expect(aluguel_solicitacao_model)
+    @alugueis_ns.doc(params={
+        'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}
+    })
     def post(self):
         """Solicitar um novo aluguel"""
         try:
@@ -181,11 +184,8 @@ class SolicitarAluguelResource(Resource):
                 return {"erro": "A data de início não pode ser anterior à data atual."}, 400
 
             jogo = container.data_source.get_by_id(Catalogo, data['id_jogo'])
-            if not jogo or not jogo.ativo:
+            if not jogo or getattr(jogo, 'situacao', None) != 'DISPONIVEL':
                 return {"erro": "Jogo não existe ou está inativo no catálogo."}, 404
-
-            if not jogo.valor_diaria_aluguel:
-                return {"erro": "Este jogo não está disponível para aluguel (valor da diária não definido)."}, 400
 
             tipo_midia = str(data['tipo_midia']).upper()
             if tipo_midia not in ['FISICA', 'DIGITAL']:
@@ -196,8 +196,11 @@ class SolicitarAluguelResource(Resource):
             if not exemplar_disponivel:
                 return {"erro": f"Não há exemplares da mídia {tipo_midia} disponíveis no momento para este jogo."}, 400
 
-            # Calcular valor total
-            valor_total = jogo.valor_diaria_aluguel * dias_alugados
+            # Calcular valor total usando o exemplar/mídia selecionada
+            valor_diaria = getattr(exemplar_disponivel, 'valor_diaria_aluguel', None)
+            if not valor_diaria:
+                return {"erro": "Este jogo não está disponível para aluguel (valor da diária não definido)."}, 400
+            valor_total = valor_diaria * dias_alugados
             data_prevista_devolucao = data_inicio + timedelta(days=dias_alugados)
 
             # Note: In mock mode, we can't actually save new rentals
@@ -229,6 +232,9 @@ class SolicitarAluguelResource(Resource):
 
 @alugueis_ns.route('/meus-alugueis')
 class MeusAlugueisResource(Resource):
+    @alugueis_ns.doc(params={
+        'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}
+    })
     def get(self):
         """Listar meus aluguéis"""
         try:
@@ -245,6 +251,9 @@ class MeusAlugueisResource(Resource):
 
 @alugueis_ns.route('/<int:id>/retirada')
 class RegistrarRetiradaAluguelResource(Resource):
+    @alugueis_ns.doc(params={
+        'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}
+    })
     def patch(self, id):
         """Registrar retirada de aluguel"""
         try:
@@ -252,7 +261,8 @@ class RegistrarRetiradaAluguelResource(Resource):
             if erro:
                 return {"erro": erro}, 403
 
-            aluguel, err = registrar_retirada(id)
+            # Use DI-provided service to ensure same data source instance as container
+            aluguel, err = container.aluguel_service.registrar_retirada(id)
             if err:
                 return {"erro": err}, 400
 
@@ -269,6 +279,9 @@ class RegistrarRetiradaAluguelResource(Resource):
 @alugueis_ns.route('/<int:id>/devolucao')
 class RegistrarDevolucaoAluguelResource(Resource):
     @alugueis_ns.expect(aluguel_devolucao_model)
+    @alugueis_ns.doc(params={
+        'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}
+    })
     def patch(self, id):
         """Registrar devolução de aluguel"""
         try:
@@ -280,7 +293,8 @@ class RegistrarDevolucaoAluguelResource(Resource):
             if not data:
                 return {"erro": "Dados não fornecidos."}, 400
             condicao = data.get("condicao_item")
-            aluguel, err = registrar_devolucao(id, condicao, funcionario.id_usuario)
+            # Use DI-provided service to ensure same data source instance as container
+            aluguel, err = container.aluguel_service.registrar_devolucao(id, condicao, funcionario.id_usuario)
             if err:
                 code = 404 if "não encontrado" in err.lower() else 400
                 return {"erro": err}, code
@@ -294,6 +308,9 @@ class RegistrarDevolucaoAluguelResource(Resource):
 
 @alugueis_ns.route('/<int:id>')
 class DetalhesAluguelResource(Resource):
+    @alugueis_ns.doc(params={
+        'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}
+    })
     def get(self, id):
         """Obter detalhes de um aluguel"""
         try:
@@ -312,6 +329,9 @@ class DetalhesAluguelResource(Resource):
 
 @alugueis_ns.route('/<int:id>/cancelar')
 class CancelarAluguelResource(Resource):
+    @alugueis_ns.doc(params={
+        'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}
+    })
     def patch(self, id):
         """Cancelar um aluguel"""
         try:
@@ -350,6 +370,9 @@ class CancelarAluguelResource(Resource):
 @alugueis_ns.route('/<int:id>/renovar')
 class RenovarAluguelResource(Resource):
     @alugueis_ns.expect(aluguel_renovacao_model)
+    @alugueis_ns.doc(params={
+        'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}
+    })
     def patch(self, id):
         """Renovar um aluguel"""
         try:

@@ -1,0 +1,42 @@
+[
+    {
+        "id_transacao": 8,
+        "data_transacao": "2026-02-27T00:00:00",
+        "valor_total": 13.8,
+        "status_transacao": "ATIVO",
+        "id_cliente": 3,
+        "periodo_dias": 3,
+        "data_inicio": "2026-03-02",
+        "data_prevista_devolucao": "2026-03-06",
+        "data_fim_prevista": "2026-03-06",
+        "data_devolucao": null,
+        "data_devolucao_real": null,
+        "data_retirada": null,
+        "condicao_item": null,
+        "id_funcionario_recebimento": null,
+        "multa_aplicada": null,
+        "multa_paga": false,
+        "dias_atraso": null,
+        "status_aluguel": "ATIVO"
+    },
+    {
+        "id_transacao": 10,
+        "data_transacao": "2026-05-10T00:00:00",
+        "valor_total": 20.7,
+        "status_transacao": "SOLICITADO",
+        "id_cliente": 3,
+        "periodo_dias": 3,
+        "data_inicio": null,
+        "data_prevista_devolucao": null,
+        "data_fim_prevista": null,
+        "data_devolucao": null,
+        "data_devolucao_real": null,
+        "data_retirada": null,
+        "condicao_item": null,
+        "id_funcionario_recebimento": null,
+        "multa_aplicada": null,
+        "multa_paga": false,
+        "dias_atraso": null,
+        "status_aluguel": "SOLICITADO"
+    }
+]

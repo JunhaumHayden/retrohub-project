@@ -14,6 +14,8 @@ from app.repository.interface.usuario_repository_interface import UsuarioReposit
 from app.repository.interface.catalogo_repository_interface import CatalogoRepositoryInterface
 from app.services.usuario_service import UsuarioService
 from app.services.catalogo_service import CatalogoService
+from app.repository.mock.aluguel_repository_mock import AluguelRepositoryMock
+from app.services.aluguel_service import AluguelService
 
 
 class Container:
@@ -27,6 +29,8 @@ class Container:
         self._catalogo_repository: Optional[CatalogoRepositoryInterface] = None
         self._usuario_service: Optional[UsuarioService] = None
         self._catalogo_service: Optional[CatalogoService] = None
+        self._aluguel_repository: Optional[AluguelRepositoryMock] = None
+        self._aluguel_service: Optional[AluguelService] = None
     
     @property
     def data_source(self) -> DataSourceInterface:
@@ -74,6 +78,20 @@ class Container:
         if self._catalogo_service is None:
             self._catalogo_service = CatalogoService(self.catalogo_repository)
         return self._catalogo_service
+
+    @property
+    def aluguel_repository(self) -> AluguelRepositoryMock:
+        """Get the aluguel repository instance"""
+        if self._aluguel_repository is None:
+            self._aluguel_repository = AluguelRepositoryMock(self.data_source)
+        return self._aluguel_repository
+
+    @property
+    def aluguel_service(self) -> AluguelService:
+        """Get the aluguel service instance"""
+        if self._aluguel_service is None:
+            self._aluguel_service = AluguelService(self.aluguel_repository)
+        return self._aluguel_service
     
     def reset(self) -> None:
         """Reset all instances (useful for testing)"""
@@ -82,6 +100,8 @@ class Container:
         self._catalogo_repository = None
         self._usuario_service = None
         self._catalogo_service = None
+        self._aluguel_repository = None
+        self._aluguel_service = None
 
 
 # Global container instance

@@ -8,6 +8,7 @@ from app.routes.catalogo_routes import catalogo_ns
 from app.routes.estoque_routes import estoque_ns
 from app.routes.alugueis_routes import alugueis_ns
 from app.routes.vendas_routes import vendas_ns
+from app.routes.demo_routes import demo_ns
 
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -25,6 +26,16 @@ def create_app(test_config=None):
     # injeta dependencias nas rotas
     app.container = Container()
 
+    # If a test configuration for DB was provided, initialize the DB factory
+    if test_config:
+        try:
+            from app.database.factories.database_manager import DatabaseManager
+            # test_config is expected to contain keys accepted by DatabaseManager.init_db
+            DatabaseManager.init_db(**test_config)
+        except Exception:
+            # If DB initialization fails here, tests will handle/report it
+            pass
+
     # Registra os namespaces do Flask-RESTX
     api.add_namespace(clientes_ns)
     api.add_namespace(funcionarios_ns)
@@ -32,6 +43,7 @@ def create_app(test_config=None):
     api.add_namespace(estoque_ns)
     api.add_namespace(alugueis_ns)
     api.add_namespace(vendas_ns)
+    api.add_namespace(demo_ns)
 
     @app.route('/')
     def index():

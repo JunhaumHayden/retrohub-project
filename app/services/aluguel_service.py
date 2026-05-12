@@ -3,21 +3,30 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional, Tuple
 
 from app.database.mock_data_source import MockDataSource
+from app.repository.mock.aluguel_repository_mock import AluguelRepositoryMock
 from app.models import Aluguel, Exemplar, ItemTransacao, Catalogo, Multa
 
 _CONDICOES_DEVOLUCAO = frozenset({"bom", "danificado", "extraviado"})
+
 
 
 def _q2(value: Decimal) -> Decimal:
     return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-def registrar_retirada(aluguel_id: int) -> Tuple[Optional[Aluguel], Optional[str]]:
+# Use a mock data source + repository instance for service functions
+_DATA_SOURCE = MockDataSource()
+_DATA_SOURCE.load_data()
+_REPO = AluguelRepositoryMock(_DATA_SOURCE)
+
+
+def registrar_retirada(aluguel_id: int, repo: Optional[AluguelRepositoryMock] = None) -> Tuple[Optional[Aluguel], Optional[str]]:
     """
     Registra a saída física/digital do item: status ATIVO, data de retirada,
     previsão de fim com base no período e atualização do exemplar/catálogo.
     """
-    aluguel = MockDataSource.get_by_id(Aluguel, aluguel_id)
+    _r = repo or _REPO
+    aluguel = _r.get_by_id(aluguel_id)
     if not aluguel:
         return None, "Aluguel não encontrado."
     if aluguel.status not in ("SOLICITADO", "APROVADO"):
@@ -32,21 +41,40 @@ def registrar_retirada(aluguel_id: int) -> Tuple[Optional[Aluguel], Optional[str
     if periodo > 0:
         aluguel.data_prevista_devolucao = di + timedelta(days=periodo)
 
-    items = MockDataSource.get_all(ItemTransacao)
-    item = next((i for i in items if i.id_transacao == aluguel.id), None)
+    # Get the item(s) for this transacao via repository
+    items = _r.get_items_by_transacao(aluguel.id) or []
+    item = items[0] if items else None
     if not item:
         return None, "Item da transação não encontrado."
-    exemplar = MockDataSource.get_by_id(Exemplar, item.id_exemplar)
+    exemplar = _r.get_exemplar_by_id(item.id_exemplar) if item and item.id_exemplar is not None else None
     if exemplar:
         exemplar.situacao = "ALUGADO"
+        _r.update(exemplar)
 
+    _r.update(aluguel)
     return aluguel, None
+
+
+class AluguelService:
+    """Light wrapper service exposing the module functions via an instance suitable for DI."""
+
+    def __init__(self, repository: Optional[AluguelRepositoryMock] = None):
+        # avoid circular import at module top; accept repository injected by Container
+        from app.repository.mock.aluguel_repository_mock import AluguelRepositoryMock as _ARM
+        self.repo = repository or _REPO
+
+    def registrar_retirada(self, aluguel_id: int):
+        return registrar_retirada(aluguel_id, repo=self.repo)
+
+    def registrar_devolucao(self, aluguel_id: int, condicao_item: str, id_funcionario_recebimento: int):
+        return registrar_devolucao(aluguel_id, condicao_item, id_funcionario_recebimento, repo=self.repo)
 
 
 def registrar_devolucao(
     aluguel_id: int,
     condicao_item: str,
     id_funcionario_recebimento: int,
+    repo: Optional[AluguelRepositoryMock] = None,
 ) -> Tuple[Optional[Aluguel], Optional[str]]:
     """
     Registra devolução da mídia: finaliza aluguel, libera exemplar/estoque,
@@ -58,7 +86,8 @@ def registrar_devolucao(
     if cond_norm not in _CONDICOES_DEVOLUCAO:
         return None, "condicao_item deve ser: bom, danificado ou extraviado."
 
-    aluguel = MockDataSource.get_by_id(Aluguel, aluguel_id)
+    _r = repo or _REPO
+    aluguel = _r.get_by_id(aluguel_id)
     if not aluguel:
         return None, "Aluguel não encontrado."
     if aluguel.status != "ATIVO":
@@ -69,14 +98,18 @@ def registrar_devolucao(
     agora = datetime.utcnow()
     d_real = agora.date()
 
-    items = MockDataSource.get_all(ItemTransacao)
-    item = next((i for i in items if i.id_transacao == aluguel.id), None)
+    items = _r.get_items_by_transacao(aluguel.id) or []
+    item = items[0] if items else None
     if not item:
         return None, "Item da transação não encontrado."
 
-    exemplar = MockDataSource.get_by_id(Exemplar, item.id_exemplar)
-    jogo = MockDataSource.get_by_id(Catalogo, exemplar.id_catalogo) if exemplar else None
-    valor_diaria = jogo.valor_diaria_aluguel if jogo and jogo.valor_diaria_aluguel else Decimal("0")
+    exemplar = _r.get_exemplar_by_id(item.id_exemplar) if item and item.id_exemplar is not None else None
+    # Use the exemplar's daily value (MidiaFisica/MidiaDigital) when available
+    valor_diaria = (
+        exemplar.valor_diaria_aluguel
+        if exemplar and hasattr(exemplar, 'valor_diaria_aluguel') and exemplar.valor_diaria_aluguel
+        else Decimal("0")
+    )
     valor_total = aluguel.valor_total if aluguel.valor_total is not None else Decimal("0")
 
     dias_atraso = 0
@@ -97,27 +130,29 @@ def registrar_devolucao(
     aluguel.data_devolucao = d_real
     aluguel.status = "FINALIZADO"
     aluguel.condicao_item = cond_norm
+    # preserve previous shape: store received employee id and atraso info
+    # Keep numeric id for routes/tests while model also has `funcionario_recebimento`
     aluguel.id_funcionario_recebimento = id_funcionario_recebimento
     aluguel.dias_atraso = dias_atraso
-    aluguel.multa_aplicada = multa_valor
     aluguel.multa_paga = bool(multa_valor == 0)
 
     if exemplar:
         exemplar.situacao = "DISPONIVEL"
+        _r.update(exemplar)
 
-    # Note: In mock mode, we can't actually save new multas to the database
-    # This would need to be handled differently in a real implementation
+    # Save/update aluguel
+    _r.update(aluguel)
+
     if multa_valor > 0:
-        # Create multa object but don't save (mock mode limitation)
         multa = Multa(
-            id=1,  # Placeholder ID
-            id_aluguel=aluguel.id,
+            id=None,
             dias_atraso=dias_atraso,
             valor=multa_valor,
             status="PENDENTE",
             data_calculo=d_real,
         )
-        # In a real implementation, you would save this:
-        # MockDataSource.save(multa)
+        saved = _r.create_multa(multa)
+        # attach multa object to aluguel for consistency (route will convert to float)
+        aluguel.multa_aplicada = saved
 
     return aluguel, None

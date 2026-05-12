@@ -1,0 +1,20 @@
+{
+    "id_transacao": 8,
+    "data_transacao": "2026-02-27T00:00:00",
+    "valor_total": 13.8,
+    "status_transacao": "FINALIZADO",
+    "id_cliente": 3,
+    "periodo_dias": 3,
+    "data_inicio": "2026-03-02",
+    "data_prevista_devolucao": "2026-03-06",
+    "data_fim_prevista": "2026-03-06",
+    "data_devolucao": "2026-05-12",
+    "data_devolucao_real": "2026-05-12T18:17:50.351955",
+    "data_retirada": null,
+    "condicao_item": "bom",
+    "id_funcionario_recebimento": 1,
+    "multa_aplicada": null,
+    "multa_paga": true,
+    "dias_atraso": 67,
+    "status_aluguel": "FINALIZADO"
+}
