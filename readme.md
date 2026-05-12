@@ -123,110 +123,169 @@ python -m unittest discover tests -v
 
 ```mermaid
 classDiagram
+class StatusPagamento
 class Usuario {
-    +int id
-    +char nome
-    +char cpf
-    +char email
-    +char senha
-    +date data_cadastro
-    +date data_nascimento
+    <<abstract>>
+    -char nome
+    -char cpf
+    -char email
+    -Date data_cadastro
+    -Date data_nascimento
 }
 class Cliente {
-    +char dados_pagamento
-    +char tipo_cliente
+    -char dados_pagamento
+    -char tipo_cliente
 }
 class Funcionario {
-    +char matricula
-    +char cargo
-    +char setor
-    +date data_admissao
-}
-class Jogo {
-    +int id
-    +char titulo
-    +char descricao
-    +char plataforma
-    +boolean ativo
-    +char genero
-    +char classificacao
-    +double valor_venda
-    +double valor_diaria_aluguel
+    -char matricula
+    -char cargo
+    -char setor
+    -Date data_admissao
 }
 class Exemplar {
-    +int id
-    +char tipo_midia
-}
-class MidiaFisica {
-    +char codido_barras
-    +char estado_conservacao
+    <<abstract>>
+    -int id
+    -Catalogo catalogo
+    -char tipo_midia
+    -StatusSituacao situacao
+    -item_transacao item_transacao
+    +get_catalogo() Catalogo
+    +get_id_catalogo() int
+    +setSituacao() boolean
+    +getSituacao() StatusSituacao
 }
 class MidiaDigital {
-    +char chave_ativacao
-    +date data_expiracao
+    -char chave_ativacao
+    -Date data_expiracao
+    -char plataforma
+    -double valor_venda
+    -double valor_diaria_aluguel
 }
-class Venda {
-    +char status
-    +date data_confirmacao
+class MidiaFisica {
+    -char codigo_barras
+    -char estado_conservacao
+    -char plataforma
+    -double valor_venda
+    -double valor_diaria
+    +setEstadoConservacao() char
 }
-class Comprovante {
-    +int id
-    +char tipo
-    +date data_envio
-    +char codigo_rastreio
+class Catalogo {
+    -char titulo
+    -StatusSituacao situacao
+    -char descricao
+    -char classificacao
+    -List~exemplar~ exemplares
+    +estoque_disponive() int
+    +add_exemplar() boolean
 }
-class Multa {
-    +int id
-    +int dias_atraso
-    +double valor
-    +char status
-    +date data_calculo
-}
-class Aluguel {
-    +int periodo
-    +date data_inicio
-    +date data_devolucao
-    +date data_prevista_devolucao
-    +char status
-}
-class ItemTransacao {
-    +int quantidade
-    +double valor_unitario
-}
-class Avaliacao {
-    +int id
-    +int nota
-    +char comentario
-    +date data_avaliacao
-}
-class Reserva {
-    +int id
-    +date data_reserva
-    +date data_expiracao
-    +char status
+class StatusSituacao {
+    <<enumeration>>
+    -StatusSituacao DISPONIVEL
+    -StatusSituacao INDISPONIVEL
 }
 class Transacao {
-    +int id
-    +date data_transacao
-    +double valor_total
+    -int id
+    -double valor_total
+    -char tipo
+    -Date data_transacao
+    -StatusPagamento status_pagamento
+    -Cliente cliente
+    -Funcionario funcionario
+    -List~Comprovante~ comprovante
+    -List~item_transacao~ itens_transacao
 }
-Transacao "0..*" -- "1" Cliente
-Transacao "0..*" -- "0..1" Funcionario
-Transacao "1" -- "1..*" ItemTransacao
-Exemplar "0..*" -- "1" Jogo
-ItemTransacao "0..*" -- "1" Exemplar
-Comprovante "1" -- "1" Transacao
-Multa "0..*" -- "1" Aluguel
-Aluguel "1" -- "0..1" Reserva
-Avaliacao "0..1" -- "1" Transacao
-Cliente --|> Usuario
-Funcionario --|> Usuario
-MidiaFisica --|> Exemplar
-MidiaDigital --|> Exemplar
-Venda --|> Transacao
-Aluguel --|> Transacao
-Reserva "0..*" -- "1" Jogo
-Reserva "0..*" -- "1" Cliente
+class Comprovante {
+    -int id
+    -int tipo
+    -Date data
+    -TipoComprovante tipo_comprovante
+    +emitir() void
+}
+class item_transacao {
+    -int id
+    -Transacao transacao
+    -Exemplar exemplar
+    -double valor_item
+    +getId() int
+    +setId() boolean
+    +getExemplar() Exemplar
+    +setExemplar() boolean
+    +getTransacao() Transacao
+    +setTransacao() boolean
+}
+class Aluguel {
+    -int periodo
+    -char condicao_item_devolucao
+    -StatusAluguel status
+    -int reserva
+    -Date data_devolucao
+    -Date data_inicio
+    -Date data_prevista_devolucão
+    -Date data_retirada
+    -int dias_atraso
+    -int multa_aplicada
+    -boolean multa_paga
+    +getMulta() Multa
+    +setMulta() boolean
+    +setComprovante(Model::TipoComprovante tipoComprovante) boolean
+}
+class Multa {
+    -int id
+    -int dias_atraso
+    -double valor_multa
+    -char status
+    -Date data_calculo
+    +setMulta() boolean
+}
+class Reserva {
+    -int id
+    -Cliente cliente
+    -Catalogo catalogo
+    -char status
+    -Date data_reserva
+    -Date data_expiracao
+}
+class Venda {
+    -StatusVenda status_venda
+    -Date data_confirmacao
+}
+class AluguelService {
+    +getAluguel() Aluguel
+    +setAluguel() Aluguel
+    +getAluguelPorId() Aluguel
+    +registrarDevolucao(int param0, char condicao) boolean
+    +finalizarAluguel() boolean
+}
+class CatalogoService {
+    +inserirCatalogo() boolean
+}
+class TransacaoRepository {
+    -List~Aluguel~ alugueis
+    +getAlugueis() List~Aluguel~
+    +getAluguelPorId() Aluguel
+    +addAluguel(Model::transacao::aluguel::Aluguel aluguel) boolean
+}
+Usuario "1" -- "0..*" Transacao
+Exemplar "0..*" <--> "1" Catalogo
+StatusSituacao "1" <-- "0..*" Exemplar
+Exemplar -- Transacao
+Exemplar -- Transacao
+StatusSituacao "1" <-- "0..*" Catalogo
+StatusPagamento "1" <-- "0..*" Transacao
+Comprovante <--* Transacao
+Multa --o Aluguel
+Reserva --o Aluguel
+AluguelService -- TransacaoRepository
+CatalogoService ..> Exemplar
+CatalogoService ..> Catalogo
+AluguelService ..> Aluguel
+TransacaoRepository ..> Aluguel
+Usuario --|> Cliente
+Usuario --|> Funcionario
+Exemplar --|> MidiaDigital
+Exemplar --|> MidiaFisica
+Transacao --|> Aluguel
+Transacao --|> Venda
 %%Generated by Astah mermaid plugin
 ```
 

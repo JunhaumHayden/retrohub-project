@@ -1,7 +1,7 @@
 {
   "usuarios": [
-    { "id": 1, "nome": "Solid Snake", "cpf": "111.111.111-11", "email": "snake@metalgear.com", "senha": "hash123", "data_nascimento": "1972-06-12", "tipo": "funcionario" },
-    { "id": 2, "nome": "Rachel Teller", "cpf": "222.222.222-22", "email": "chief@nfsunderground2.com", "senha": "hash123", "data_nascimento": "2511-03-07", "tipo": "funcionario" },
+    { "id": 1, "nome": "Solid Snake", "cpf": "111.111.111-11", "email": "snake_metalgear@retrohub.com", "senha": "hash123", "data_nascimento": "1972-06-12", "tipo": "funcionario" },
+    { "id": 2, "nome": "Rachel Teller", "cpf": "222.222.222-22", "email": "chief_nfsunderground2@retrohub.com", "senha": "hash123", "data_nascimento": "2511-03-07", "tipo": "funcionario" },
     { "id": 3, "nome": "Sam Fisher", "cpf": "777.777.777-77", "email": "fisher@splintercell.com", "senha": "hash123", "data_nascimento": "2001-11-07", "tipo": "cliente" },
     { "id": 4, "nome": "Lara Croft", "cpf": "101.202.303-44", "email": "lara@tombraider.com", "senha": "hash123", "data_nascimento": "1968-02-14", "tipo": "cliente" },
     { "id": 5, "nome": "Nathan Drake", "cpf": "202.303.404-55", "email": "drake@uncharted.com", "senha": "hash123", "data_nascimento": "1976-10-19", "tipo": "cliente" },

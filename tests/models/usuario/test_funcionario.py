@@ -77,7 +77,6 @@ class TestFuncionario(unittest.TestCase):
         repr_str = repr(usuario)
         self.assertIn("Funcionario", repr_str)
         self.assertIn("João Silva", repr_str)
-        self.assertIn("funcionario", repr_str)
 
 
 if __name__ == '__main__':

@@ -2,7 +2,10 @@ from datetime import date, datetime
 from typing import Optional
 from decimal import Decimal
 
-from app.models import Multa, Cliente, Comprovante, ItemTransacao
+from app.models.transacao.aluguel.multa import Multa
+from app.models.usuario.cliente import Cliente
+from app.models.transacao.comprovante import Comprovante
+from app.models.transacao.item_transacao import ItemTransacao
 from app.models.transacao.transacao import Transacao
 from app.models.transacao.aluguel.reserva import Reserva
 from app.models.enums import StatusAluguel, TipoComprovante

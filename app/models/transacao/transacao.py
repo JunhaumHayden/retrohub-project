@@ -3,7 +3,9 @@ from datetime import datetime
 from typing import Optional
 from decimal import Decimal
 
-from app.models import Comprovante, Avaliacao, ItemTransacao
+from app.models.transacao.comprovante import Comprovante
+from app.models.transacao.avaliacao import Avaliacao
+from app.models.transacao.item_transacao import ItemTransacao
 from app.models.enums import StatusPagamento
 from app.models.usuario.cliente import Cliente
 from app.models.usuario.funcionario import Funcionario

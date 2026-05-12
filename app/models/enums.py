@@ -52,3 +52,7 @@ class StatusConservacao(Enum):
     POUCA_AVARIA = 'POUCA_AVARIA'
     AVARIADO = 'AVARIADO'
     RUIM = 'RUIM'
+
+class StatusCatalogo(Enum):
+    ATIVO = 'ATIVO'
+    INATIVO = 'INATIVO'

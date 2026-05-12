@@ -1,13 +1,13 @@
 from typing import Optional
 from decimal import Decimal
 
-from app.models import Transacao, Exemplar
+from app.models.estoque.exemplar import Exemplar
 
 class ItemTransacao:
     def __init__(
             self,
             id: int,
-            transacao: Optional[Transacao] = None,
+            transacao: Optional["Transacao"] = None,
             exemplar: Optional[Exemplar] = None,
             valor_unitario: Optional[Decimal] = None
     ):

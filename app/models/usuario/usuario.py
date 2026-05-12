@@ -26,7 +26,7 @@ class Usuario(ABC):
         self.data_nascimento = data_nascimento
         
     def __repr__(self):
-        return f"<{self.__class__.__name__}(id={self.id}, nome='{self.nome},tipo='{self.__class__.__name__}')>"
+        return f"<{self.__class__.__name__}(id={self.id}, nome='{self.nome}', tipo='{self.__class__.__name__.lower()}')>"
 
     def __str__(self):
         return f"{self.__class__.__name__} id={self.id}, nome={self.nome}, cpf={self.cpf}, email={self.email}, data_cadastro={self.data_cadastro}, data_nascimento={self.data_nascimento}"

@@ -2,7 +2,10 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
-from app.models import Cliente, Funcionario, Comprovante, ItemTransacao
+from app.models.usuario.cliente import Cliente
+from app.models.usuario.funcionario import Funcionario
+from app.models.transacao.comprovante import Comprovante
+from app.models.transacao.item_transacao import ItemTransacao
 from app.models.transacao.transacao import Transacao
 from app.models.enums import StatusVenda, TipoComprovante
 

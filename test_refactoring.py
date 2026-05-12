@@ -18,7 +18,7 @@ def test_mock_data_source():
     from app.database.mock_data_source import MockDataSource
     from app.models.usuario.cliente import Cliente
     from app.models.catalogo.catalogo import Catalogo
-    from app.models.enums import TipoCliente, StatusCatalogo
+    from app.models.enums import TipoCliente, StatusSituacao
     
     # Test data loading
     ds = MockDataSource()
@@ -65,7 +65,7 @@ def test_mock_data_source():
         descricao="A test game",
         genero="Test",
         classificacao="Livre",
-        situacao=StatusCatalogo.DISPONIVEL.value
+        situacao=StatusSituacao.DISPONIVEL.value
     )
     
     created_catalogo = ds.create(new_catalogo)
@@ -127,7 +127,7 @@ def test_service_layer():
     from app.repository.mock.catalogo_repository_mock import CatalogoRepositoryMock
     from app.models.usuario.cliente import Cliente
     from app.models.catalogo.catalogo import Catalogo
-    from app.models.enums import TipoCliente, StatusCatalogo
+    from app.models.enums import TipoCliente, StatusSituacao
     
     # Create services with mock repositories
     usuario_repo = UsuarioRepositoryMock()

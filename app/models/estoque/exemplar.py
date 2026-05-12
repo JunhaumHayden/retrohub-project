@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Optional
 
-from app.models import Catalogo
+from app.models.catalogo import Catalogo
 from app.models.base import BaseModel, CatalogoReference
 from app.models.enums import StatusSituacao
 
