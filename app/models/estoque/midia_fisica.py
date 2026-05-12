@@ -1,6 +1,7 @@
 from decimal import Decimal
 from typing import Optional
 
+from app.models.enums import StatusConservacao
 from app.models.estoque.exemplar import Exemplar
 
 class MidiaFisica(Exemplar):
@@ -9,7 +10,7 @@ class MidiaFisica(Exemplar):
             id_exemplar: int,
             codigo_barras: str,
             catalogo,
-            estado_conservacao: Optional[str] = None,
+            estado_conservacao: Optional[StatusConservacao] = StatusConservacao.BOM,
             plataforma: Optional[str] = None,
             valor_venda: Optional[Decimal] = None,
             valor_diaria_aluguel: Optional[Decimal] = None,
@@ -21,7 +22,6 @@ class MidiaFisica(Exemplar):
             tipo_midia="FISICA",
             **kwargs
         )
-        self.id_exemplar = id_exemplar
         self.codigo_barras = codigo_barras
         self.estado_conservacao = estado_conservacao
         self.plataforma = plataforma

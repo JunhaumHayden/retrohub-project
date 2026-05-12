@@ -42,6 +42,13 @@ class TipoFuncionario(Enum):
     REGULAR = 'REGULAR'
     PREMIUM = 'PREMIUM'
 
-class StatusCatalogo(Enum):
+class StatusSituacao(Enum):
     DISPONIVEL = 'DISPONIVEL'
     INDISPONIVEL = 'INDISPONIVEL'
+
+class StatusConservacao(Enum):
+    EXCELENTE = 'EXCELENTE'
+    BOM = 'BOM'
+    POUCA_AVARIA = 'POUCA_AVARIA'
+    AVARIADO = 'AVARIADO'
+    RUIM = 'RUIM'

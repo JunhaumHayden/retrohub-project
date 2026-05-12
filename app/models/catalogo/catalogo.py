@@ -10,7 +10,7 @@ class Catalogo(BaseModel):
             self,
             id: int,
             titulo: str,
-            situacao: Optional[str],
+            situacao: Optional[StatusCatalogo],
             descricao: Optional[str] = None,
             genero: Optional[str] = None,
             classificacao: Optional[str] = None,

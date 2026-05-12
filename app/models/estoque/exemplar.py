@@ -1,16 +1,18 @@
 from abc import ABC
 from typing import Optional
 
+from app.models import Catalogo
 from app.models.base import BaseModel, CatalogoReference
+from app.models.enums import StatusSituacao
 
 
 class Exemplar(BaseModel):
     def __init__(
             self,
             id: int,
-            catalogo,
-            tipo_midia: str,
-            situacao: str = "DISPONIVEL"
+            catalogo: Optional[Catalogo] = None,
+            tipo_midia: str = "",
+            situacao: Optional[StatusSituacao] = StatusSituacao.DISPONIVEL
     ):
         super().__init__(id)
         if type(self) is Exemplar:
@@ -33,12 +35,12 @@ class Exemplar(BaseModel):
             catalogo_obj.add_exemplar(self)
     
     @property
-    def catalogo(self):
+    def get_catalogo(self) -> Optional[Catalogo]:
         """Get the catalogo object"""
         return self.catalogo_ref.get_catalogo()
     
     @property
-    def id_catalogo(self):
+    def get_id_catalogo(self) -> Optional[int]:
         """Get the catalogo ID"""
         return self.catalogo_ref.id
 

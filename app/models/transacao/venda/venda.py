@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.models import Cliente, Funcionario, Comprovante, ItemTransacao
 from app.models.transacao.transacao import Transacao
-from app.models.enums import StatusVenda
+from app.models.enums import StatusVenda, TipoComprovante
 
 
 class Venda(Transacao):
@@ -31,7 +31,7 @@ class Venda(Transacao):
             funcionario=funcionario,
             comprovantes=comprovantes,
             itens_transacao=itens_transacao,
-            tipo="venda",
+            tipo=TipoComprovante.VENDA.value,
             **kwargs
         )
         self.status = status or StatusVenda.PENDENTE.value
