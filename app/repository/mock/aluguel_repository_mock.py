@@ -2,7 +2,7 @@ from typing import Any, List, Optional
 
 from app.database.mock_data_source import MockDataSource
 from app.database.interfaces.data_source_interface import DataSourceInterface
-from app.models import Aluguel, ItemTransacao, Exemplar, Catalogo, Multa
+from app.models import Aluguel, ItemTransacao, Exemplar, Catalogo, Multa, Comprovante
 
 
 class AluguelRepositoryMock:
@@ -33,3 +33,6 @@ class AluguelRepositoryMock:
 
     def create_multa(self, multa: Multa) -> Multa:
         return self.data_source.create(multa)
+
+    def create_comprovante(self, comprovante: Comprovante) -> Comprovante:
+        return self.data_source.create(comprovante)
