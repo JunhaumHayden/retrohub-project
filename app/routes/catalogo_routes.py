@@ -42,6 +42,20 @@ catalogo_input_model = catalogo_ns.model('CatalogoInput', {
         description='Situação do jogo',
         default=StatusCatalogo.DISPONIVEL.value,
     ),
+    # RF 13 — sd Cadastro Catalogo (primeiro exemplar junto ao catálogo)
+    'tipo_midia': fields.String(
+        description='FISICA ou DIGITAL (habilita inserirCatalogo completo)',
+    ),
+    'codigo_barras': fields.String(description='Obrigatório se tipo_midia=FISICA'),
+    'estado_conservacao': fields.String(
+        description='Obrigatório se tipo_midia=FISICA',
+    ),
+    'chave_ativacao': fields.String(
+        description='Obrigatório se tipo_midia=DIGITAL',
+    ),
+    'plataforma': fields.String(description='Plataforma do exemplar'),
+    'valor_venda': fields.Float(description='Valor de venda do exemplar'),
+    'valor_diaria_aluguel': fields.Float(description='Valor da diária de aluguel'),
 })
 
 logger = logging.getLogger(__name__)
@@ -98,7 +112,11 @@ class CatalogoListResource(Resource):
 
     @catalogo_ns.expect(catalogo_input_model)
     def post(self):
-        """Cria um novo item no catálogo (requer funcionário)."""
+        """RF 13 — Cadastro de catálogo (requer funcionário).
+
+        Com ``tipo_midia`` (FISICA/DIGITAL) executa ``CatalogoService.inserirCatalogo``
+        (sd Cadastro Catalogo). Sem ``tipo_midia``, cadastra só metadados do catálogo.
+        """
         funcionario, erro = _get_funcionario_from_header()
         if erro:
             return {'erro': erro}, 403
@@ -106,6 +124,26 @@ class CatalogoListResource(Resource):
         data = request.get_json() or {}
         if not str(data.get('titulo', '')).strip():
             return {'erro': "O campo 'titulo' é obrigatório."}, 400
+
+        tipo_midia = str(data.get('tipo_midia', '')).strip().upper()
+        if tipo_midia:
+            ok = container.catalogo_service.inserir_catalogo(data)
+            if not ok:
+                return {
+                    'erro': (
+                        'Não foi possível cadastrar o catálogo. Verifique título '
+                        'duplicado, tipo_midia e campos do exemplar.'
+                    ),
+                }, 400
+            criado = container.catalogo_service.get_by_title(data['titulo'])
+            logger.info(
+                "Funcionário ID %s cadastrou catálogo+exemplar (RF 13): '%s'",
+                funcionario.id, data['titulo'],
+            )
+            return {
+                'mensagem': 'Catálogo e exemplar cadastrados com sucesso!',
+                'item': _serialize_catalogo(criado),
+            }, 201
 
         novo_catalogo = Catalogo(
             id=None,

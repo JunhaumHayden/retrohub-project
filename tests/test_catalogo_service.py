@@ -231,3 +231,26 @@ class TestCatalogoService:
         """Test activating non-existent catalog item"""
         result = service.activate(99999)
         assert result is None
+
+    def test_inserir_catalogo_rf13(self, service):
+        """RF 13 — act CatalogoService.inserirCatalogo / sd Cadastro Catalogo."""
+        dados = {
+            "titulo": "Catalogo RF13 Unit",
+            "descricao": "Teste diagrama",
+            "tipo_midia": "DIGITAL",
+            "chave_ativacao": "RF13-KEY-UNIT",
+        }
+        assert service.inserir_catalogo(dados) is True
+        found = service.get_by_title("Catalogo RF13 Unit")
+        assert found is not None
+        assert found.estoque_disponivel >= 1
+
+    def test_inserir_catalogo_titulo_duplicado(self, service):
+        dados = {
+            "titulo": "Duplicado RF13",
+            "tipo_midia": "DIGITAL",
+            "chave_ativacao": "DUP-A",
+        }
+        assert service.inserir_catalogo(dados) is True
+        dados["chave_ativacao"] = "DUP-B"
+        assert service.inserir_catalogo(dados) is False

@@ -1,7 +1,10 @@
-from typing import List, Optional
+from datetime import datetime
 from decimal import Decimal
+from typing import Any, Dict, List, Optional
 
 from app.models.catalogo.catalogo import Catalogo
+from app.models.estoque.midia_digital import MidiaDigital
+from app.models.estoque.midia_fisica import MidiaFisica
 from app.repository.interface.catalogo_repository_interface import CatalogoRepositoryInterface
 from app.models.enums import StatusCatalogo
 
@@ -33,6 +36,83 @@ class CatalogoService:
     def get_by_title(self, title: str) -> Optional[Catalogo]:
         """Get catalog item by title"""
         return self.repository.get_by_title(title)
+
+    def inserir_catalogo(self, dados: Dict[str, Any]) -> bool:
+        """
+        RF 13 — act CatalogoService.inserirCatalogo / sd Cadastro Catalogo.
+
+        Fluxo: verificar duplicidade por nome → criar Catalogo → criar
+        MidiaFisica ou MidiaDigital → add_exemplar → persistir catálogo e exemplar.
+        """
+        titulo = str(dados.get("titulo", "")).strip()
+        if not titulo:
+            return False
+
+        # 2: getCatalogoPorNome — se existir, retorna false (act)
+        if self.repository.get_catalogo_por_nome(titulo):
+            return False
+
+        tipo_midia = str(dados.get("tipo_midia", "")).upper()
+        if tipo_midia not in ("FISICA", "DIGITAL"):
+            return False
+
+        # 3: criar Catalogo
+        catalogo = Catalogo(
+            titulo=titulo,
+            descricao=dados.get("descricao"),
+            genero=dados.get("genero"),
+            classificacao=dados.get("classificacao"),
+            situacao=dados.get("situacao", StatusCatalogo.DISPONIVEL.value),
+        )
+
+        valor_venda = dados.get("valor_venda")
+        valor_diaria = dados.get("valor_diaria_aluguel") or dados.get("valor_diaria")
+        valor_venda_dec = (
+            Decimal(str(valor_venda)) if valor_venda is not None else None
+        )
+        valor_diaria_dec = (
+            Decimal(str(valor_diaria)) if valor_diaria is not None else None
+        )
+
+        # 4/5: criar MidiaFisica ou MidiaDigital
+        if tipo_midia == "FISICA":
+            codigo = str(dados.get("codigo_barras", "")).strip()
+            estado = str(dados.get("estado_conservacao", "")).strip()
+            if not codigo or not estado:
+                return False
+            exemplar = MidiaFisica(
+                codigo_barras=codigo,
+                catalogo=catalogo,
+                estado_conservacao=estado,
+                plataforma=dados.get("plataforma"),
+                valor_venda=valor_venda_dec,
+                valor_diaria_aluguel=valor_diaria_dec,
+            )
+        else:
+            chave = str(dados.get("chave_ativacao", "")).strip()
+            if not chave:
+                return False
+            data_expiracao = None
+            if dados.get("data_expiracao"):
+                data_expiracao = datetime.strptime(
+                    dados["data_expiracao"], "%Y-%m-%d"
+                ).date()
+            exemplar = MidiaDigital(
+                chave_ativacao=chave,
+                catalogo=catalogo,
+                data_expiracao=data_expiracao,
+                plataforma=dados.get("plataforma"),
+                valor_venda=valor_venda_dec,
+                valor_diaria_aluguel=valor_diaria_dec,
+            )
+
+        # 6: add_exemplar na lista do catálogo (também feito no __init__ do Exemplar)
+        catalogo.add_exemplar(exemplar)
+
+        # 7 e 8: addCatalogo + addExemplar no repositório
+        if not self.repository.add_catalogo(catalogo):
+            return False
+        return self.repository.add_exemplar(exemplar)
 
     def create(self, catalogo: Catalogo) -> Optional[Catalogo]:
         """Create a new catalog item with validation"""

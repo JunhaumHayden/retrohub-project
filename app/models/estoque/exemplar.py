@@ -45,7 +45,24 @@ class Exemplar(BaseModel):
     @property
     def id_catalogo(self):
         """Get the catalogo ID"""
-        return self.catalogo_ref.id
+        return self.catalogo_ref.id if self.catalogo_ref else None
+
+    def get_catalogo(self):
+        """Diagrama de classes — get_catalogo()."""
+        return self.catalogo
+
+    def get_id_catalogo(self) -> Optional[int]:
+        """Diagrama de classes — get_id_catalogo()."""
+        return self.id_catalogo
+
+    def get_situacao(self) -> str:
+        """Diagrama de classes — getSituacao()."""
+        return self.situacao
+
+    def set_situacao(self, situacao: str) -> bool:
+        """sd Devolucao — setSituacao(StatusSituacao.DISPONIVEL)."""
+        self.situacao = situacao
+        return True
 
     def __repr__(self):
         catalogo_id = self.catalogo_ref.id if self.catalogo_ref else None

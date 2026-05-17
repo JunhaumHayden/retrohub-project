@@ -66,42 +66,52 @@ class Aluguel(Transacao):
         self.funcionario_recebimento = funcionario_recebimento
         self.multa_aplicada = multa_aplicada if multa_aplicada is not None else Multa()
         self.multa_paga = multa_paga if multa_paga is not None else False
-        # Internal storage for id-based assignments (compatibility with routes/tests)
         self._id_funcionario_recebimento = None
         self._dias_atraso = None
         if dias_atraso is not None:
-            # prefer storing on the Multa object, but keep a mirror value
             try:
                 self.multa_aplicada.dias_atraso = dias_atraso
             except Exception:
                 pass
             self._dias_atraso = dias_atraso
 
+    def get_multa(self) -> Multa:
+        """Diagrama de classes — getMulta()."""
+        return self.multa_aplicada
+
+    def set_multa(self, multa: Multa) -> bool:
+        """sd Devolucao — setMulta(m) no Aluguel."""
+        self.multa_aplicada = multa
+        return True
+
+    def set_comprovante(self, tipo_comprovante: str) -> bool:
+        """sd Devolucao / act finalizarAluguel — setComprovante + emitir."""
+        from app.models.transacao.comprovante import Comprovante
+
+        comprovante = Comprovante.emitir(
+            tipo_comprovante=tipo_comprovante,
+            transacao=self,
+        )
+        self.adicionar_comprovante(comprovante)
+        return True
+
     @property
     def id_funcionario_recebimento(self) -> Optional[int]:
-        """Return the funcionario_recebimento id (compat for routes/tests).
-
-        Prefers the real object `funcionario_recebimento.id_usuario` when present,
-        otherwise returns the last explicitly set id stored in `_id_funcionario_recebimento`.
-        """
         if getattr(self, 'funcionario_recebimento', None) is not None:
             return getattr(self.funcionario_recebimento, 'id_usuario', None)
         return getattr(self, '_id_funcionario_recebimento', None)
 
     @id_funcionario_recebimento.setter
     def id_funcionario_recebimento(self, value: Optional[int]) -> None:
-        # allow assigning either a Funcionario-like object or an int id
         if hasattr(value, 'id_usuario'):
             self.funcionario_recebimento = value
             self._id_funcionario_recebimento = getattr(value, 'id_usuario', None)
         else:
-            # store id and clear resolved funcionario object
             self._id_funcionario_recebimento = value
             self.funcionario_recebimento = None
 
     @property
     def dias_atraso(self) -> Optional[int]:
-        """Return days of delay, preferring `multa_aplicada.dias_atraso` if available."""
         if getattr(self, 'multa_aplicada', None) is not None:
             val = getattr(self.multa_aplicada, 'dias_atraso', None)
             if val is not None:

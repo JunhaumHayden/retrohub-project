@@ -44,6 +44,10 @@ class ItemTransacao:
     def id_exemplar(self) -> Optional[int]:
         return getattr(self.exemplar, "id", None)
 
+    def get_exemplar(self) -> Optional["Exemplar"]:
+        """sd Devolucao — getExemplar() : Exemplar."""
+        return self.exemplar
+
     def __repr__(self):
         return (
             f"<ItemTransacao(id={self.id}, transacao={self.id_transacao}, "

@@ -37,6 +37,20 @@ class Comprovante:
     def id_transacao(self) -> Optional[int]:
         return getattr(self.transacao, "id", None)
 
+    @classmethod
+    def emitir(
+            cls,
+            tipo_comprovante: str,
+            transacao: Optional["Transacao"] = None,
+            comprovante_id: Optional[int] = None,
+    ) -> "Comprovante":
+        """sd Devolucao — <<create>> emitir(dados) no Comprovante."""
+        return cls(
+            id=comprovante_id or 0,
+            tipo_comprovante=tipo_comprovante,
+            transacao=transacao,
+        )
+
     def __repr__(self):
         return (
             f"<Comprovante(id={self.id}, tipo={self.tipo_comprovante}, "

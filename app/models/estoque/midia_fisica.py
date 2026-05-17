@@ -28,3 +28,8 @@ class MidiaFisica(Exemplar):
         self.plataforma = plataforma
         self.valor_venda = valor_venda
         self.valor_diaria_aluguel = valor_diaria_aluguel
+
+    def set_estado_conservacao(self, condicao: str) -> str:
+        """sd Devolucao — setEstadoConservacao(condicao)."""
+        self.estado_conservacao = condicao
+        return self.estado_conservacao

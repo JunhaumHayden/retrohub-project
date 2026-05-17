@@ -36,6 +36,11 @@ class CatalogoRepositoryMock(CatalogoRepositoryInterface):
         """Create a new catalog item"""
         return self.data_source.create(catalogo)
 
+    def add_exemplar(self, exemplar) -> bool:
+        """sd Cadastro Catalogo — persiste exemplar (MidiaFisica/MidiaDigital)."""
+        self.data_source.create(exemplar)
+        return True
+
     def update(self, catalogo: Catalogo) -> Optional[Catalogo]:
         """Update an existing catalog item"""
         return self.data_source.update(catalogo)
