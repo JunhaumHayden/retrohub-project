@@ -9,7 +9,7 @@ limpa e organizada em ``/api/catalogo/itens/`` e
 import logging
 
 from flask import request
-from flask_restx import Namespace, Resource, fields
+from flask_restx import Namespace, Resource, fields, reqparse
 
 from app.container.container import container
 from app.models import Catalogo
@@ -19,6 +19,15 @@ catalogo_ns = Namespace(
     'catalogo',
     description='Operações relacionadas ao catálogo de jogos',
     path='/api/catalogo/itens',
+)
+
+# Definindo o parser de cabeçalho para garantir que o Swagger o desenhe corretamente
+auth_parser = reqparse.RequestParser()
+auth_parser.add_argument(
+    'X-Funcionario-Id', 
+    location='headers', 
+    required=True, 
+    help='ID do funcionário autenticado (ex: 1)'
 )
 
 catalogo_model = catalogo_ns.model('Catalogo', {
@@ -110,7 +119,7 @@ class CatalogoListResource(Resource):
             logger.error('Erro em listar_catalogos: %s', e)
             return {'erro': 'Erro ao buscar catálogo.'}, 500
 
-    @catalogo_ns.expect(catalogo_input_model)
+    @catalogo_ns.expect(auth_parser, catalogo_input_model)
     def post(self):
         """RF 13 — Cadastro de catálogo (requer funcionário).
 
@@ -179,7 +188,7 @@ class CatalogoDetailResource(Resource):
             return {'erro': 'Catalogo não encontrado.'}, 404
         return _serialize_catalogo(jogo), 200
 
-    @catalogo_ns.expect(catalogo_input_model)
+    @catalogo_ns.expect(auth_parser, catalogo_input_model)
     def put(self, id):
         """Atualiza um item do catálogo (requer funcionário)."""
         funcionario, erro = _get_funcionario_from_header()
@@ -206,6 +215,7 @@ class CatalogoDetailResource(Resource):
             'item': _serialize_catalogo(atualizado),
         }, 200
 
+    @catalogo_ns.expect(auth_parser)
     def delete(self, id):
         """Inativa (soft delete) um item do catálogo."""
         funcionario, erro = _get_funcionario_from_header()
