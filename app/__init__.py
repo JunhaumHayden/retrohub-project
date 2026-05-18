@@ -1,3 +1,4 @@
+import logging
 from flask import Flask
 from flask_restx import Api
 
@@ -48,5 +49,11 @@ def create_app(test_config=None):
     @app.route('/')
     def index():
         return {"status": "RetroHub API is running (mock mode)"}
+
+    # Adiciona a mensagem customizada na inicialização do servidor
+    logger = logging.getLogger('werkzeug')
+    logger.info("*" * 60)
+    logger.info("  => Swagger UI disponível em: http://localhost:5000/docs")
+    logger.info("*" * 60)
 
     return app

@@ -64,6 +64,13 @@ def registrar_retirada(
             exemplar.set_situacao("ALUGADO")
             _r.update(exemplar)
 
+    # Gera comprovante de ALUGUEL na retirada
+    aluguel.set_comprovante(TipoComprovante.ALUGUEL.value)
+    for comprovante in aluguel.comprovantes:
+        if comprovante.id is None or comprovante.id == 0:
+            saved = _r.create_comprovante(comprovante)
+            comprovante.id = saved.id
+
     _r.update(aluguel)
     return aluguel, None
 
@@ -190,7 +197,7 @@ def _registrar_devolucao(
 
     aluguel.set_comprovante(TipoComprovante.DEVOLUCAO.value)
     for comprovante in aluguel.comprovantes:
-        if comprovante.id is None:
+        if comprovante.id is None or comprovante.id == 0:
             saved = _r.create_comprovante(comprovante)
             comprovante.id = saved.id
 
