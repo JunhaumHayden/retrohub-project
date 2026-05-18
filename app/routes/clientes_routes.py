@@ -172,7 +172,7 @@ class ClienteResource(Resource):
             data['senha'] = generate_password_hash(data['senha'])
 
         try:
-            atualizado = container.usuario_service.update_usuario(id, data)
+            atualizado = container.usuario_service.update_cliente(id, data)
         except ValueError as exc:
             return {'erro': str(exc)}, 400
         except Exception as exc:  # noqa: BLE001
@@ -185,7 +185,7 @@ class ClienteResource(Resource):
 
     def delete(self, id):
         try:
-            removido = container.usuario_service.delete_usuario(id)
+            removido = container.usuario_service.delete_cliente(id)
         except Exception as exc:  # noqa: BLE001
             logger.exception('Erro ao excluir cliente')
             return {'erro': f'Erro ao excluir cliente: {exc}'}, 500

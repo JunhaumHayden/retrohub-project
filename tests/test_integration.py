@@ -44,7 +44,7 @@ class TestIntegration:
             'nome': 'Updated Integration Cliente',
             'tipo_cliente': TipoCliente.REGULAR.value
         }
-        updated_cliente = container.usuario_service.update_usuario(created_cliente.id, update_data)
+        updated_cliente = container.usuario_service.update_cliente(created_cliente.id, update_data)
         assert updated_cliente is not None
         assert updated_cliente.nome == 'Updated Integration Cliente'
         assert updated_cliente.tipo_cliente == TipoCliente.REGULAR.value
@@ -54,7 +54,7 @@ class TestIntegration:
         assert found_updated.nome == 'Updated Integration Cliente'
         
         # Delete
-        delete_result = container.usuario_service.delete_usuario(created_cliente.id)
+        delete_result = container.usuario_service.delete_cliente(created_cliente.id)
         assert delete_result is True
         
         # Verify deletion
@@ -202,7 +202,7 @@ class TestIntegration:
         assert len(container.catalogo_service.list_all()) == initial_catalogos + 1
         
         # Verify entities can be found by different methods
-        found_by_id = container.usuario_service.get_by_id(created_cliente.id)
+        found_by_id = container.usuario_service.get_cliente_by_id(created_cliente.id)
         found_by_cpf = container.usuario_service.get_by_cpf(created_cliente.cpf)
         assert found_by_id is not None
         assert found_by_cpf is not None
@@ -223,7 +223,7 @@ class TestIntegration:
             senha="password123"
         )
         
-        with pytest.raises(ValueError, match="Nome é obrigatório"):
+        with pytest.raises(ValueError, match="Campos essenciais .* são obrigatórios"):
             container.usuario_service.create_cliente(invalid_cliente)
         
         # Test creating duplicate entities
@@ -238,18 +238,18 @@ class TestIntegration:
                 senha="password123"
             )
             
-            with pytest.raises(ValueError, match="Cliente com CPF .* já existe"):
+            with pytest.raises(ValueError, match="Usuário com CPF .* já existe"):
                 container.usuario_service.create_cliente(duplicate_cliente)
         
         # Test updating non-existent entities
-        result = container.usuario_service.update_usuario(99999, {'nome': 'Updated'})
+        result = container.usuario_service.update_cliente(99999, {'nome': 'Updated'})
         assert result is None
         
         result = container.catalogo_service.update(99999, {'titulo': 'Updated'})
         assert result is None
         
         # Test deleting non-existent entities
-        result = container.usuario_service.delete_usuario(99999)
+        result = container.usuario_service.delete_cliente(99999)
         assert result is False
         
         result = container.catalogo_service.delete(99999)

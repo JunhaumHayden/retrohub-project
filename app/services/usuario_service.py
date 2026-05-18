@@ -9,12 +9,7 @@ from app.models.enums import TipoCliente
 
 
 def _user_lookup(*, cpf: Optional[str] = None, email: Optional[str] = None) -> SimpleNamespace:
-    """Cria um objeto duck-typed para passar ao ``repository.get_by_user``.
-
-    `Usuario` é abstrato e não pode ser instanciado, então usamos um
-    ``SimpleNamespace`` que expõe apenas os campos que o repositório lê
-    (``cpf`` e/ou ``email``).
-    """
+    """Cria um objeto duck-typed para passar ao ``repository.get_by_user``."""
     return SimpleNamespace(cpf=cpf, email=email)
 
 
@@ -26,10 +21,6 @@ class UsuarioService:
 
     def __init__(self, repository: UsuarioRepositoryInterface):
         self.repository = repository
-
-    def list_all(self) -> List[Usuario]:
-        """List all users (clientes and funcionarios)"""
-        return self.repository.list_all()
 
     def list_clientes(self) -> List[Cliente]:
         """List all clientes"""
@@ -43,6 +34,10 @@ class UsuarioService:
         """Get user by ID"""
         return self.repository.get_by_id(id)
 
+    def get_by_cpf(self, cpf: str) -> Optional[Usuario]:
+        """Get user by CPF"""
+        return self.repository.get_by_user(_user_lookup(cpf=cpf))
+
     def get_cliente_by_id(self, id: int) -> Optional[Cliente]:
         """Get cliente by ID"""
         return self.repository.get_cliente_by_id(id)
@@ -51,43 +46,16 @@ class UsuarioService:
         """Get funcionario by ID"""
         return self.repository.get_funcionario_by_id(id)
 
-    def get_by_cpf(self, cpf: str) -> Optional[Usuario]:
-        """Get user by CPF"""
-        # Try cliente first
-        cliente = self.repository.get_cliente_by_cpf(cpf)
-        if cliente:
-            return cliente
-        
-        # Try funcionario by CPF through get_by_user
-        return self.repository.get_by_user(_user_lookup(cpf=cpf))
-
-    def get_funcionario_by_matricula(self, matricula: str) -> Optional[Funcionario]:
-        """Get funcionario by matricula"""
-        return self.repository.get_funcionario_by_matricula(matricula)
-
     def create_cliente(self, cliente: Cliente) -> Optional[Cliente]:
         """Create a new cliente with validation"""
-        # Validate required fields
-        if not cliente.nome:
-            raise ValueError("Nome é obrigatório")
-        if not cliente.cpf:
-            raise ValueError("CPF é obrigatório")
-        if not cliente.email:
-            raise ValueError("Email é obrigatório")
-        if not cliente.senha:
-            raise ValueError("Senha é obrigatória")
+        if not all([cliente.nome, cliente.cpf, cliente.email, cliente.senha]):
+            raise ValueError("Campos essenciais (nome, cpf, email, senha) são obrigatórios.")
         
-        # Check if CPF already exists
-        existing = self.repository.get_cliente_by_cpf(cliente.cpf)
-        if existing:
-            raise ValueError(f"Cliente com CPF '{cliente.cpf}' já existe")
+        if self.repository.get_by_user(_user_lookup(cpf=cliente.cpf)):
+            raise ValueError(f"Usuário com CPF '{cliente.cpf}' já existe.")
+        if self.repository.get_by_user(_user_lookup(email=cliente.email)):
+            raise ValueError(f"Email '{cliente.email}' já está em uso.")
         
-        # Check if email already exists
-        existing_email = self.repository.get_by_user(_user_lookup(email=cliente.email))
-        if existing_email:
-            raise ValueError(f"Email '{cliente.email}' já está em uso")
-        
-        # Set default tipo_cliente if not provided
         if not cliente.tipo_cliente:
             cliente.tipo_cliente = TipoCliente.REGULAR.value
         
@@ -95,87 +63,79 @@ class UsuarioService:
 
     def create_funcionario(self, funcionario: Funcionario) -> Optional[Funcionario]:
         """Create a new funcionario with validation"""
-        # Validate required fields
-        if not funcionario.nome:
-            raise ValueError("Nome é obrigatório")
-        if not funcionario.cpf:
-            raise ValueError("CPF é obrigatório")
-        if not funcionario.email:
-            raise ValueError("Email é obrigatório")
-        if not funcionario.senha:
-            raise ValueError("Senha é obrigatória")
-        if not funcionario.matricula:
-            raise ValueError("Matrícula é obrigatória")
+        if not all([funcionario.nome, funcionario.cpf, funcionario.email, funcionario.senha, funcionario.matricula]):
+            raise ValueError("Campos essenciais (nome, cpf, email, senha, matricula) são obrigatórios.")
         
-        # Check if CPF already exists
-        existing = self.repository.get_by_user(_user_lookup(cpf=funcionario.cpf))
-        if existing:
-            raise ValueError(f"Funcionário com CPF '{funcionario.cpf}' já existe")
-        
-        # Check if email already exists
-        existing_email = self.repository.get_by_user(_user_lookup(email=funcionario.email))
-        if existing_email:
-            raise ValueError(f"Email '{funcionario.email}' já está em uso")
-        
-        # Check if matricula already exists
-        existing_matricula = self.repository.get_funcionario_by_matricula(funcionario.matricula)
-        if existing_matricula:
-            raise ValueError(f"Matrícula '{funcionario.matricula}' já existe")
+        if self.repository.get_by_user(_user_lookup(cpf=funcionario.cpf)):
+            raise ValueError(f"Usuário com CPF '{funcionario.cpf}' já existe.")
+        if self.repository.get_by_user(_user_lookup(email=funcionario.email)):
+            raise ValueError(f"Email '{funcionario.email}' já está em uso.")
+        if self.repository.get_funcionario_by_matricula(funcionario.matricula):
+            raise ValueError(f"Matrícula '{funcionario.matricula}' já existe.")
         
         return self.repository.create(funcionario)
 
-    def update_usuario(self, id: int, usuario_data: dict) -> Optional[Usuario]:
-        """Update an existing user"""
-        usuario = self.repository.get_by_id(id)
-        if not usuario:
+    def update_cliente(self, cliente_id: int, data: dict) -> Optional[Cliente]:
+        """Update an existing cliente."""
+        cliente = self.repository.get_cliente_by_id(cliente_id)
+        if not cliente:
             return None
         
-        # Update common fields
-        if 'nome' in usuario_data:
-            usuario.nome = usuario_data['nome']
-        if 'email' in usuario_data:
-            new_email = usuario_data['email']
-            # Check if email is being changed and if new email already exists
-            if new_email != usuario.email:
-                existing = self.repository.get_by_user(_user_lookup(email=new_email))
-                if existing and existing.id != id:
-                    raise ValueError(f"Email '{new_email}' já está em uso")
-            usuario.email = new_email
-        if 'senha' in usuario_data:
-            usuario.senha = usuario_data['senha']
-        if 'data_nascimento' in usuario_data:
-            usuario.data_nascimento = usuario_data['data_nascimento']
+        self._apply_common_updates(cliente, data)
 
-        # Update cliente-specific fields
-        if isinstance(usuario, Cliente):
-            if 'dados_pagamento' in usuario_data:
-                usuario.dados_pagamento = usuario_data['dados_pagamento']
-            if 'tipo_cliente' in usuario_data:
-                usuario.tipo_cliente = usuario_data['tipo_cliente']
+        if 'dados_pagamento' in data:
+            cliente.dados_pagamento = data['dados_pagamento']
+        if 'tipo_cliente' in data:
+            cliente.tipo_cliente = data['tipo_cliente']
         
-        # Update funcionario-specific fields
-        elif isinstance(usuario, Funcionario):
-            if 'cargo' in usuario_data:
-                usuario.cargo = usuario_data['cargo']
-            if 'setor' in usuario_data:
-                usuario.setor = usuario_data['setor']
-            if 'data_admissao' in usuario_data:
-                usuario.data_admissao = usuario_data['data_admissao']
-            if 'matricula' in usuario_data:
-                new_matricula = usuario_data['matricula']
-                # Check if matricula is being changed and if new matricula already exists
-                if new_matricula != usuario.matricula:
-                    existing = self.repository.get_funcionario_by_matricula(new_matricula)
-                    if existing and existing.id != id:
-                        raise ValueError(f"Matrícula '{new_matricula}' já existe")
-                usuario.matricula = new_matricula
-        
-        return self.repository.update(usuario)
+        return self.repository.update(cliente)
 
-    def delete_usuario(self, id: int) -> bool:
-        """Delete a user"""
-        usuario = self.repository.get_by_id(id)
-        if not usuario:
+    def update_funcionario(self, funcionario_id: int, data: dict) -> Optional[Funcionario]:
+        """Update an existing funcionario."""
+        funcionario = self.repository.get_funcionario_by_id(funcionario_id)
+        if not funcionario:
+            return None
+
+        self._apply_common_updates(funcionario, data)
+
+        if 'cargo' in data:
+            funcionario.cargo = data['cargo']
+        if 'setor' in data:
+            funcionario.setor = data['setor']
+        if 'data_admissao' in data:
+            funcionario.data_admissao = data['data_admissao']
+        if 'matricula' in data and data['matricula'] != funcionario.matricula:
+            existing = self.repository.get_funcionario_by_matricula(data['matricula'])
+            if existing and existing.id != funcionario_id:
+                raise ValueError(f"Matrícula '{data['matricula']}' já está em uso.")
+            funcionario.matricula = data['matricula']
+        
+        return self.repository.update(funcionario)
+
+    def _apply_common_updates(self, usuario: Usuario, data: dict):
+        """Helper to apply updates common to all user types."""
+        if 'nome' in data:
+            usuario.nome = data['nome']
+        if 'email' in data and data['email'] != usuario.email:
+            existing = self.repository.get_by_user(_user_lookup(email=data['email']))
+            if existing and existing.id != usuario.id:
+                raise ValueError(f"Email '{data['email']}' já está em uso.")
+            usuario.email = data['email']
+        if 'senha' in data:
+            usuario.senha = data['senha'] # Assuming already hashed
+        if 'data_nascimento' in data:
+            usuario.data_nascimento = data['data_nascimento']
+
+    def delete_cliente(self, id: int) -> bool:
+        """Delete a cliente by ID."""
+        cliente = self.repository.get_cliente_by_id(id)
+        if not cliente:
             return False
-        
-        return self.repository.delete(usuario)
+        return self.repository.delete(cliente)
+
+    def delete_funcionario(self, id: int) -> bool:
+        """Delete a funcionario by ID."""
+        funcionario = self.repository.get_funcionario_by_id(id)
+        if not funcionario:
+            return False
+        return self.repository.delete(funcionario)

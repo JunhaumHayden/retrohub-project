@@ -114,6 +114,7 @@ class FuncionariosListResource(Resource):
             logger.exception('Erro ao listar funcionários')
             return {'erro': f'Erro ao buscar funcionários: {exc}'}, 500
 
+    @funcionarios_ns.doc(params={'X-Admin-Id': {'in': 'header', 'description': 'ID do administrador (Obrigatório)', 'required': True}})
     @funcionarios_ns.expect(funcionario_input_model)
     def post(self):
         admin, erro = _get_admin_from_header()
@@ -184,6 +185,7 @@ class FuncionarioResource(Resource):
             return {'erro': 'Funcionário não encontrado.'}, 404
         return _serialize_funcionario(func), 200
 
+    @funcionarios_ns.doc(params={'X-Admin-Id': {'in': 'header', 'description': 'ID do administrador (Obrigatório)', 'required': True}})
     @funcionarios_ns.expect(funcionario_input_model)
     def put(self, id):
         admin, erro = _get_admin_from_header()
@@ -225,7 +227,7 @@ class FuncionarioResource(Resource):
             data['senha'] = generate_password_hash(data['senha'])
 
         try:
-            atualizado = container.usuario_service.update_usuario(id, data)
+            atualizado = container.usuario_service.update_funcionario(id, data)
         except ValueError as exc:
             return {'erro': str(exc)}, 400
         except Exception as exc:  # noqa: BLE001
@@ -241,6 +243,7 @@ class FuncionarioResource(Resource):
         )
         return _serialize_funcionario(atualizado), 200
 
+    @funcionarios_ns.doc(params={'X-Admin-Id': {'in': 'header', 'description': 'ID do administrador (Obrigatório)', 'required': True}})
     def delete(self, id):
         admin, erro = _get_admin_from_header()
         if erro:
@@ -268,7 +271,7 @@ class FuncionarioResource(Resource):
                 }, 400
 
         try:
-            removido = container.usuario_service.delete_usuario(id)
+            removido = container.usuario_service.delete_funcionario(id)
         except Exception as exc:  # noqa: BLE001
             logger.exception('Erro ao excluir funcionário')
             return {'erro': f'Erro ao excluir funcionário: {exc}'}, 500
