@@ -82,13 +82,13 @@
     { "id_transacao": 9, "periodo": 2, "data_devolucao": null, "status": "ATIVO", "data_inicio": "2026-03-03", "data_prevista_devolucao": "2026-03-05", "id_reserva": null }
   ],
   "itens_transacao": [
-    { "id_transacao": 1, "id_exemplar": 8, "valor_unitario": 150.00 },
-    { "id_transacao": 2, "id_exemplar": 114, "valor_unitario": 8.90 },
-    { "id_transacao": 6, "id_exemplar": 115, "valor_unitario": 9.90 },
+    { "id_transacao": 1, "id_exemplar": 2, "valor_unitario": 150.00 },
+    { "id_transacao": 2, "id_exemplar": 7, "valor_unitario": 8.90 },
+    { "id_transacao": 6, "id_exemplar": 8, "valor_unitario": 9.90 },
     { "id_transacao": 10, "id_exemplar": 5, "valor_unitario": 6.90 },
-    { "id_transacao": 7, "id_exemplar": 23, "valor_unitario": 99.90 },
-    { "id_transacao": 8, "id_exemplar": 105, "valor_unitario": 6.90 },
-    { "id_transacao": 9, "id_exemplar": 10, "valor_unitario": 6.90 }
+    { "id_transacao": 7, "id_exemplar": 4, "valor_unitario": 99.90 },
+    { "id_transacao": 8, "id_exemplar": 3, "valor_unitario": 3.33 },
+    { "id_transacao": 9, "id_exemplar": 6, "valor_unitario": 6.90 }
   ],
   "comprovantes": [
     { "id_transacao": 1, "tipo": "VENDA", "codigo_rastreio": "TRACK-MARIO-001", "data_envio": "2026-02-18", "tipo_comprovante": "VENDA" },

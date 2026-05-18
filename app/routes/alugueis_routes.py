@@ -75,7 +75,7 @@ def get_cliente_from_header():
     except ValueError:
         return None, "X-Cliente-Id inválido."
     
-    cliente = container.data_source.get_by_id(Cliente, cliente_id)
+    cliente = container.usuario_service.get_cliente_by_id(cliente_id)
     if not cliente:
         return None, "Cliente não cadastrado ou não encontrado."
     return cliente, None
@@ -89,7 +89,7 @@ def get_funcionario_from_header():
     except ValueError:
         return None, "O ID do funcionário deve ser um número inteiro."
     
-    funcionario = container.data_source.get_by_id(Funcionario, func_id)
+    funcionario = container.usuario_service.get_funcionario_by_id(func_id)
     if not funcionario:
         return None, "Funcionário não encontrado."
     return funcionario, None
@@ -134,11 +134,17 @@ def serialize_item(item: ItemTransacao):
     titulo = "Título não encontrado"
     valor_diaria = None
     if exemplar:
-        catalogo = container.data_source.get_by_id(Catalogo, exemplar.id_catalogo)
+        catalogo = container.catalogo_service.get_by_id(exemplar.id_catalogo)
         if catalogo:
             titulo = catalogo.titulo
-        if hasattr(exemplar, 'valor_diaria_aluguel'):
-            valor_diaria = float(exemplar.valor_diaria_aluguel)
+        
+        # Correção do erro TypeError: float() argument must be a string or a real number, not 'NoneType'
+        vd_aluguel = getattr(exemplar, 'valor_diaria_aluguel', None)
+        if vd_aluguel is not None:
+            try:
+                valor_diaria = float(vd_aluguel)
+            except (TypeError, ValueError):
+                valor_diaria = None
 
     return {
         "id_item": item.id,
@@ -157,19 +163,17 @@ def serialize_comprovante(comprovante: Comprovante):
 
 def serialize_aluguel(aluguel: Aluguel):
     """Serializa um objeto Aluguel, incluindo nomes, itens e comprovantes."""
-    # Busca itens e comprovantes
-    todos_itens = container.data_source.get_all(ItemTransacao)
-    itens_do_aluguel = [item for item in todos_itens if getattr(item, 'id_transacao', None) == aluguel.id]
-    
-    todos_comprovantes = container.data_source.get_all(Comprovante)
-    comprovantes_do_aluguel = [comp for comp in todos_comprovantes if getattr(comp.transacao, 'id', None) == aluguel.id]
+    # Usar as propriedades de navegação da própria entidade, em vez de buscar 
+    # todos do banco, para evitar duplicidades geradas pelo mock data source
+    itens_do_aluguel = getattr(aluguel, 'itens_transacao', [])
+    comprovantes_do_aluguel = getattr(aluguel, 'comprovantes', [])
 
     # Busca nomes de cliente e funcionário
-    cliente = container.data_source.get_by_id(Cliente, aluguel.id_cliente)
+    cliente = container.usuario_service.get_cliente_by_id(aluguel.id_cliente) if aluguel.id_cliente else None
     cliente_nome = getattr(cliente, 'nome', "Não encontrado")
 
     id_func_recebimento = getattr(aluguel, "id_funcionario_recebimento", None)
-    funcionario_recebimento = container.data_source.get_by_id(Funcionario, id_func_recebimento) if id_func_recebimento else None
+    funcionario_recebimento = container.usuario_service.get_funcionario_by_id(id_func_recebimento) if id_func_recebimento else None
     funcionario_recebimento_nome = getattr(funcionario_recebimento, 'nome', None)
 
     return {
@@ -223,7 +227,7 @@ class SolicitarAluguelResource(Resource):
         if data_inicio < date.today():
             return {"erro": "A data de início não pode ser no passado."}, 400
 
-        jogo = container.data_source.get_by_id(Catalogo, data['id_jogo'])
+        jogo = container.catalogo_service.get_by_id(data['id_jogo'])
         if not jogo or getattr(jogo, 'situacao', None) != 'DISPONIVEL':
             return {"erro": "Jogo não existe ou está inativo."}, 404
 
@@ -266,7 +270,7 @@ class MeusAlugueisResource(Resource):
         if erro: alugueis_ns.abort(403, erro)
 
         alugueis = container.data_source.get_all(Aluguel)
-        meus_alugueis = [a for a in alugueis if a.id_cliente == cliente.id_usuario]
+        meus_alugueis = [a for a in alugueis if getattr(a, 'id_cliente', None) == cliente.id_usuario]
         return [serialize_aluguel(a) for a in meus_alugueis]
 
 @alugueis_ns.route('/<int:id>')
@@ -279,7 +283,7 @@ class DetalhesAluguelResource(Resource):
         if erro: alugueis_ns.abort(403, erro)
 
         aluguel = container.data_source.get_by_id(Aluguel, id)
-        if not aluguel or aluguel.id_cliente != cliente.id_usuario:
+        if not aluguel or getattr(aluguel, 'id_cliente', None) != cliente.id_usuario:
             alugueis_ns.abort(404, "Aluguel não encontrado ou não pertence a este cliente.")
         return serialize_aluguel(aluguel)
 
@@ -330,7 +334,7 @@ class CancelarAluguelResource(Resource):
         if erro: return {"erro": erro}, 403
 
         aluguel = container.data_source.get_by_id(Aluguel, id)
-        if not aluguel or aluguel.id_cliente != cliente.id_usuario:
+        if not aluguel or getattr(aluguel, 'id_cliente', None) != cliente.id_usuario:
             return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
 
         if aluguel.status not in ['SOLICITADO', 'APROVADO']:
@@ -340,7 +344,7 @@ class CancelarAluguelResource(Resource):
 
         aluguel.status = 'FINALIZADO'
         
-        item_tr = next((it for it in container.data_source.get_all(ItemTransacao) if it.id_transacao == aluguel.id), None)
+        item_tr = next((it for it in container.data_source.get_all(ItemTransacao) if getattr(it, 'id_transacao', None) == aluguel.id), None)
         if item_tr:
             exemplar = container.data_source.get_by_id(Exemplar, item_tr.id_exemplar)
             if exemplar and exemplar.situacao == 'RESERVADO':
@@ -364,13 +368,13 @@ class RenovarAluguelResource(Resource):
             return {"erro": "O período de renovação ('dias_adicionais') deve ser entre 1 e 30 dias."}, 400
 
         aluguel = container.data_source.get_by_id(Aluguel, id)
-        if not aluguel or aluguel.id_cliente != cliente.id_usuario:
+        if not aluguel or getattr(aluguel, 'id_cliente', None) != cliente.id_usuario:
             return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
 
         if aluguel.status == 'FINALIZADO':
             return {"erro": "Não é possível renovar um aluguel já finalizado."}, 400
 
-        item_transacao = next((it for it in container.data_source.get_all(ItemTransacao) if it.id_transacao == aluguel.id), None)
+        item_transacao = next((it for it in container.data_source.get_all(ItemTransacao) if getattr(it, 'id_transacao', None) == aluguel.id), None)
         if not item_transacao: return {"erro": "Item da transação não encontrado."}, 404
             
         exemplar = container.data_source.get_by_id(Exemplar, item_transacao.id_exemplar)
