@@ -92,12 +92,15 @@ class TestAluguelFinalizarDiagrama:
 
     def test_finalizar_aluguel_com_multa_e_comprovante(self, container):
         aluguel, _exemplar, funcionario = self._montar_aluguel_ativo(container)
-        ok = container.aluguel_service.finalizar_aluguel(
+        
+        # Teste usa o método da classe diretamente
+        aluguel_retornado, err = container.aluguel_service.registrar_devolucao(
             aluguel.id, "bom", funcionario.id,
         )
-        assert ok is True
+        assert err is None
+        assert aluguel_retornado is not None
 
-        atualizado = container.aluguel_service.get_aluguel_by_id(aluguel.id)
+        atualizado = container.aluguel_service.repo.get_by_id(aluguel.id)
         assert atualizado.status == StatusAluguel.FINALIZADO.value
         assert atualizado.dias_atraso > 0
         assert atualizado.get_multa().valor > 0

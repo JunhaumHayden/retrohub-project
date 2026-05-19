@@ -6,7 +6,7 @@ from app.models import Aluguel, ItemTransacao, Exemplar, Catalogo, Multa, Compro
 
 
 class AluguelRepositoryMock:
-    """Mock repository for Aluguel operations using MockDataSource in-memory lists."""
+    """Mock repository para operacões de Aluguel usando MockDataSource em uma lista em memória e a abordagem "Lazy Loading"."""
 
     def __init__(self, data_source: Optional[DataSourceInterface] = None):
         # Accept any DataSourceInterface implementation
@@ -30,6 +30,40 @@ class AluguelRepositoryMock:
 
     def get_catalogo_by_id(self, catalogo_id: int) -> Optional[Catalogo]:
         return self.data_source.get_by_id(Catalogo, catalogo_id)
+
+    def find_exemplar_disponivel(self, id_catalogo: int, tipo_midia: str) -> Optional[Exemplar]:
+        """Finds an available exemplar for a given catalog and media type."""
+        exemplares = self.data_source.get_all(Exemplar)
+        alugueis = self.data_source.get_all(Aluguel)
+        from app.models import Venda # Local import to avoid circular dependency
+        vendas = self.data_source.get_all(Venda)
+        itens_transacao = self.data_source.get_all(ItemTransacao)
+        
+        alugueis_ativos_ids = {a.id for a in alugueis if a.status in ['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO']}
+        vendas_ids = {v.id for v in vendas if getattr(v, 'status', None) == 'FINALIZADA'}
+        
+        exemplares_indisponiveis = {
+            item.id_exemplar for item in itens_transacao 
+            if item.id_transacao in alugueis_ativos_ids or item.id_transacao in vendas_ids
+        }
+        
+        for exemplar in exemplares:
+            if (exemplar.id_catalogo == id_catalogo and 
+                exemplar.id not in exemplares_indisponiveis and
+                (exemplar.situacao is None or exemplar.situacao == 'DISPONIVEL')):
+                
+                from app.models import MidiaDigital, MidiaFisica
+                if tipo_midia == 'DIGITAL' and isinstance(exemplar, MidiaDigital):
+                    return exemplar
+                if tipo_midia == 'FISICA' and isinstance(exemplar, MidiaFisica):
+                    return exemplar
+        return None
+
+    def create_aluguel(self, aluguel: Aluguel) -> Aluguel:
+        return self.data_source.create(aluguel)
+
+    def create_item_transacao(self, item_transacao: ItemTransacao) -> ItemTransacao:
+        return self.data_source.create(item_transacao)
 
     def create_multa(self, multa: Multa) -> Multa:
         return self.data_source.create(multa)
