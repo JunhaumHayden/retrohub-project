@@ -3,9 +3,8 @@ from datetime import datetime, timedelta, date
 from flask import request
 from flask_restx import Namespace, Resource, fields
 
-from app.models import Cliente, Catalogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao, Funcionario
-from app.database.MockDataSource import MockDataSource
-from app.services.aluguel_service import registrar_retirada, registrar_devolucao
+from app.models import Aluguel
+from app.container.container import container
 
 # Criar namespace para aluguéis
 alugueis_ns = Namespace('alugueis', description='Operações relacionadas aos aluguéis de jogos', path='/api/alugueis')
@@ -41,7 +40,7 @@ def get_cliente_from_header():
     except ValueError:
         return None, "X-Cliente-Id inválido."
     
-    cliente = MockDataSource.get_by_id(Cliente, cliente_id)
+    cliente = container.usuario_service.get_cliente_by_id(cliente_id)
     if not cliente:
         return None, "Cliente não cadastrado ou não encontrado."
     
@@ -57,46 +56,14 @@ def get_funcionario_from_header():
         func_id = int(func_id)
     except ValueError:
         return None, "O ID do funcionário deve ser um número inteiro."
-    funcionario = MockDataSource.get_by_id(Funcionario, func_id)
+    funcionario = container.usuario_service.get_funcionario_by_id(func_id)
     if not funcionario:
         return None, "Funcionário não encontrado."
     return funcionario, None
 
 def find_exemplar_disponivel(id_catalogo, tipo_midia):
     """Find available exemplar for rental"""
-    exemplares = MockDataSource.get_all(Exemplar)
-    alugueis = MockDataSource.get_all(Aluguel)
-    vendas = MockDataSource.get_all(Venda)
-    itens_transacao = MockDataSource.get_all(ItemTransacao)
-    midias_digitais = MockDataSource.get_all(MidiaDigital)
-    midias_fisicas = MockDataSource.get_all(MidiaFisica)
-    
-    # Get occupied exemplar IDs from active rentals
-    alugueis_ativos_ids = {a.id for a in alugueis if a.status in ['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO']}
-    vendas_ids = {v.id for v in vendas if v.status == 'FINALIZADA'}
-    
-    # Get exemplar IDs that are in transactions
-    exemplares_indisponiveis = set()
-    for item in itens_transacao:
-        if item.id_transacao in alugueis_ativos_ids or item.id_transacao in vendas_ids:
-            exemplares_indisponiveis.add(item.id_exemplar)
-    
-    # Filter exemplares by catalog and availability
-    exemplares_disponiveis = []
-    for exemplar in exemplares:
-        if (exemplar.id_catalogo == id_catalogo and 
-            exemplar.id not in exemplares_indisponiveis and
-            (exemplar.situacao is None or exemplar.situacao == 'DISPONIVEL')):
-            
-            # Check if it has the right media type
-            if tipo_midia == 'DIGITAL':
-                if any(md.id_exemplar == exemplar.id for md in midias_digitais):
-                    exemplares_disponiveis.append(exemplar)
-            elif tipo_midia == 'FISICA':
-                if any(mf.id_exemplar == exemplar.id for mf in midias_fisicas):
-                    exemplares_disponiveis.append(exemplar)
-    
-    return exemplares_disponiveis[0] if exemplares_disponiveis else None
+    return container.venda_service.find_exemplar_disponivel_venda(id_catalogo, tipo_midia)
 
 def serialize_aluguel(aluguel: Aluguel):
     return {
@@ -150,9 +117,9 @@ class SolicitarAluguelResource(Resource):
             if data_inicio < date.today():
                 return {"erro": "A data de início não pode ser anterior à data atual."}, 400
 
-            jogo = MockDataSource.get_by_id(Catalogo, data['id_jogo'])
-            if not jogo or not jogo.ativo:
-                return {"erro": "Jogo não existe ou está inativo no catálogo."}, 404
+            jogo = container.catalogo_service.get_by_id(data['id_jogo'])
+            if not jogo:
+                return {"erro": "Jogo não encontrado no catálogo."}, 404
 
             if not jogo.valor_diaria_aluguel:
                 return {"erro": "Este jogo não está disponível para aluguel (valor da diária não definido)."}, 400
@@ -205,7 +172,8 @@ class MeusAlugueisResource(Resource):
             cliente, erro = get_cliente_from_header()
             if erro: return {"erro": erro}, 403
 
-            alugueis = MockDataSource.get_all(Aluguel)
+            from app.models.transacao.aluguel.aluguel import Aluguel
+            alugueis = container.aluguel_repository.get_all(Aluguel) if hasattr(container.aluguel_repository, 'get_all') else []
             meus_alugueis = [a for a in alugueis if a.id_cliente == cliente.id_usuario]
             return [serialize_aluguel(a) for a in meus_alugueis], 200
 
@@ -222,7 +190,7 @@ class RegistrarRetiradaAluguelResource(Resource):
             if erro:
                 return {"erro": erro}, 403
 
-            aluguel, err = registrar_retirada(id)
+            aluguel, err = container.aluguel_service.registrar_retirada(id)
             if err:
                 return {"erro": err}, 400
 
@@ -249,7 +217,7 @@ class RegistrarDevolucaoAluguelResource(Resource):
             if not data:
                 return {"erro": "Dados não fornecidos."}, 400
             condicao = data.get("condicao_item")
-            aluguel, err = registrar_devolucao(id, condicao, funcionario.id_usuario)
+            aluguel, err = container.aluguel_service.registrar_devolucao(id, condicao, funcionario.id_usuario)
             if err:
                 code = 404 if "não encontrado" in err.lower() else 400
                 return {"erro": err}, code
@@ -269,7 +237,8 @@ class DetalhesAluguelResource(Resource):
             cliente, erro = get_cliente_from_header()
             if erro: return {"erro": erro}, 403
 
-            aluguel = MockDataSource.get_by_id(Aluguel, id)
+            from app.models.transacao.aluguel.aluguel import Aluguel
+            aluguel = container.aluguel_repository.get_by_id(Aluguel, id)
             if not aluguel or aluguel.id_cliente != cliente.id_usuario:
                 return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
 
@@ -287,7 +256,8 @@ class CancelarAluguelResource(Resource):
             cliente, erro = get_cliente_from_header()
             if erro: return {"erro": erro}, 403
 
-            aluguel = MockDataSource.get_by_id(Aluguel, id)
+            from app.models.transacao.aluguel.aluguel import Aluguel
+            aluguel = container.aluguel_repository.get_by_id(Aluguel, id)
             if not aluguel or aluguel.id_cliente != cliente.id_usuario:
                 return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
 
@@ -298,16 +268,18 @@ class CancelarAluguelResource(Resource):
             aluguel.status = 'FINALIZADO'
             
             # Find and update the associated item and exemplar
-            itens_transacao = MockDataSource.get_all(ItemTransacao)
-            item_tr = next((it for it in itens_transacao if it.id_transacao == aluguel.id), None)
+            from app.models.transacao.item_transacao import ItemTransacao
+            from app.models.estoque.exemplar import Exemplar
+            item_tr = container.venda_repository.get_item_by_transacao(aluguel.id)
             if item_tr:
-                exemplar = MockDataSource.get_by_id(Exemplar, item_tr.id_exemplar)
+                exemplar = container.estoque_repository.get_exemplar_by_id(item_tr.id_exemplar)
                 if exemplar and exemplar.situacao == 'RESERVADO':
                     exemplar.situacao = 'DISPONIVEL'
+                    if hasattr(exemplar, 'codigo_barras'):
+                        container.estoque_repository.update_midia_fisica(exemplar)
 
-            # In a real implementation, you would save this:
-            # MockDataSource.save(aluguel)
-            # MockDataSource.save(exemplar)
+            # Update aluguel
+            container.aluguel_repository.update(aluguel)
 
             logger.info(f"Cliente ID {cliente.id_usuario} cancelou aluguel ID {id}")
             return {"mensagem": "Aluguel cancelado com sucesso."}, 200
@@ -332,7 +304,8 @@ class RenovarAluguelResource(Resource):
             if dias_adicionais <= 0 or dias_adicionais > 30:
                 return {"erro": "O período de renovação deve ser entre 1 e 30 dias."}, 400
 
-            aluguel = MockDataSource.get_by_id(Aluguel, id)
+            from app.models.transacao.aluguel.aluguel import Aluguel
+            aluguel = container.aluguel_repository.get_by_id(Aluguel, id)
             if not aluguel or aluguel.id_cliente != cliente.id_usuario:
                 return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
 
@@ -340,17 +313,18 @@ class RenovarAluguelResource(Resource):
                 return {"erro": "Não é possível renovar um aluguel já finalizado."}, 400
 
             # Para renovar, pega o valor da diária atual do jogo
-            itens_transacao = MockDataSource.get_all(ItemTransacao)
-            item_transacao = next((it for it in itens_transacao if it.id_transacao == aluguel.id), None)
+            from app.models.transacao.item_transacao import ItemTransacao
+            from app.models.estoque.exemplar import Exemplar
+            item_transacao = container.venda_repository.get_item_by_transacao(aluguel.id)
             
             if not item_transacao:
                 return {"erro": "Item da transação não encontrado."}, 404
                 
-            exemplar = MockDataSource.get_by_id(Exemplar, item_transacao.id_exemplar)
+            exemplar = container.estoque_repository.get_exemplar_by_id(item_transacao.id_exemplar)
             if not exemplar:
                 return {"erro": "Exemplar não encontrado."}, 404
                 
-            jogo = MockDataSource.get_by_id(Catalogo, exemplar.id_catalogo)
+            jogo = container.catalogo_service.get_by_id(exemplar.id_catalogo)
             if not jogo:
                 return {"erro": "Jogo não encontrado."}, 404
 
@@ -360,8 +334,8 @@ class RenovarAluguelResource(Resource):
             aluguel.data_prevista_devolucao += timedelta(days=dias_adicionais)
             aluguel.valor_total += acrescimo
 
-            # In a real implementation, you would save this:
-            # MockDataSource.save(aluguel)
+            # Update aluguel
+            container.aluguel_repository.update(aluguel)
 
             logger.info(f"Cliente ID {cliente.id_usuario} RENOVOU o aluguel ID {aluguel.id} por mais {dias_adicionais} dias.")
             return {

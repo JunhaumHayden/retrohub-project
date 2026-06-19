@@ -21,7 +21,7 @@ class DatabaseFactory:
         é centralizada aqui.
         """
         if cls._data_source is None:
-            db_type = os.getenv('APP_MODE', 'mock').lower()
+            db_type = os.getenv('APP_MODE', 'sqlite').lower()
 
             if db_type == 'mock':
                 cls._data_source = MockDataSource()
@@ -36,7 +36,9 @@ class DatabaseFactory:
                     raise ValueError("A variável de ambiente PG_DATABASE_URL_TEST não está definida.")
                 cls._data_source = PostgresDataSource(db_url)
             elif db_type == 'sqlite':
-                db_url = os.getenv('SQLITE_DATABASE_URL', 'sqlite:///app.db')
+                # Padroniza o caminho do banco de dados para a pasta resources
+                db_path = os.path.join('resources', 'database', 'sqlite', 'app.db')
+                db_url = os.getenv('SQLITE_DATABASE_URL', f'sqlite:///{db_path}')
                 cls._data_source = SQLiteDataSource(db_url)
             else:
                 raise ValueError(f"Tipo de banco de dados desconhecido: {db_type}")

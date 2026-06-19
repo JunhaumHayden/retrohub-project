@@ -1,6 +1,7 @@
 from typing import Optional
 from decimal import Decimal
 from sqlalchemy import Column, Integer, String, Enum
+from sqlalchemy.orm import relationship
 from app.database.base_model import Base
 from app.models.enums import StatusSituacao
 from app.models.base import ExemplarCollection
@@ -15,8 +16,8 @@ class Catalogo(Base):
     classificacao = Column(String(50))
     genero = Column(String(100))
     
-    # O relacionamento com exemplares será definido no modelo Exemplar
-    # usando back_populates para manter a consistência.
+    # Relacionamento com exemplares
+    exemplares = relationship("Exemplar", back_populates="catalogo")
 
     def __init__(
             self,

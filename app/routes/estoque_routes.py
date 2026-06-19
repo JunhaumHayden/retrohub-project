@@ -4,8 +4,8 @@ from flask import request
 from flask_restx import Namespace, Resource, fields
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Catalogo, Exemplar, MidiaFisica, MidiaDigital, Funcionario
-from app.database.factories.database_manager import DatabaseManager
+from app.models import Funcionario
+from app.container.container import container
 
 # Criar namespace para estoque
 estoque_ns = Namespace('estoque', description='Operações relacionadas ao estoque de jogos', path='/api/estoque')
@@ -41,7 +41,7 @@ midia_digital_input_model = estoque_ns.model('MidiaDigitalInput', {
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def get_funcionario_from_header(session):
+def get_funcionario_from_header():
     """Verifica se o header X-Funcionario-Id foi passado e se é um funcionário válido."""
     func_id = request.headers.get('X-Funcionario-Id')
     
@@ -57,33 +57,13 @@ def get_funcionario_from_header(session):
     except ValueError:
         return None, "O ID do funcionário deve ser um número inteiro."
 
-    funcionario = session.query(Funcionario).get(func_id)
+    funcionario = container.usuario_service.get_funcionario_by_id(func_id)
     if not funcionario:
         return None, "Funcionário não encontrado."
         
     return funcionario, None
 
 
-def serialize_exemplar(exemplar: Exemplar):
-    """Serializa um Exemplar baseando-se no seu tipo real (Físico ou Digital)."""
-    base_data = {
-        "id": exemplar.id,
-        "id_catalogo": exemplar.id_catalogo,
-        "tipo_midia": exemplar.tipo_midia
-    }
-    
-    if isinstance(exemplar, MidiaFisica):
-        base_data.update({
-            "codigo_barras": exemplar.codigo_barras,
-            "estado_conservacao": exemplar.estado_conservacao
-        })
-    elif isinstance(exemplar, MidiaDigital):
-        base_data.update({
-            "chave_ativacao": exemplar.chave_ativacao,
-            "data_expiracao": exemplar.data_expiracao.isoformat() if exemplar.data_expiracao else None
-        })
-        
-    return base_data
 
 
 # ==========================================
@@ -94,9 +74,8 @@ class MidiaFisicaResource(Resource):
     @estoque_ns.expect(midia_fisica_input_model)
     @estoque_ns.marshal_with(midia_fisica_model, code=201)
     def post(self):
-        session = DatabaseManager.get_session()
         try:
-            funcionario, erro = get_funcionario_from_header(session)
+            funcionario, erro = get_funcionario_from_header()
             if erro: return {"erro": erro}, 403
 
             data = request.get_json()
@@ -107,35 +86,20 @@ class MidiaFisicaResource(Resource):
                 if field not in data or not str(data[field]).strip():
                     return {"erro": f"O campo '{field}' é obrigatório."}, 400
 
-            catalogo = session.query(Catalogo).get(data['id_catalogo'])
-            if not catalogo:
-                return {"erro": "Jogo não encontrado no catálogo."}, 404
-
-            # Prevenção de duplicidade
-            codigo_existe = session.query(MidiaFisica).filter_by(codigo_barras=data['codigo_barras']).first()
-            if codigo_existe:
-                return {"erro": f"O código de barras '{data['codigo_barras']}' já está cadastrado no sistema."}, 400
-
-            nova_midia = MidiaFisica(
-                id_catalogo=catalogo.id,
+            midia, erro = container.estoque_service.create_midia_fisica(
+                id_catalogo=data['id_catalogo'],
                 codigo_barras=data['codigo_barras'],
                 estado_conservacao=data['estado_conservacao']
             )
+            
+            if erro:
+                return {"erro": erro}, 400
 
-            session.add(nova_midia)
-            session.commit()
+            logger.info(f"Funcionário ID {funcionario.id_usuario} cadastrou mídia FÍSICA '{midia.codigo_barras}'.")
+            return container.estoque_service.serialize_exemplar(midia), 201
 
-            logger.info(f"Funcionário ID {funcionario.id_usuario} cadastrou mídia FÍSICA '{nova_midia.codigo_barras}' para o jogo '{catalogo.titulo}'.")
-            return serialize_exemplar(nova_midia), 201
-
-        except IntegrityError:
-            session.rollback()
-            return {"erro": "Erro de integridade ao salvar no banco."}, 400
         except Exception as e:
-            session.rollback()
             return {"erro": f"Erro interno: {str(e)}"}, 500
-        finally:
-            session.close()
 
 
 # ==========================================
@@ -146,9 +110,8 @@ class MidiaDigitalResource(Resource):
     @estoque_ns.expect(midia_digital_input_model)
     @estoque_ns.marshal_with(midia_digital_model, code=201)
     def post(self):
-        session = DatabaseManager.get_session()
         try:
-            funcionario, erro = get_funcionario_from_header(session)
+            funcionario, erro = get_funcionario_from_header()
             if erro: return {"erro": erro}, 403
 
             data = request.get_json()
@@ -159,15 +122,6 @@ class MidiaDigitalResource(Resource):
                 if field not in data or not str(data[field]).strip():
                     return {"erro": f"O campo '{field}' é obrigatório."}, 400
 
-            catalogo = session.query(Catalogo).get(data['id_catalogo'])
-            if not catalogo:
-                return {"erro": "Jogo não encontrado no catálogo."}, 404
-
-            # Prevenção de duplicidade
-            chave_existe = session.query(MidiaDigital).filter_by(chave_ativacao=data['chave_ativacao']).first()
-            if chave_existe:
-                return {"erro": "Esta chave de ativação já está cadastrada no sistema."}, 400
-
             data_expiracao = None
             if 'data_expiracao' in data and data['data_expiracao']:
                 try:
@@ -175,26 +129,20 @@ class MidiaDigitalResource(Resource):
                 except ValueError:
                     return {"erro": "Formato de data inválido. Use AAAA-MM-DD."}, 400
 
-            nova_midia = MidiaDigital(
-                id_catalogo=catalogo.id,
+            midia, erro = container.estoque_service.create_midia_digital(
+                id_catalogo=data['id_catalogo'],
                 chave_ativacao=data['chave_ativacao'],
                 data_expiracao=data_expiracao
             )
+            
+            if erro:
+                return {"erro": erro}, 400
 
-            session.add(nova_midia)
-            session.commit()
+            logger.info(f"Funcionário ID {funcionario.id_usuario} cadastrou mídia DIGITAL para o catalogo ID {data['id_catalogo']}.")
+            return container.estoque_service.serialize_exemplar(midia), 201
 
-            logger.info(f"Funcionário ID {funcionario.id_usuario} cadastrou mídia DIGITAL para o catalogo '{catalogo.titulo}'.")
-            return serialize_exemplar(nova_midia), 201
-
-        except IntegrityError:
-            session.rollback()
-            return {"erro": "Erro de integridade ao salvar no banco."}, 400
         except Exception as e:
-            session.rollback()
             return {"erro": f"Erro interno: {str(e)}"}, 500
-        finally:
-            session.close()
 
 
 # ==========================================
@@ -205,20 +153,14 @@ class EstoqueCatalogoResource(Resource):
     @estoque_ns.marshal_with(midia_fisica_model, code=200, as_list=True)
     @estoque_ns.marshal_with(midia_digital_model, code=200, as_list=True)
     def get(self, id_catalogo):
-        session = DatabaseManager.get_session()
         try:
-            catalogo = session.query(Catalogo).get(id_catalogo)
-            if not catalogo:
-                return {"erro": "Jogo não encontrado no catálogo."}, 404
-
-            # Consulta baseada no relacionamento de Herança
-            exemplares = session.query(Exemplar).filter_by(id_catalogo=id_catalogo).all()
+            exemplares = container.estoque_service.get_exemplares_by_catalogo(id_catalogo)
+            if not exemplares:
+                return {"erro": "Jogo não encontrado no catálogo ou sem exemplares."}, 404
             
-            return [serialize_exemplar(ex) for ex in exemplares], 200
+            return [container.estoque_service.serialize_exemplar(ex) for ex in exemplares], 200
         except Exception as e:
             return {"erro": f"Erro ao buscar estoque: {str(e)}"}, 500
-        finally:
-            session.close()
 
 
 # ==========================================
@@ -229,32 +171,23 @@ class MidiaFisicaEstadoResource(Resource):
     @estoque_ns.expect(midia_fisica_model)
     @estoque_ns.marshal_with(midia_fisica_model, code=200)
     def put(self, id):
-        session = DatabaseManager.get_session()
         try:
-            funcionario, erro = get_funcionario_from_header(session)
+            funcionario, erro = get_funcionario_from_header()
             if erro: return {"erro": erro}, 403
 
             data = request.get_json()
             if not data or 'estado_conservacao' not in data:
                 return {"erro": "O campo 'estado_conservacao' é obrigatório."}, 400
 
-            midia = session.query(MidiaFisica).get(id)
-            if not midia:
-                return {"erro": "Exemplar físico não encontrado."}, 404
+            midia, erro = container.estoque_service.update_estado_conservacao(id, data['estado_conservacao'])
+            if erro:
+                return {"erro": erro}, 400
 
-            estado_antigo = midia.estado_conservacao
-            midia.estado_conservacao = data['estado_conservacao']
-            
-            session.commit()
-
-            logger.info(f"Funcionário ID {funcionario.id_usuario} ATUALIZOU o estado da mídia {midia.codigo_barras} de '{estado_antigo}' para '{midia.estado_conservacao}'.")
-            return serialize_exemplar(midia), 200
+            logger.info(f"Funcionário ID {funcionario.id_usuario} ATUALIZOU o estado da mídia {midia.codigo_barras}.")
+            return container.estoque_service.serialize_exemplar(midia), 200
 
         except Exception as e:
-            session.rollback()
             return {"erro": f"Erro interno: {str(e)}"}, 500
-        finally:
-            session.close()
 
 
 # ==========================================
@@ -263,28 +196,21 @@ class MidiaFisicaEstadoResource(Resource):
 @estoque_ns.route('/<int:id>')
 class ExemplarResource(Resource):
     def delete(self, id):
-        session = DatabaseManager.get_session()
         try:
-            funcionario, erro = get_funcionario_from_header(session)
+            funcionario, erro = get_funcionario_from_header()
             if erro: return {"erro": erro}, 403
 
-            exemplar = session.query(Exemplar).get(id)
+            exemplar = container.estoque_service.get_exemplar_by_id(id)
             if not exemplar:
                 return {"erro": "Exemplar não encontrado."}, 404
 
             tipo = exemplar.tipo_midia
-            session.delete(exemplar)
-            session.commit()
+            success, erro = container.estoque_service.delete_exemplar(id)
+            if erro:
+                return {"erro": erro}, 400
             
             logger.warning(f"Funcionário ID {funcionario.id_usuario} EXCLUIU o exemplar ID {id} ({tipo}).")
             return {"mensagem": "Exemplar excluído do estoque com sucesso."}, 200
             
-        except IntegrityError:
-            session.rollback()
-            # Se houver uma transação vinculada a este exemplar, a FK impedirá a exclusão.
-            return {"erro": "Não é possível excluir este exemplar pois existem transações atreladas a ele (venda ou aluguel histórico)."}, 400
         except Exception as e:
-            session.rollback()
             return {"erro": f"Erro ao excluir exemplar: {str(e)}"}, 500
-        finally:
-            session.close()

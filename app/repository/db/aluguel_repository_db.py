@@ -2,72 +2,68 @@ from typing import List, Optional
 from app.models import Aluguel, ItemTransacao, Exemplar, Multa, Comprovante
 from app.repository.interface.aluguel_repository_interface import AluguelRepositoryInterface
 from app.models import Venda, MidiaDigital, MidiaFisica
+from app.database.interfaces.data_source_interface import DataSourceInterface
 
 class AluguelRepositoryDB(AluguelRepositoryInterface):
     """
-    Implementação concreta do repositório de Aluguel para banco de dados real (via SQLAlchemy).
+    Implementação concreta do repositório de Aluguel para banco de dados real (via DataSourceInterface).
     """
 
-    def __init__(self, session):
-        self.session = session
+    def __init__(self, data_source: DataSourceInterface):
+        self.data_source = data_source
 
     def get_by_id(self, id: int) -> Optional[Aluguel]:
-        return self.session.query(Aluguel).filter(Aluguel.id == id).first()
+        return self.data_source.get_by_id(Aluguel, id)
 
     def get_items_by_transacao(self, transacao_id: int) -> List[ItemTransacao]:
-        return self.session.query(ItemTransacao).filter(ItemTransacao.id_transacao == transacao_id).all()
+        all_items = self.data_source.get_all(ItemTransacao)
+        return [item for item in all_items if item.id_transacao == transacao_id]
 
     def get_exemplar_by_id(self, exemplar_id: int) -> Optional[Exemplar]:
-        return self.session.query(Exemplar).filter(Exemplar.id == exemplar_id).first()
+        return self.data_source.get_by_id(Exemplar, exemplar_id)
 
     def find_exemplar_disponivel(self, id_catalogo: int, tipo_midia: str) -> Optional[Exemplar]:
-        # Logica complexa que envolveria joins e subqueries no SQLAlchemy
-        # Simplificada aqui para não criar dependencias pesadas no momento
+        # Simplified logic using DataSourceInterface
+        exemplares = self.data_source.get_all(Exemplar)
+        alugueis = self.data_source.get_all(Aluguel)
+        vendas = self.data_source.get_all(Venda)
+        itens_transacao = self.data_source.get_all(ItemTransacao)
         
-        # Subquery para encontrar IDs de exemplares em transações ativas
-        alugueis_ativos = self.session.query(Aluguel.id).filter(Aluguel.status.in_(['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO'])).subquery()
-        vendas_finalizadas = self.session.query(Venda.id).filter(Venda.status == 'FINALIZADA').subquery()
+        # Get occupied exemplar IDs from active rentals
+        alugueis_ativos_ids = {a.id for a in alugueis if a.status in ['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO']}
+        vendas_ids = {v.id for v in vendas if v.status == 'FINALIZADA'}
         
-        itens_indisponiveis_aluguel = self.session.query(ItemTransacao.id_exemplar).filter(ItemTransacao.id_transacao.in_(alugueis_ativos))
-        itens_indisponiveis_venda = self.session.query(ItemTransacao.id_exemplar).filter(ItemTransacao.id_transacao.in_(vendas_finalizadas))
+        # Get exemplar IDs that are in transactions
+        exemplares_indisponiveis = set()
+        for item in itens_transacao:
+            if item.id_transacao in alugueis_ativos_ids or item.id_transacao in vendas_ids:
+                exemplares_indisponiveis.add(item.id_exemplar)
         
-        indisponiveis = itens_indisponiveis_aluguel.union(itens_indisponiveis_venda).subquery()
-
-        # Query principal
-        query = self.session.query(Exemplar).filter(
-            Exemplar.id_catalogo == id_catalogo,
-            Exemplar.id.not_in(indisponiveis),
-            (Exemplar.situacao == None) | (Exemplar.situacao == 'DISPONIVEL')
-        )
+        # Filter exemplares by catalog and availability
+        for exemplar in exemplares:
+            if (exemplar.id_catalogo == id_catalogo and 
+                exemplar.id not in exemplares_indisponiveis and
+                (exemplar.situacao is None or exemplar.situacao == 'DISPONIVEL')):
+                
+                # Check if it has the right media type
+                if tipo_midia == 'DIGITAL' and exemplar.tipo_midia == 'DIGITAL':
+                    return exemplar
+                elif tipo_midia == 'FISICA' and exemplar.tipo_midia == 'FISICA':
+                    return exemplar
         
-        if tipo_midia == 'DIGITAL':
-            query = query.filter(Exemplar.tipo_midia == 'DIGITAL')
-        elif tipo_midia == 'FISICA':
-             query = query.filter(Exemplar.tipo_midia == 'FISICA')
-             
-        return query.first()
+        return None
 
     def create_aluguel(self, aluguel: Aluguel) -> Aluguel:
-        self.session.add(aluguel)
-        self.session.commit()
-        return aluguel
+        return self.data_source.create(aluguel)
 
     def create_item_transacao(self, item_transacao: ItemTransacao) -> ItemTransacao:
-        self.session.add(item_transacao)
-        self.session.commit()
-        return item_transacao
+        return self.data_source.create(item_transacao)
 
     def create_multa(self, multa: Multa) -> Multa:
-        self.session.add(multa)
-        self.session.commit()
-        return multa
+        return self.data_source.create(multa)
 
     def create_comprovante(self, comprovante: Comprovante) -> Comprovante:
-        self.session.add(comprovante)
-        self.session.commit()
-        return comprovante
+        return self.data_source.create(comprovante)
 
     def update(self, entity) -> Optional[any]:
-        self.session.add(entity)
-        self.session.commit()
-        return entity
+        return self.data_source.update(entity)

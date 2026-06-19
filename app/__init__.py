@@ -1,22 +1,16 @@
-# Flask imports are conditional to avoid requiring them when importing models
-try:
-    from flask import Flask
-    from flask_restx import Api
-    from app.container.container import Container
-    from app.routes.clientes_routes import clientes_ns
-    from app.routes.funcionarios_routes import funcionarios_ns
-    from app.routes.catalogo_routes import catalogo_ns
-    from app.routes.estoque_routes import estoque_ns
-    from app.routes.alugueis_routes import alugueis_ns
-    from app.routes.vendas_routes import vendas_ns
-    FLASK_AVAILABLE = True
-except ImportError:
-    FLASK_AVAILABLE = False
+import logging
+from flask import Flask
+from flask_restx import Api
+
+from app.container.container import Container
+from app.routes.clientes_routes import clientes_ns
+from app.routes.funcionarios_routes import funcionarios_ns
+from app.routes.catalogo_routes import catalogo_ns
+from app.routes.estoque_routes import estoque_ns
+from app.routes.alugueis_routes import alugueis_ns
+from app.routes.vendas_routes import vendas_ns
 
 def create_app(test_config=None):
-    if not FLASK_AVAILABLE:
-        raise ImportError("Flask and flask_restx are required to create the app. Please install them with: pip install flask flask-restx")
-    
     app = Flask(__name__)
 
     # Configuração do Swagger
@@ -28,8 +22,7 @@ def create_app(test_config=None):
         doc='/docs'  # URL para acessar a documentação Swagger
     )
 
-    # Initialize data factory (mock mode by default)
-    # injeta dependencias nas rotas
+    # Injeta o container na aplicação Flask
     app.container = Container()
 
     # Registra os namespaces do Flask-RESTX
@@ -42,6 +35,15 @@ def create_app(test_config=None):
 
     @app.route('/')
     def index():
-        return {"status": "RetroHub API is running (mock mode)"}
+        return {"status": "RetroHub API is running"}
+
+    # Adiciona a mensagem customizada na inicialização do servidor
+    # (visível apenas quando o servidor de desenvolvimento do Flask é usado)
+    with app.app_context():
+        logger = logging.getLogger('werkzeug')
+        if logger.hasHandlers():
+            logger.info("*" * 60)
+            logger.info("  => Swagger UI disponível em: http://localhost:5000/docs")
+            logger.info("*" * 60)
 
     return app

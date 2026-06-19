@@ -1,40 +1,35 @@
-from datetime import date, datetime
-from decimal import Decimal
+from datetime import datetime, date
 from typing import Optional
+from decimal import Decimal
+from sqlalchemy import Column, String, Date, Integer, ForeignKey
 
-from app.models.usuario.cliente import Cliente
-from app.models.usuario.funcionario import Funcionario
-from app.models.transacao.comprovante import Comprovante
-from app.models.transacao.item_transacao import ItemTransacao
 from app.models.transacao.transacao import Transacao
-from app.models.enums import StatusVenda, TipoComprovante
-
+from app.models.enums import StatusVenda
 
 class Venda(Transacao):
+    __tablename__ = 'vendas'
+    
+    id = Column(Integer, ForeignKey('transacoes.id'), primary_key=True)
+    status = Column(String(50), default=StatusVenda.PENDENTE.value)
+    data_confirmacao = Column(Date)
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'VENDA',
+    }
+
     def __init__(
             self,
-            id_transacao: int,
+            id_transacao: int = None,
             status: Optional[str] = None,
             data_confirmacao: Optional[date] = None,
-            valor_total: Optional[Decimal] = None,
-            data_transacao: Optional[datetime] = None,
-            status_pagamento: Optional[str] = None,
-            cliente: Optional[Cliente] = None,
-            funcionario: Optional[Funcionario] = None,
-            comprovantes: Optional[list[Comprovante]] = None,
-            itens_transacao: Optional[list[ItemTransacao]] = None,
             **kwargs
     ):
+        # Allow passing id_transacao for backwards compatibility
+        if id_transacao is not None and "id" not in kwargs:
+            kwargs["id"] = id_transacao
+            
         super().__init__(
-            id=id_transacao,
-            valor_total=valor_total,
-            data_transacao=data_transacao,
-            status_pagamento=status_pagamento,
-            cliente=cliente,
-            funcionario=funcionario,
-            comprovantes=comprovantes,
-            itens_transacao=itens_transacao,
-            tipo=TipoComprovante.VENDA.value,
+            tipo="VENDA",
             **kwargs
         )
         self.status = status or StatusVenda.PENDENTE.value

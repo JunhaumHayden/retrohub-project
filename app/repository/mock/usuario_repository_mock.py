@@ -2,7 +2,8 @@ from typing import List, Optional
 
 from app.models import Usuario, Cliente, Funcionario
 from app.repository.interface.usuario_repository_interface import UsuarioRepositoryInterface
-from app.database.adapters.mock_data_source import MockDataSource
+from app.database.data_source.MockDataSource import MockDataSource
+from app.database.interfaces.data_source_interface import DataSourceInterface
 
 
 class UsuarioRepositoryMock(UsuarioRepositoryInterface):
@@ -10,7 +11,8 @@ class UsuarioRepositoryMock(UsuarioRepositoryInterface):
     Mock implementation of Usuario repository using in-memory data source
     """
 
-    def __init__(self, data_source: Optional[MockDataSource] = None):
+    def __init__(self, data_source: Optional[DataSourceInterface] = None):
+        # accept any DataSourceInterface implementation (MockDataSource or other)
         self.data_source = data_source or MockDataSource()
         self.data_source.load_data()
 
@@ -51,6 +53,20 @@ class UsuarioRepositoryMock(UsuarioRepositoryInterface):
                 return result
         
         return None
+    
+    def get_by_email(self, email: str) -> Optional[Usuario]:
+        """Get user by email"""
+        result = self.data_source.get_by_field(Cliente, 'email', email)
+        if result:
+            return result
+        return self.data_source.get_by_field(Funcionario, 'email', email)
+    
+    def get_by_cpf(self, cpf: str) -> Optional[Usuario]:
+        """Get user by CPF"""
+        result = self.data_source.get_by_field(Cliente, 'cpf', cpf)
+        if result:
+            return result
+        return self.data_source.get_by_field(Funcionario, 'cpf', cpf)
 
     def create(self, usuario: Usuario) -> Optional[Usuario]:
         """Create a new user"""

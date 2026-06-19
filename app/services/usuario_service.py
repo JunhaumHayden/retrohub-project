@@ -47,9 +47,8 @@ class UsuarioService:
         if cliente:
             return cliente
         
-        # Try funcionario by CPF through get_by_user
-        temp_usuario = Usuario(cpf=cpf)
-        return self.repository.get_by_user(temp_usuario)
+        # Try funcionario by CPF through get_by_cpf
+        return self.repository.get_by_cpf(cpf)
 
     def get_funcionario_by_matricula(self, matricula: str) -> Optional[Funcionario]:
         """Get funcionario by matricula"""
@@ -73,8 +72,7 @@ class UsuarioService:
             raise ValueError(f"Cliente com CPF '{cliente.cpf}' já existe")
         
         # Check if email already exists
-        temp_usuario = Usuario(email=cliente.email)
-        existing_email = self.repository.get_by_user(temp_usuario)
+        existing_email = self.repository.get_by_email(cliente.email)
         if existing_email:
             raise ValueError(f"Email '{cliente.email}' já está em uso")
         
@@ -99,14 +97,12 @@ class UsuarioService:
             raise ValueError("Matrícula é obrigatória")
         
         # Check if CPF already exists
-        temp_usuario = Usuario(cpf=funcionario.cpf)
-        existing = self.repository.get_by_user(temp_usuario)
+        existing = self.repository.get_by_cpf(funcionario.cpf)
         if existing:
             raise ValueError(f"Funcionário com CPF '{funcionario.cpf}' já existe")
         
         # Check if email already exists
-        temp_usuario = Usuario(email=funcionario.email)
-        existing_email = self.repository.get_by_user(temp_usuario)
+        existing_email = self.repository.get_by_email(funcionario.email)
         if existing_email:
             raise ValueError(f"Email '{funcionario.email}' já está em uso")
         
@@ -130,8 +126,7 @@ class UsuarioService:
             new_email = usuario_data['email']
             # Check if email is being changed and if new email already exists
             if new_email != usuario.email:
-                temp_usuario = Usuario(email=new_email)
-                existing = self.repository.get_by_user(temp_usuario)
+                existing = self.repository.get_by_email(new_email)
                 if existing and existing.id != id:
                     raise ValueError(f"Email '{new_email}' já está em uso")
             usuario.email = new_email

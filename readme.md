@@ -311,7 +311,7 @@ Execute the following command in the project root:
 
 #### 3. Access the Services
 
-- **Web App:** [http://localhost:5000](http://localhost:5000)
+- **Web App:** [http://localhost:5000/docs](http://localhost:5000)
 - **PGAdmin (Database UI):** [http://localhost:5050](http://localhost:5050)
   - **Email:** `admin@retrohub.com`
   - **Password:** `admin`

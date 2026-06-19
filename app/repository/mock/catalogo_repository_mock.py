@@ -2,7 +2,8 @@ from typing import List, Optional
 
 from app.models.catalogo.catalogo import Catalogo
 from app.repository.interface.catalogo_repository_interface import CatalogoRepositoryInterface
-from app.database.adapters.mock_data_source import MockDataSource
+from app.database.data_source.MockDataSource import MockDataSource
+from app.database.interfaces.data_source_interface import DataSourceInterface
 
 
 class CatalogoRepositoryMock(CatalogoRepositoryInterface):
@@ -10,7 +11,8 @@ class CatalogoRepositoryMock(CatalogoRepositoryInterface):
     Mock implementation of Catalogo repository using in-memory data source
     """
 
-    def __init__(self, data_source: Optional[MockDataSource] = None):
+    def __init__(self, data_source: Optional[DataSourceInterface] = None):
+        # accept any DataSourceInterface implementation (MockDataSource or other)
         self.data_source = data_source or MockDataSource()
         self.data_source.load_data()
 
@@ -24,11 +26,7 @@ class CatalogoRepositoryMock(CatalogoRepositoryInterface):
 
     def get_by_title(self, title: str) -> Optional[Catalogo]:
         """Get catalog item by title"""
-        catalogos = self.list_all()
-        for catalogo in catalogos:
-            if catalogo.titulo.lower() == title.lower():
-                return catalogo
-        return None
+        return self.data_source.get_by_field(Catalogo, 'titulo', title)
 
     def create(self, catalogo: Catalogo) -> Optional[Catalogo]:
         """Create a new catalog item"""
@@ -44,10 +42,10 @@ class CatalogoRepositoryMock(CatalogoRepositoryInterface):
 
     def get_by_genero(self, genero: str) -> List[Catalogo]:
         """Get catalog items by genre"""
-        catalogos = self.list_all()
-        return [c for c in catalogos if c.genero and c.genero.lower() == genero.lower()]
+        catalogos = self.data_source.get_all(Catalogo)
+        return [c for c in catalogos if c.genero == genero]
 
     def get_by_situacao(self, situacao: str) -> List[Catalogo]:
         """Get catalog items by situation"""
-        catalogos = self.list_all()
-        return [c for c in catalogos if c.situacao and c.situacao.lower() == situacao.lower()]
+        catalogos = self.data_source.get_all(Catalogo)
+        return [c for c in catalogos if c.situacao == situacao]

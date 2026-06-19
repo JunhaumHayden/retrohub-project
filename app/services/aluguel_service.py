@@ -2,8 +2,9 @@ from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional, Tuple
 
-from app.database.adapters.mock_data_source import MockDataSource
+from app.database.data_source.MockDataSource import MockDataSource
 from app.models import Aluguel, Exemplar, ItemTransacao, Catalogo, Multa
+from app.repository.interface.aluguel_repository_interface import AluguelRepositoryInterface
 
 _CONDICOES_DEVOLUCAO = frozenset({"bom", "danificado", "extraviado"})
 
@@ -12,112 +13,121 @@ def _q2(value: Decimal) -> Decimal:
     return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-def registrar_retirada(aluguel_id: int) -> Tuple[Optional[Aluguel], Optional[str]]:
+class AluguelService:
     """
-    Registra a saída física/digital do item: status ATIVO, data de retirada,
-    previsão de fim com base no período e atualização do exemplar/catálogo.
+    Service layer for Aluguel operations
+    Handles business logic for rental/renting operations
     """
-    aluguel = MockDataSource.get_by_id(Aluguel, aluguel_id)
-    if not aluguel:
-        return None, "Aluguel não encontrado."
-    if aluguel.status not in ("SOLICITADO", "APROVADO"):
-        return None, "Retirada permitida apenas para aluguel solicitado ou aprovado."
 
-    agora = datetime.utcnow()
-    aluguel.data_retirada = agora
-    aluguel.status = "ATIVO"
-    di = agora.date()
-    aluguel.data_inicio = di
-    periodo = aluguel.periodo or 0
-    if periodo > 0:
-        aluguel.data_prevista_devolucao = di + timedelta(days=periodo)
+    def __init__(self, repository: AluguelRepositoryInterface):
+        self.repository = repository
 
-    items = MockDataSource.get_all(ItemTransacao)
-    item = next((i for i in items if i.id_transacao == aluguel.id), None)
-    if not item:
-        return None, "Item da transação não encontrado."
-    exemplar = MockDataSource.get_by_id(Exemplar, item.id_exemplar)
-    if exemplar:
-        exemplar.situacao = "ALUGADO"
+    def registrar_retirada(self, aluguel_id: int) -> Tuple[Optional[Aluguel], Optional[str]]:
+        """
+        Registra a saída física/digital do item: status ATIVO, data de retirada,
+        previsão de fim com base no período e atualização do exemplar/catálogo.
+        """
+        aluguel = MockDataSource.get_by_id(Aluguel, aluguel_id)
+        if not aluguel:
+            return None, "Aluguel não encontrado."
+        if aluguel.status not in ("SOLICITADO", "APROVADO"):
+            return None, "Retirada permitida apenas para aluguel solicitado ou aprovado."
 
-    return aluguel, None
+        agora = datetime.utcnow()
+        aluguel.data_retirada = agora
+        aluguel.status = "ATIVO"
+        di = agora.date()
+        aluguel.data_inicio = di
+        periodo = aluguel.periodo or 0
+        if periodo > 0:
+            aluguel.data_prevista_devolucao = di + timedelta(days=periodo)
 
+        items = MockDataSource.get_all(ItemTransacao)
+        item = next((i for i in items if i.id_transacao == aluguel.id), None)
+        if not item:
+            return None, "Item da transação não encontrado."
+        exemplar = MockDataSource.get_by_id(Exemplar, item.id_exemplar)
+        if exemplar:
+            exemplar.situacao = "ALUGADO"
 
-def registrar_devolucao(
-    aluguel_id: int,
-    condicao_item: str,
-    id_funcionario_recebimento: int,
-) -> Tuple[Optional[Aluguel], Optional[str]]:
-    """
-    Registra devolução da mídia: finaliza aluguel, libera exemplar/estoque,
-    condição do item e multa por atraso (10% da diária por dia, teto 100% do valor total).
-    """
-    if not condicao_item or not str(condicao_item).strip():
-        return None, "O campo 'condicao_item' é obrigatório."
-    cond_norm = str(condicao_item).strip().lower()
-    if cond_norm not in _CONDICOES_DEVOLUCAO:
-        return None, "condicao_item deve ser: bom, danificado ou extraviado."
+        return aluguel, None
 
-    aluguel = MockDataSource.get_by_id(Aluguel, aluguel_id)
-    if not aluguel:
-        return None, "Aluguel não encontrado."
-    if aluguel.status != "ATIVO":
-        return None, "Devolução permitida apenas para aluguel ativo."
-    if getattr(aluguel, "data_devolucao_real", None):
-        return None, "Devolução já registrada para este aluguel."
+    def registrar_devolucao(
+        self,
+        aluguel_id: int,
+        condicao_item: str,
+        id_funcionario_recebimento: int,
+    ) -> Tuple[Optional[Aluguel], Optional[str]]:
+        """
+        Registra devolução da mídia: finaliza aluguel, libera exemplar/estoque,
+        condição do item e multa por atraso (10% da diária por dia, teto 100% do valor total).
+        """
+        if not condicao_item or not str(condicao_item).strip():
+            return None, "O campo 'condicao_item' é obrigatório."
+        cond_norm = str(condicao_item).strip().lower()
+        if cond_norm not in _CONDICOES_DEVOLUCAO:
+            return None, "condicao_item deve ser: bom, danificado ou extraviado."
 
-    agora = datetime.utcnow()
-    d_real = agora.date()
+        aluguel = MockDataSource.get_by_id(Aluguel, aluguel_id)
+        if not aluguel:
+            return None, "Aluguel não encontrado."
+        if aluguel.status != "ATIVO":
+            return None, "Devolução permitida apenas para aluguel ativo."
+        if getattr(aluguel, "data_devolucao_real", None):
+            return None, "Devolução já registrada para este aluguel."
 
-    items = MockDataSource.get_all(ItemTransacao)
-    item = next((i for i in items if i.id_transacao == aluguel.id), None)
-    if not item:
-        return None, "Item da transação não encontrado."
+        agora = datetime.utcnow()
+        d_real = agora.date()
 
-    exemplar = MockDataSource.get_by_id(Exemplar, item.id_exemplar)
-    jogo = MockDataSource.get_by_id(Catalogo, exemplar.id_catalogo) if exemplar else None
-    valor_diaria = jogo.valor_diaria_aluguel if jogo and jogo.valor_diaria_aluguel else Decimal("0")
-    valor_total = aluguel.valor_total if aluguel.valor_total is not None else Decimal("0")
+        items = MockDataSource.get_all(ItemTransacao)
+        item = next((i for i in items if i.id_transacao == aluguel.id), None)
+        if not item:
+            return None, "Item da transação não encontrado."
 
-    dias_atraso = 0
-    prev = aluguel.data_prevista_devolucao
-    if prev is not None and d_real > prev:
-        dias_atraso = (d_real - prev).days
+        exemplar = MockDataSource.get_by_id(Exemplar, item.id_exemplar)
+        jogo = MockDataSource.get_by_id(Catalogo, exemplar.id_catalogo) if exemplar else None
+        valor_diaria = jogo.valor_diaria_aluguel if jogo and jogo.valor_diaria_aluguel else Decimal("0")
+        valor_total = aluguel.valor_total if aluguel.valor_total is not None else Decimal("0")
 
-    multa_bruta = Decimal("0")
-    if dias_atraso > 0 and valor_diaria > 0:
-        multa_bruta = _q2(Decimal(dias_atraso) * (valor_diaria * Decimal("0.10")))
-    teto = _q2(valor_total) if valor_total > 0 else Decimal("0")
-    if teto <= 0:
-        multa_valor = Decimal("0")
-    else:
-        multa_valor = min(multa_bruta, teto)
+        dias_atraso = 0
+        prev = aluguel.data_prevista_devolucao
+        if prev is not None and d_real > prev:
+            dias_atraso = (d_real - prev).days
 
-    aluguel.data_devolucao_real = agora
-    aluguel.data_devolucao = d_real
-    aluguel.status = "FINALIZADO"
-    aluguel.condicao_item = cond_norm
-    aluguel.id_funcionario_recebimento = id_funcionario_recebimento
-    aluguel.dias_atraso = dias_atraso
-    aluguel.multa_aplicada = multa_valor
-    aluguel.multa_paga = bool(multa_valor == 0)
+        multa_bruta = Decimal("0")
+        if dias_atraso > 0 and valor_diaria > 0:
+            multa_bruta = _q2(Decimal(dias_atraso) * (valor_diaria * Decimal("0.10")))
+        teto = _q2(valor_total) if valor_total > 0 else Decimal("0")
+        if teto <= 0:
+            multa_valor = Decimal("0")
+        else:
+            multa_valor = min(multa_bruta, teto)
 
-    if exemplar:
-        exemplar.situacao = "DISPONIVEL"
+        aluguel.data_devolucao_real = agora
+        aluguel.data_devolucao = d_real
+        aluguel.status = "FINALIZADO"
+        aluguel.condicao_item = cond_norm
+        aluguel.id_funcionario_recebimento = id_funcionario_recebimento
+        aluguel.dias_atraso = dias_atraso
+        aluguel.multa_aplicada = multa_valor
+        aluguel.multa_paga = bool(multa_valor == 0)
 
-    # Note: In mock mode, we can't actually save new multas to the database
-    # This would need to be handled differently in a real implementation
-    if multa_valor > 0:
-        # Create multa object but don't save (mock mode limitation)
-        multa = Multa(
-            id=1,  # Placeholder ID
-            id_aluguel=aluguel.id,
-            dias_atraso=dias_atraso,
-            valor=multa_valor,
-            status="PENDENTE",
-            data_calculo=d_real,
-        )
-        # In a real implementation, you would save this:
-        # MockDataSource.save(multa)
+        if exemplar:
+            exemplar.situacao = "DISPONIVEL"
 
-    return aluguel, None
+        # Note: In mock mode, we can't actually save new multas to the database
+        # This would need to be handled differently in a real implementation
+        if multa_valor > 0:
+            # Create multa object but don't save (mock mode limitation)
+            multa = Multa(
+                id=1,  # Placeholder ID
+                id_aluguel=aluguel.id,
+                dias_atraso=dias_atraso,
+                valor=multa_valor,
+                status="PENDENTE",
+                data_calculo=d_real,
+            )
+            # In a real implementation, you would save this:
+            # MockDataSource.save(multa)
+
+        return aluguel, None

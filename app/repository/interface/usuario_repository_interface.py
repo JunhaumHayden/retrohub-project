@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from flask_restx.fields import Boolean
-
 from app.models import Usuario
 
 
@@ -26,6 +24,14 @@ class UsuarioRepositoryInterface(ABC):
         pass
 
     @abstractmethod
+    def get_by_email(self, email: str) -> Optional[Usuario]:
+        pass
+
+    @abstractmethod
+    def get_by_cpf(self, cpf: str) -> Optional[Usuario]:
+        pass
+
+    @abstractmethod
     def create(self, usuario: Usuario) -> Optional[Usuario]:
         pass
 
@@ -34,5 +40,5 @@ class UsuarioRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def delete(self, usuario: Usuario) -> Boolean:
+    def delete(self, usuario: Usuario) -> bool:
         pass

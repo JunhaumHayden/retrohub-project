@@ -1,52 +1,22 @@
-from abc import ABC
-from typing import Optional
-
-from app.models.catalogo import Catalogo
-from app.models.base import BaseModel, CatalogoReference
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey
+from sqlalchemy.orm import relationship
+from app.database.base_model import Base
 from app.models.enums import StatusSituacao
 
-
-class Exemplar(BaseModel):
-    def __init__(
-            self,
-            id: int,
-            catalogo: Optional[Catalogo] = None,
-            tipo_midia: str = "",
-            situacao: Optional[StatusSituacao] = StatusSituacao.DISPONIVEL
-    ):
-        super().__init__(id)
-        if type(self) is Exemplar:
-            raise TypeError("Erro: Operação Não permitida")
-
-        # Use CatalogoReference to avoid circular imports
-        if isinstance(catalogo, CatalogoReference):
-            self.catalogo_ref = catalogo
-        else:
-            # If a Catalogo object is passed, create a reference
-            self.catalogo_ref = CatalogoReference(catalogo.id if hasattr(catalogo, 'id') else catalogo)
-            self.catalogo_ref.set_catalogo(catalogo)
-        
-        self.tipo_midia = tipo_midia
-        self.situacao = situacao
-        
-        # Add exemplar to catalogo if we have access to it
-        catalogo_obj = self.catalogo_ref.get_catalogo()
-        if catalogo_obj is not None:
-            catalogo_obj.add_exemplar(self)
+class Exemplar(Base):
+    __tablename__ = 'exemplares'
     
-    @property
-    def get_catalogo(self) -> Optional[Catalogo]:
-        """Get the catalogo object"""
-        return self.catalogo_ref.get_catalogo()
-    
-    @property
-    def get_id_catalogo(self) -> Optional[int]:
-        """Get the catalogo ID"""
-        return self.catalogo_ref.id
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    id_catalogo = Column(Integer, ForeignKey('catalogo.id'), nullable=False)
+    tipo_midia = Column(String(50), nullable=False)
+    situacao = Column(Enum(StatusSituacao), default=StatusSituacao.DISPONIVEL)
 
-    def __repr__(self):
-        catalogo_id = self.catalogo_ref.id if self.catalogo_ref else "unknown"
-        return f"<{self.__class__.__name__}(id={self.id}, id_catalogo={catalogo_id}, tipo={self.tipo_midia})>"
+    catalogo = relationship("Catalogo", back_populates="exemplares")
 
-    def __str__(self):
-        return f"{self.__class__.__name__} exemplar (ID: {self.id})"
+    __mapper_args__ = {
+        'polymorphic_identity': 'exemplar',
+        'polymorphic_on': tipo_midia
+    }
+
+    def set_situacao(self, situacao: str):
+        self.situacao = StatusSituacao(situacao)
