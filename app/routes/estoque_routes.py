@@ -28,7 +28,7 @@ def get_funcionario_from_header(session):
     except ValueError:
         return None, "O ID do funcionário deve ser um número inteiro."
 
-    funcionario = session.query(Funcionario).get(func_id)
+    funcionario = session.get(Funcionario, func_id)
     if not funcionario:
         return None, "Funcionário não encontrado."
         
@@ -75,7 +75,7 @@ def cadastrar_midia_fisica():
             if field not in data or not str(data[field]).strip():
                 return jsonify({"erro": f"O campo '{field}' é obrigatório."}), 400
 
-        catalogo = session.query(Catalogo).get(data['id_catalogo'])
+        catalogo = session.get(Catalogo, data['id_catalogo'])
         if not catalogo:
             return jsonify({"erro": "Jogo não encontrado no catálogo."}), 404
 
@@ -124,7 +124,7 @@ def cadastrar_midia_digital():
             if field not in data or not str(data[field]).strip():
                 return jsonify({"erro": f"O campo '{field}' é obrigatório."}), 400
 
-        catalogo = session.query(Catalogo).get(data['id_catalogo'])
+        catalogo = session.get(Catalogo, data['id_catalogo'])
         if not catalogo:
             return jsonify({"erro": "Jogo não encontrado no catálogo."}), 404
 
@@ -169,7 +169,7 @@ def cadastrar_midia_digital():
 def listar_estoque_do_catalogo(id_catalogo):
     session = DatabaseManager.get_session()
     try:
-        catalogo = session.query(Catalogo).get(id_catalogo)
+        catalogo = session.get(Catalogo, id_catalogo)
         if not catalogo:
             return jsonify({"erro": "Jogo não encontrado no catálogo."}), 404
 
@@ -197,7 +197,7 @@ def atualizar_estado_fisico(id):
         if not data or 'estado_conservacao' not in data:
             return jsonify({"erro": "O campo 'estado_conservacao' é obrigatório."}), 400
 
-        midia = session.query(MidiaFisica).get(id)
+        midia = session.get(MidiaFisica, id)
         if not midia:
             return jsonify({"erro": "Exemplar físico não encontrado."}), 404
 
@@ -226,7 +226,7 @@ def excluir_exemplar(id):
         funcionario, erro = get_funcionario_from_header(session)
         if erro: return jsonify({"erro": erro}), 403
 
-        exemplar = session.query(Exemplar).get(id)
+        exemplar = session.get(Exemplar, id)
         if not exemplar:
             return jsonify({"erro": "Exemplar não encontrado."}), 404
 

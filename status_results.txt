@@ -1,0 +1,168 @@
+./readme.md:73:  - `GET /api/estoque/jogo/<id_jogo>`: Lists all physical and digital copies available for a specific game in the catalog.
+./resources/database/README.md:80:        int id_jogo FK
+./resources/database/README.md:146:        int id_jogo FK
+./resources/database/data.sql:303:-- RESERVAS (id_jogo → id_catalogo)
+./resources/database/02_datav01.sql:27:INSERT INTO midia_fisica (id_jogo, codigo_barras, estado_conservacao, quantidade) VALUES
+./resources/database/02_datav01.sql:35:INSERT INTO item_transacao (id_transacao, id_jogo, quantidade, valor_unitario) VALUES (1, 1, 1, 5.00), (1, 3, 1, 7.50);
+./resources/database/schemav01.sql:43:    id_jogo INTEGER PRIMARY KEY REFERENCES jogo(id),
+./resources/database/schemav01.sql:51:    id_jogo INTEGER PRIMARY KEY REFERENCES jogo(id),
+./resources/database/schemav01.sql:83:    id_jogo INTEGER REFERENCES jogo(id),
+./resources/database/schemav01.sql:118:    id_jogo INTEGER REFERENCES jogo(id),
+./app/routes/relatorios_routes.py:85:                "id_jogo": jogo.id,
+./app/routes/alugueis_routes.py:46:def find_exemplar_disponivel(session, id_jogo, tipo_midia):
+./app/routes/alugueis_routes.py:59:            Exemplar.id_jogo == id_jogo,
+./app/routes/alugueis_routes.py:80:            Exemplar.id_jogo == id_jogo,
+./app/routes/alugueis_routes.py:121:        required_fields = ['id_jogo', 'dias_alugados', 'data_inicio', 'tipo_midia']
+./app/routes/alugueis_routes.py:138:        jogo = session.query(Catalogo).get(data['id_jogo'])
+./app/routes/alugueis_routes.py:335:        jogo = session.query(Catalogo).get(exemplar.id_jogo)
+./app/routes/avaliacoes_routes.py:122:@avaliacoes_bp.route('/jogo/<int:id_jogo>', methods=['GET'])
+./app/routes/avaliacoes_routes.py:123:def avaliacoes_do_jogo(id_jogo):
+./app/routes/avaliacoes_routes.py:126:        jogo = session.query(Catalogo).get(id_jogo)
+./app/routes/avaliacoes_routes.py:136:        ).filter(Exemplar.id_catalogo == id_jogo).all()
+./app/routes/avaliacoes_routes.py:142:            "id_jogo": id_jogo,
+./app/routes/vendas_routes.py:30:def find_exemplar_disponivel_venda(session, id_jogo, tipo_midia):
+./app/routes/vendas_routes.py:43:            Exemplar.id_jogo == id_jogo,
+./app/routes/vendas_routes.py:64:            Exemplar.id_jogo == id_jogo,
+./app/routes/vendas_routes.py:93:        required_fields = ['id_jogo', 'tipo_midia']
+./app/routes/vendas_routes.py:98:        jogo = session.query(Catalogo).get(data['id_jogo'])
+./app/services/aluguel_service.py:42:        jogo = session.query(Catalogo).get(exemplar.id_jogo)
+./app/services/aluguel_service.py:81:    jogo = session.query(Catalogo).get(exemplar.id_jogo) if exemplar else None
+./app/models/transacao/aluguel/reserva.py:14:    id_jogo: Mapped[Optional[int]] = mapped_column(ForeignKey('catalogo.id'))
+./tests/test_models.py:87:            id_jogo=jogo.id,
+./tests/test_models.py:95:        self.assertEqual(midia.id_jogo, jogo.id)
+./tests/test_estoque_routes.py:76:            "id_jogo": self.jogo_id,
+./tests/test_estoque_routes.py:90:            "id_jogo": self.jogo_id,
+./tests/test_estoque_routes.py:104:            "id_jogo": self.jogo_id,
+./tests/test_estoque_routes.py:118:        self.client.post('/api/estoque/fisico', json={"id_jogo": self.jogo_id, "codigo_barras": "CT-01", "estado_conservacao": "RUIM"}, headers=self.headers)
+./tests/test_estoque_routes.py:119:        self.client.post('/api/estoque/digital', json={"id_jogo": self.jogo_id, "chave_ativacao": "CT-DIG-01"}, headers=self.headers)
+./tests/test_estoque_routes.py:133:        res_create = self.client.post('/api/estoque/fisico', json={"id_jogo": self.jogo_id, "codigo_barras": "CT-UPDATE", "estado_conservacao": "NOVO"}, headers=self.headers)
+./tests/test_estoque_routes.py:142:        res_create = self.client.post('/api/estoque/fisico', json={"id_jogo": self.jogo_id, "codigo_barras": "CT-DELETE", "estado_conservacao": "PESSIMO"}, headers=self.headers)
+./tests/test_hu06_hu07_devolucao.py:89:            id_jogo=self.jogo.id,
+./tests/test_hu06_hu07_devolucao.py:105:                "id_jogo": self.jogo_id,
+./tests/test_vendas_routes.py:69:            id_jogo=self.jogo.id,
+./tests/test_vendas_routes.py:74:            id_jogo=self.jogo.id,
+./tests/test_vendas_routes.py:88:            "id_jogo": self.jogo_id,
+./tests/test_vendas_routes.py:100:            "id_jogo": self.jogo_id,
+./tests/test_vendas_routes.py:113:        payload = {"id_jogo": self.jogo_id, "tipo_midia": "DIGITAL"}
+./tests/test_vendas_routes.py:122:        payload = {"id_jogo": self.jogo_id, "tipo_midia": "DIGITAL"}
+./tests/test_hu05_retirada.py:90:            id_jogo=self.jogo.id,
+./tests/test_hu05_retirada.py:108:            "id_jogo": self.jogo_id,
+./tests/test_alugueis_routes.py:69:            id_jogo=self.jogo.id,
+./tests/test_alugueis_routes.py:74:            id_jogo=self.jogo.id,
+./tests/test_alugueis_routes.py:89:            "id_jogo": self.jogo_id,
+./tests/test_alugueis_routes.py:106:            "id_jogo": self.jogo_id,
+./tests/test_alugueis_routes.py:122:        payload = {"id_jogo": self.jogo_id, "dias_alugados": 2, "data_inicio": hoje, "tipo_midia": "DIGITAL"}
+./tests/test_alugueis_routes.py:132:        payload = {"id_jogo": self.jogo_id, "dias_alugados": 2, "data_inicio": amanha, "tipo_midia": "DIGITAL"}
+./tests/test_alugueis_routes.py:143:        payload = {"id_jogo": self.jogo_id, "dias_alugados": 2, "data_inicio": hoje, "tipo_midia": "DIGITAL"}
+./readme.md:73:  - `GET /api/estoque/jogo/<id_jogo>`: Lists all physical and digital copies available for a specific game in the catalog.
+./resources/database/README.md:80:        int id_jogo FK
+./resources/database/README.md:146:        int id_jogo FK
+./resources/database/data.sql:303:-- RESERVAS (id_jogo → id_catalogo)
+./resources/database/02_datav01.sql:27:INSERT INTO midia_fisica (id_jogo, codigo_barras, estado_conservacao, quantidade) VALUES
+./resources/database/02_datav01.sql:35:INSERT INTO item_transacao (id_transacao, id_jogo, quantidade, valor_unitario) VALUES (1, 1, 1, 5.00), (1, 3, 1, 7.50);
+./resources/database/schemav01.sql:43:    id_jogo INTEGER PRIMARY KEY REFERENCES jogo(id),
+./resources/database/schemav01.sql:51:    id_jogo INTEGER PRIMARY KEY REFERENCES jogo(id),
+./resources/database/schemav01.sql:83:    id_jogo INTEGER REFERENCES jogo(id),
+./resources/database/schemav01.sql:118:    id_jogo INTEGER REFERENCES jogo(id),
+./app/routes/relatorios_routes.py:85:                "id_jogo": jogo.id,
+./app/routes/alugueis_routes.py:46:def find_exemplar_disponivel(session, id_jogo, tipo_midia):
+./app/routes/alugueis_routes.py:59:            Exemplar.id_jogo == id_jogo,
+./app/routes/alugueis_routes.py:80:            Exemplar.id_jogo == id_jogo,
+./app/routes/alugueis_routes.py:121:        required_fields = ['id_jogo', 'dias_alugados', 'data_inicio', 'tipo_midia']
+./app/routes/alugueis_routes.py:138:        jogo = session.query(Catalogo).get(data['id_jogo'])
+./app/routes/alugueis_routes.py:335:        jogo = session.query(Catalogo).get(exemplar.id_jogo)
+./app/routes/avaliacoes_routes.py:122:@avaliacoes_bp.route('/jogo/<int:id_jogo>', methods=['GET'])
+./app/routes/avaliacoes_routes.py:123:def avaliacoes_do_jogo(id_jogo):
+./app/routes/avaliacoes_routes.py:126:        jogo = session.query(Catalogo).get(id_jogo)
+./app/routes/avaliacoes_routes.py:136:        ).filter(Exemplar.id_catalogo == id_jogo).all()
+./app/routes/avaliacoes_routes.py:142:            "id_jogo": id_jogo,
+./app/routes/vendas_routes.py:30:def find_exemplar_disponivel_venda(session, id_jogo, tipo_midia):
+./app/routes/vendas_routes.py:43:            Exemplar.id_jogo == id_jogo,
+./app/routes/vendas_routes.py:64:            Exemplar.id_jogo == id_jogo,
+./app/routes/vendas_routes.py:93:        required_fields = ['id_jogo', 'tipo_midia']
+./app/routes/vendas_routes.py:98:        jogo = session.query(Catalogo).get(data['id_jogo'])
+./app/services/aluguel_service.py:42:        jogo = session.query(Catalogo).get(exemplar.id_jogo)
+./app/services/aluguel_service.py:81:    jogo = session.query(Catalogo).get(exemplar.id_jogo) if exemplar else None
+./app/models/transacao/aluguel/reserva.py:14:    id_jogo: Mapped[Optional[int]] = mapped_column(ForeignKey('catalogo.id'))
+./tests/test_models.py:87:            id_jogo=jogo.id,
+./tests/test_models.py:95:        self.assertEqual(midia.id_jogo, jogo.id)
+./tests/test_estoque_routes.py:76:            "id_jogo": self.jogo_id,
+./tests/test_estoque_routes.py:90:            "id_jogo": self.jogo_id,
+./tests/test_estoque_routes.py:104:            "id_jogo": self.jogo_id,
+./tests/test_estoque_routes.py:118:        self.client.post('/api/estoque/fisico', json={"id_jogo": self.jogo_id, "codigo_barras": "CT-01", "estado_conservacao": "RUIM"}, headers=self.headers)
+./tests/test_estoque_routes.py:119:        self.client.post('/api/estoque/digital', json={"id_jogo": self.jogo_id, "chave_ativacao": "CT-DIG-01"}, headers=self.headers)
+./tests/test_estoque_routes.py:133:        res_create = self.client.post('/api/estoque/fisico', json={"id_jogo": self.jogo_id, "codigo_barras": "CT-UPDATE", "estado_conservacao": "NOVO"}, headers=self.headers)
+./tests/test_estoque_routes.py:142:        res_create = self.client.post('/api/estoque/fisico', json={"id_jogo": self.jogo_id, "codigo_barras": "CT-DELETE", "estado_conservacao": "PESSIMO"}, headers=self.headers)
+./tests/test_hu06_hu07_devolucao.py:89:            id_jogo=self.jogo.id,
+./tests/test_hu06_hu07_devolucao.py:105:                "id_jogo": self.jogo_id,
+./tests/test_vendas_routes.py:69:            id_jogo=self.jogo.id,
+./tests/test_vendas_routes.py:74:            id_jogo=self.jogo.id,
+./tests/test_vendas_routes.py:88:            "id_jogo": self.jogo_id,
+./tests/test_vendas_routes.py:100:            "id_jogo": self.jogo_id,
+./tests/test_vendas_routes.py:113:        payload = {"id_jogo": self.jogo_id, "tipo_midia": "DIGITAL"}
+./tests/test_vendas_routes.py:122:        payload = {"id_jogo": self.jogo_id, "tipo_midia": "DIGITAL"}
+./tests/test_hu05_retirada.py:90:            id_jogo=self.jogo.id,
+./tests/test_hu05_retirada.py:108:            "id_jogo": self.jogo_id,
+./tests/test_alugueis_routes.py:69:            id_jogo=self.jogo.id,
+./tests/test_alugueis_routes.py:74:            id_jogo=self.jogo.id,
+./tests/test_alugueis_routes.py:89:            "id_jogo": self.jogo_id,
+./tests/test_alugueis_routes.py:106:            "id_jogo": self.jogo_id,
+./tests/test_alugueis_routes.py:122:        payload = {"id_jogo": self.jogo_id, "dias_alugados": 2, "data_inicio": hoje, "tipo_midia": "DIGITAL"}
+./tests/test_alugueis_routes.py:132:        payload = {"id_jogo": self.jogo_id, "dias_alugados": 2, "data_inicio": amanha, "tipo_midia": "DIGITAL"}
+./tests/test_alugueis_routes.py:143:        payload = {"id_jogo": self.jogo_id, "dias_alugados": 2, "data_inicio": hoje, "tipo_midia": "DIGITAL"}
+./readme.md:73:  - `GET /api/estoque/jogo/<id_jogo>`: Lists all physical and digital copies available for a specific game in the catalog.
+./resources/database/README.md:80:        int id_jogo FK
+./resources/database/README.md:146:        int id_jogo FK
+./resources/database/data.sql:303:-- RESERVAS (id_jogo → id_catalogo)
+./resources/database/02_datav01.sql:27:INSERT INTO midia_fisica (id_jogo, codigo_barras, estado_conservacao, quantidade) VALUES
+./resources/database/02_datav01.sql:35:INSERT INTO item_transacao (id_transacao, id_jogo, quantidade, valor_unitario) VALUES (1, 1, 1, 5.00), (1, 3, 1, 7.50);
+./resources/database/schemav01.sql:43:    id_jogo INTEGER PRIMARY KEY REFERENCES jogo(id),
+./resources/database/schemav01.sql:51:    id_jogo INTEGER PRIMARY KEY REFERENCES jogo(id),
+./resources/database/schemav01.sql:83:    id_jogo INTEGER REFERENCES jogo(id),
+./resources/database/schemav01.sql:118:    id_jogo INTEGER REFERENCES jogo(id),
+./app/routes/relatorios_routes.py:85:                "id_jogo": jogo.id,
+./app/routes/alugueis_routes.py:46:def find_exemplar_disponivel(session, id_jogo, tipo_midia):
+./app/routes/alugueis_routes.py:59:            Exemplar.id_jogo == id_jogo,
+./app/routes/alugueis_routes.py:80:            Exemplar.id_jogo == id_jogo,
+./app/routes/alugueis_routes.py:121:        required_fields = ['id_jogo', 'dias_alugados', 'data_inicio', 'tipo_midia']
+./app/routes/alugueis_routes.py:138:        jogo = session.query(Catalogo).get(data['id_jogo'])
+./app/routes/alugueis_routes.py:335:        jogo = session.query(Catalogo).get(exemplar.id_jogo)
+./app/routes/avaliacoes_routes.py:122:@avaliacoes_bp.route('/jogo/<int:id_jogo>', methods=['GET'])
+./app/routes/avaliacoes_routes.py:123:def avaliacoes_do_jogo(id_jogo):
+./app/routes/avaliacoes_routes.py:126:        jogo = session.query(Catalogo).get(id_jogo)
+./app/routes/avaliacoes_routes.py:136:        ).filter(Exemplar.id_catalogo == id_jogo).all()
+./app/routes/avaliacoes_routes.py:142:            "id_jogo": id_jogo,
+./app/routes/vendas_routes.py:30:def find_exemplar_disponivel_venda(session, id_jogo, tipo_midia):
+./app/routes/vendas_routes.py:43:            Exemplar.id_jogo == id_jogo,
+./app/routes/vendas_routes.py:64:            Exemplar.id_jogo == id_jogo,
+./app/routes/vendas_routes.py:93:        required_fields = ['id_jogo', 'tipo_midia']
+./app/routes/vendas_routes.py:98:        jogo = session.query(Catalogo).get(data['id_jogo'])
+./app/services/aluguel_service.py:42:        jogo = session.query(Catalogo).get(exemplar.id_jogo)
+./app/services/aluguel_service.py:81:    jogo = session.query(Catalogo).get(exemplar.id_jogo) if exemplar else None
+./app/models/transacao/aluguel/reserva.py:14:    id_jogo: Mapped[Optional[int]] = mapped_column(ForeignKey('catalogo.id'))
+./tests/test_models.py:87:            id_jogo=jogo.id,
+./tests/test_models.py:95:        self.assertEqual(midia.id_jogo, jogo.id)
+./tests/test_estoque_routes.py:76:            "id_jogo": self.jogo_id,
+./tests/test_estoque_routes.py:90:            "id_jogo": self.jogo_id,
+./tests/test_estoque_routes.py:104:            "id_jogo": self.jogo_id,
+./tests/test_estoque_routes.py:118:        self.client.post('/api/estoque/fisico', json={"id_jogo": self.jogo_id, "codigo_barras": "CT-01", "estado_conservacao": "RUIM"}, headers=self.headers)
+./tests/test_estoque_routes.py:119:        self.client.post('/api/estoque/digital', json={"id_jogo": self.jogo_id, "chave_ativacao": "CT-DIG-01"}, headers=self.headers)
+./tests/test_estoque_routes.py:133:        res_create = self.client.post('/api/estoque/fisico', json={"id_jogo": self.jogo_id, "codigo_barras": "CT-UPDATE", "estado_conservacao": "NOVO"}, headers=self.headers)
+./tests/test_estoque_routes.py:142:        res_create = self.client.post('/api/estoque/fisico', json={"id_jogo": self.jogo_id, "codigo_barras": "CT-DELETE", "estado_conservacao": "PESSIMO"}, headers=self.headers)
+./tests/test_hu06_hu07_devolucao.py:89:            id_jogo=self.jogo.id,
+./tests/test_hu06_hu07_devolucao.py:105:                "id_jogo": self.jogo_id,
+./tests/test_vendas_routes.py:69:            id_jogo=self.jogo.id,
+./tests/test_vendas_routes.py:74:            id_jogo=self.jogo.id,
+./tests/test_vendas_routes.py:88:            "id_jogo": self.jogo_id,
+./tests/test_vendas_routes.py:100:            "id_jogo": self.jogo_id,
+./tests/test_vendas_routes.py:113:        payload = {"id_jogo": self.jogo_id, "tipo_midia": "DIGITAL"}
+./tests/test_vendas_routes.py:122:        payload = {"id_jogo": self.jogo_id, "tipo_midia": "DIGITAL"}
+./tests/test_hu05_retirada.py:90:            id_jogo=self.jogo.id,
+./tests/test_hu05_retirada.py:108:            "id_jogo": self.jogo_id,
+./tests/test_alugueis_routes.py:69:            id_jogo=self.jogo.id,
+./tests/test_alugueis_routes.py:74:            id_jogo=self.jogo.id,
+./tests/test_alugueis_routes.py:89:            "id_jogo": self.jogo_id,
+./tests/test_alugueis_routes.py:106:            "id_jogo": self.jogo_id,
+./tests/test_alugueis_routes.py:122:        payload = {"id_jogo": self.jogo_id, "dias_alugados": 2, "data_inicio": hoje, "tipo_midia": "DIGITAL"}
+./tests/test_alugueis_routes.py:132:        payload = {"id_jogo": self.jogo_id, "dias_alugados": 2, "data_inicio": amanha, "tipo_midia": "DIGITAL"}
+./tests/test_alugueis_routes.py:143:        payload = {"id_jogo": self.jogo_id, "dias_alugados": 2, "data_inicio": hoje, "tipo_midia": "DIGITAL"}

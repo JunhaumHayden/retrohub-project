@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from app.database.database_config import Base
 from app.models import (
     Usuario, Cliente, Funcionario,
-    Jogo, Exemplar, MidiaFisica, MidiaDigital,
+    Catalogo, Exemplar, MidiaFisica, MidiaDigital,
     Transacao, Venda, Aluguel, Reserva,
     ItemTransacao, Comprovante, Multa, Avaliacao
 )
@@ -72,9 +72,9 @@ class TestModelsMapping(unittest.TestCase):
         self.assertEqual(func.matricula, "MAT123")
 
     def test_create_midia_fisica(self):
-        """Testa a criação de uma Mídia Física como um Exemplar do Catálogo (Jogo)."""
-        # 1. Primeiro cadastra-se o Jogo no Catálogo (Vitrine)
-        jogo = Jogo(
+        """Testa a criação de uma Mídia Física como um Exemplar do Catálogo (Catalogo)."""
+        # 1. Primeiro cadastra-se o Catalogo no Catálogo (Vitrine)
+        jogo = Catalogo(
             titulo="Super Metroid",
             plataforma="SNES",
             valor_venda=Decimal('150.00')
@@ -84,7 +84,7 @@ class TestModelsMapping(unittest.TestCase):
 
         # 2. Depois cadastra-se a mídia física vinculada ao jogo (Estoque real/Exemplar)
         midia = MidiaFisica(
-            id_jogo=jogo.id,
+            id_catalogo=jogo.id,
             codigo_barras="123456789",
             estado_conservacao="Bom"
         )
@@ -92,7 +92,7 @@ class TestModelsMapping(unittest.TestCase):
         self.session.flush()
 
         self.assertIsNotNone(midia.id)
-        self.assertEqual(midia.id_jogo, jogo.id)
+        self.assertEqual(midia.id_catalogo, jogo.id)
         self.assertEqual(midia.codigo_barras, "123456789")
 
     def test_create_venda(self):

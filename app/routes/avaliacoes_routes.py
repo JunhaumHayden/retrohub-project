@@ -20,7 +20,7 @@ def get_cliente_from_header(session):
     except ValueError:
         return None, "X-Cliente-Id inválido."
 
-    cliente = session.query(Cliente).get(cliente_id)
+    cliente = session.get(Cliente, cliente_id)
     if not cliente:
         return None, "Cliente não cadastrado ou não encontrado."
 
@@ -65,7 +65,7 @@ def avaliar_transacao(id_transacao):
 
         comentario = data.get('comentario')
 
-        transacao = session.query(Transacao).get(id_transacao)
+        transacao = session.get(Transacao, id_transacao)
         if not transacao or transacao.id_cliente != cliente.id_usuario:
             return jsonify({"erro": "Transação não encontrada ou não pertence a este cliente."}), 404
 
@@ -119,11 +119,11 @@ def minhas_avaliacoes():
         session.close()
 
 
-@avaliacoes_bp.route('/jogo/<int:id_jogo>', methods=['GET'])
-def avaliacoes_do_jogo(id_jogo):
+@avaliacoes_bp.route('/jogo/<int:id_catalogo>', methods=['GET'])
+def avaliacoes_do_jogo(id_catalogo):
     session = DatabaseManager.get_session()
     try:
-        jogo = session.query(Catalogo).get(id_jogo)
+        jogo = session.get(Catalogo, id_catalogo)
         if not jogo:
             return jsonify({"erro": "Jogo não encontrado no catálogo."}), 404
 
@@ -133,13 +133,13 @@ def avaliacoes_do_jogo(id_jogo):
             ItemTransacao, ItemTransacao.id_transacao == Transacao.id
         ).join(
             Exemplar, Exemplar.id == ItemTransacao.id_exemplar
-        ).filter(Exemplar.id_catalogo == id_jogo).all()
+        ).filter(Exemplar.id_catalogo == id_catalogo).all()
 
         notas = [a.nota for a in avaliacoes if a.nota is not None]
         media = round(sum(notas) / len(notas), 2) if notas else None
 
         return jsonify({
-            "id_jogo": id_jogo,
+            "id_catalogo": id_catalogo,
             "titulo": jogo.titulo,
             "media_nota": media,
             "total_avaliacoes": len(avaliacoes),

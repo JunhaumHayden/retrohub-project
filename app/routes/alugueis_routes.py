@@ -1,8 +1,8 @@
 import logging
-from datetime import datetime, timedelta, date
+from datetime import datetime, timezone, timedelta, date
 from flask import Blueprint, request, jsonify
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy import or_, and_, not_
+from sqlalchemy import or_, not_
+from sqlalchemy.orm import aliased
 
 from app.models import Cliente, Catalogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao, Funcionario
 from app.database.factories.database_manager import DatabaseManager
@@ -22,7 +22,7 @@ def get_cliente_from_header(session):
     except ValueError:
         return None, "X-Cliente-Id inválido."
     
-    cliente = session.query(Cliente).get(cliente_id)
+    cliente = session.get(Cliente, cliente_id)
     if not cliente:
         return None, "Cliente não cadastrado ou não encontrado."
     
@@ -38,12 +38,12 @@ def get_funcionario_from_header(session):
         func_id = int(func_id)
     except ValueError:
         return None, "O ID do funcionário deve ser um número inteiro."
-    funcionario = session.query(Funcionario).get(func_id)
+    funcionario = session.get(Funcionario, func_id)
     if not funcionario:
         return None, "Funcionário não encontrado."
     return funcionario, None
 
-def find_exemplar_disponivel(session, id_jogo, tipo_midia):
+def find_exemplar_disponivel(session, id_catalogo, tipo_midia):
     if tipo_midia == 'DIGITAL':
         alugueis_ocupando_ids = session.query(Aluguel.id_transacao).filter(
             Aluguel.status.in_(['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO'])
@@ -55,8 +55,9 @@ def find_exemplar_disponivel(session, id_jogo, tipo_midia):
                 ItemTransacao.id_transacao.in_(vendas_ids)
             )
         )
-        return session.query(Exemplar).join(MidiaDigital).filter(
-            Exemplar.id_jogo == id_jogo,
+        midia_digital = aliased(MidiaDigital, flat=True)
+        return session.query(Exemplar).join(midia_digital).filter(
+            Exemplar.id_catalogo == id_catalogo,
             or_(Exemplar.situacao.is_(None), Exemplar.situacao == 'DISPONIVEL'),
             not_(Exemplar.id.in_(exemplares_indisponiveis))
         ).first()
@@ -76,8 +77,9 @@ def find_exemplar_disponivel(session, id_jogo, tipo_midia):
             )
         )
 
-        exemplar = session.query(Exemplar).join(MidiaFisica).filter(
-            Exemplar.id_jogo == id_jogo,
+        midia_fisica = aliased(MidiaFisica, flat=True)
+        exemplar = session.query(Exemplar).join(midia_fisica).filter(
+            Exemplar.id_catalogo == id_catalogo,
             or_(Exemplar.situacao.is_(None), Exemplar.situacao == 'DISPONIVEL'),
             not_(Exemplar.id.in_(exemplares_indisponiveis))
         ).first()
@@ -118,7 +120,7 @@ def solicitar_aluguel():
         data = request.get_json()
         if not data: return jsonify({"erro": "Dados não fornecidos."}), 400
 
-        required_fields = ['id_jogo', 'dias_alugados', 'data_inicio', 'tipo_midia']
+        required_fields = ['id_catalogo', 'dias_alugados', 'data_inicio', 'tipo_midia']
         for field in required_fields:
             if field not in data or str(data[field]).strip() == "":
                 return jsonify({"erro": f"O campo '{field}' é obrigatório."}), 400
@@ -135,7 +137,7 @@ def solicitar_aluguel():
         if data_inicio < date.today():
             return jsonify({"erro": "A data de início não pode ser anterior à data atual."}), 400
 
-        jogo = session.query(Catalogo).get(data['id_jogo'])
+        jogo = session.get(Catalogo, data['id_catalogo'])
         if not jogo or not jogo.ativo:
             return jsonify({"erro": "Jogo não existe ou está inativo no catálogo."}), 404
 
@@ -159,7 +161,7 @@ def solicitar_aluguel():
             id_cliente=cliente.id_usuario,
             valor_total=valor_total,
             status='SOLICITADO',
-            data_transacao=datetime.utcnow(),
+            data_transacao=datetime.now(timezone.utc),
             periodo=dias_alugados,
             data_inicio=data_inicio,
             data_prevista_devolucao=data_prevista_devolucao
@@ -265,7 +267,7 @@ def detalhes_aluguel(id):
         cliente, erro = get_cliente_from_header(session)
         if erro: return jsonify({"erro": erro}), 403
 
-        aluguel = session.query(Aluguel).get(id)
+        aluguel = session.get(Aluguel, id)
         if not aluguel or aluguel.id_cliente != cliente.id_usuario:
             return jsonify({"erro": "Aluguel não encontrado ou não pertence a este cliente."}), 404
 
@@ -283,17 +285,18 @@ def cancelar_aluguel(id):
         cliente, erro = get_cliente_from_header(session)
         if erro: return jsonify({"erro": erro}), 403
 
-        aluguel = session.query(Aluguel).get(id)
+        aluguel = session.get(Aluguel, id)
         if not aluguel or aluguel.id_cliente != cliente.id_usuario:
             return jsonify({"erro": "Aluguel não encontrado ou não pertence a este cliente."}), 404
 
-        if aluguel.data_inicio <= date.today():
-            return jsonify({"erro": "Não é possível cancelar um aluguel que já iniciou ou está no dia de retirada."}), 400
+        try:
+            aluguel.cancelar_aluguel()
+        except ValueError as exc:
+            return jsonify({"erro": str(exc)}), 400
 
-        aluguel.status = 'FINALIZADO'
         item_tr = session.query(ItemTransacao).filter_by(id_transacao=aluguel.id).first()
         if item_tr:
-            ex = session.query(Exemplar).get(item_tr.id_exemplar)
+            ex = session.get(Exemplar, item_tr.id_exemplar)
             if ex and ex.situacao == 'RESERVADO':
                 ex.situacao = 'DISPONIVEL'
 
@@ -322,17 +325,23 @@ def renovar_aluguel(id):
         if dias_adicionais <= 0 or dias_adicionais > 30:
             return jsonify({"erro": "O período de renovação deve ser entre 1 e 30 dias."}), 400
 
-        aluguel = session.query(Aluguel).get(id)
+        aluguel = session.get(Aluguel, id)
         if not aluguel or aluguel.id_cliente != cliente.id_usuario:
             return jsonify({"erro": "Aluguel não encontrado ou não pertence a este cliente."}), 404
 
-        if aluguel.status == 'FINALIZADO':
-            return jsonify({"erro": "Não é possível renovar um aluguel já finalizado."}), 400
-
-        # Para renovar, pega o valor da diária atual do jogo
         item_transacao = session.query(ItemTransacao).filter_by(id_transacao=aluguel.id).first()
-        exemplar = session.query(Exemplar).get(item_transacao.id_exemplar)
-        jogo = session.query(Catalogo).get(exemplar.id_jogo)
+        if not item_transacao:
+            return jsonify({"erro": "Item da transação não encontrado."}), 404
+
+        exemplar = session.get(Exemplar, item_transacao.id_exemplar)
+        jogo = session.get(Catalogo, exemplar.id_catalogo) if exemplar else None
+        if not jogo or jogo.valor_diaria_aluguel is None:
+            return jsonify({"erro": "Não foi possível calcular a renovação sem o jogo ou valor da diária."}), 400
+
+        try:
+            aluguel.renovar_aluguel(dias_adicionais)
+        except ValueError as exc:
+            return jsonify({"erro": str(exc)}), 400
 
         acrescimo = jogo.valor_diaria_aluguel * dias_adicionais
         aluguel.periodo += dias_adicionais

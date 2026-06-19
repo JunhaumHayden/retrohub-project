@@ -9,7 +9,7 @@ from app.models import (
     Aluguel,
     Cliente,
     Funcionario,
-    Jogo,
+    Catalogo,
     Exemplar,
     MidiaDigital,
     Multa,
@@ -50,7 +50,7 @@ class TestHu06Hu07Devolucao(unittest.TestCase):
         session.query(Transacao).delete()
         session.query(MidiaDigital).delete()
         session.query(Exemplar).delete()
-        session.query(Jogo).delete()
+        session.query(Catalogo).delete()
         session.query(Cliente).delete()
         session.query(Funcionario).delete()
         session.query(Usuario).delete()
@@ -75,7 +75,7 @@ class TestHu06Hu07Devolucao(unittest.TestCase):
         session.add_all([self.cliente, self.funcionario])
         session.flush()
 
-        self.jogo = Jogo(
+        self.jogo = Catalogo(
             titulo="EarthBound",
             plataforma="SNES",
             valor_venda=300.00,
@@ -86,7 +86,7 @@ class TestHu06Hu07Devolucao(unittest.TestCase):
         session.flush()
 
         self.midia_digital = MidiaDigital(
-            id_jogo=self.jogo.id,
+            id_catalogo=self.jogo.id,
             chave_ativacao="DEV-KEY-01",
         )
         session.add(self.midia_digital)
@@ -102,7 +102,7 @@ class TestHu06Hu07Devolucao(unittest.TestCase):
         res = self.client.post(
             "/api/alugueis/solicitar",
             json={
-                "id_jogo": self.jogo_id,
+                "id_catalogo": self.jogo_id,
                 "dias_alugados": dias_alugados,
                 "data_inicio": hoje,
                 "tipo_midia": "DIGITAL",

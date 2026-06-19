@@ -66,12 +66,12 @@ class TestAlugueisRoutes(unittest.TestCase):
         session.flush()
 
         self.midia_fisica = MidiaFisica(
-            id_jogo=self.jogo.id,
+            id_catalogo=self.jogo.id,
             codigo_barras="12345-SNES-CT",
             estado_conservacao="BOM"
         )
         self.midia_digital = MidiaDigital(
-            id_jogo=self.jogo.id,
+            id_catalogo=self.jogo.id,
             chave_ativacao="XXXX-YYYY-ZZZZ"
         )
         session.add_all([self.midia_fisica, self.midia_digital])
@@ -86,7 +86,7 @@ class TestAlugueisRoutes(unittest.TestCase):
         """Testa a solicitação de um aluguel físico (status 201)."""
         hoje = date.today().strftime('%Y-%m-%d')
         payload = {
-            "id_jogo": self.jogo_id,
+            "id_catalogo": self.jogo_id,
             "dias_alugados": 5,
             "data_inicio": hoje,
             "tipo_midia": "FISICA"
@@ -103,7 +103,7 @@ class TestAlugueisRoutes(unittest.TestCase):
         """Testa se a API bloqueia aluguel quando não há estoque físico."""
         hoje = date.today().strftime('%Y-%m-%d')
         payload = {
-            "id_jogo": self.jogo_id,
+            "id_catalogo": self.jogo_id,
             "dias_alugados": 5,
             "data_inicio": hoje,
             "tipo_midia": "FISICA"
@@ -119,7 +119,7 @@ class TestAlugueisRoutes(unittest.TestCase):
     def test_4_listar_meus_alugueis(self):
         """Testa a listagem de aluguéis do cliente."""
         hoje = date.today().strftime('%Y-%m-%d')
-        payload = {"id_jogo": self.jogo_id, "dias_alugados": 2, "data_inicio": hoje, "tipo_midia": "DIGITAL"}
+        payload = {"id_catalogo": self.jogo_id, "dias_alugados": 2, "data_inicio": hoje, "tipo_midia": "DIGITAL"}
         self.client.post('/api/alugueis/solicitar', json=payload, headers=self.headers)
         
         response = self.client.get('/api/alugueis/meus-alugueis', headers=self.headers)
@@ -129,7 +129,7 @@ class TestAlugueisRoutes(unittest.TestCase):
     def test_5_cancelar_aluguel(self):
         """Testa cancelar aluguel antes da data de início."""
         amanha = (date.today() + timedelta(days=1)).strftime('%Y-%m-%d')
-        payload = {"id_jogo": self.jogo_id, "dias_alugados": 2, "data_inicio": amanha, "tipo_midia": "DIGITAL"}
+        payload = {"id_catalogo": self.jogo_id, "dias_alugados": 2, "data_inicio": amanha, "tipo_midia": "DIGITAL"}
         res_create = self.client.post('/api/alugueis/solicitar', json=payload, headers=self.headers)
         aluguel_id = res_create.get_json()['id_transacao']
 
@@ -140,7 +140,7 @@ class TestAlugueisRoutes(unittest.TestCase):
     def test_6_renovar_aluguel(self):
         """Testa a renovação de aluguel."""
         hoje = date.today().strftime('%Y-%m-%d')
-        payload = {"id_jogo": self.jogo_id, "dias_alugados": 2, "data_inicio": hoje, "tipo_midia": "DIGITAL"}
+        payload = {"id_catalogo": self.jogo_id, "dias_alugados": 2, "data_inicio": hoje, "tipo_midia": "DIGITAL"}
         res_create = self.client.post('/api/alugueis/solicitar', json=payload, headers=self.headers)
         aluguel_id = res_create.get_json()['id_transacao']
 

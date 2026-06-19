@@ -1,8 +1,9 @@
 import logging
-from datetime import datetime, date
+from datetime import datetime, timezone, date
 from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import not_, or_
+from sqlalchemy.orm import aliased
 
 from app.models import Cliente, Catalogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao
 from app.database.factories.database_manager import DatabaseManager
@@ -21,13 +22,13 @@ def get_cliente_from_header(session):
     except ValueError:
         return None, "X-Cliente-Id inválido."
     
-    cliente = session.query(Cliente).get(cliente_id)
+    cliente = session.get(Cliente, cliente_id)
     if not cliente:
         return None, "Cliente não cadastrado ou não encontrado."
     
     return cliente, None
 
-def find_exemplar_disponivel_venda(session, id_jogo, tipo_midia):
+def find_exemplar_disponivel_venda(session, id_catalogo, tipo_midia):
     if tipo_midia == 'DIGITAL':
         alugueis_ocupando_ids = session.query(Aluguel.id_transacao).filter(
             Aluguel.status.in_(['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO'])
@@ -39,8 +40,9 @@ def find_exemplar_disponivel_venda(session, id_jogo, tipo_midia):
                 ItemTransacao.id_transacao.in_(vendas_ids)
             )
         )
-        return session.query(Exemplar).join(MidiaDigital).filter(
-            Exemplar.id_jogo == id_jogo,
+        midia_digital = aliased(MidiaDigital, flat=True)
+        return session.query(Exemplar).join(midia_digital).filter(
+            Exemplar.id_catalogo == id_catalogo,
             or_(Exemplar.situacao.is_(None), Exemplar.situacao == 'DISPONIVEL'),
             not_(Exemplar.id.in_(exemplares_indisponiveis))
         ).first()
@@ -60,8 +62,9 @@ def find_exemplar_disponivel_venda(session, id_jogo, tipo_midia):
             )
         )
 
-        exemplar = session.query(Exemplar).join(MidiaFisica).filter(
-            Exemplar.id_jogo == id_jogo,
+        midia_fisica = aliased(MidiaFisica, flat=True)
+        exemplar = session.query(Exemplar).join(midia_fisica).filter(
+            Exemplar.id_catalogo == id_catalogo,
             or_(Exemplar.situacao.is_(None), Exemplar.situacao == 'DISPONIVEL'),
             not_(Exemplar.id.in_(exemplares_indisponiveis))
         ).first()
@@ -90,12 +93,12 @@ def solicitar_venda():
         data = request.get_json()
         if not data: return jsonify({"erro": "Dados não fornecidos."}), 400
 
-        required_fields = ['id_jogo', 'tipo_midia']
+        required_fields = ['id_catalogo', 'tipo_midia']
         for field in required_fields:
             if field not in data or str(data[field]).strip() == "":
                 return jsonify({"erro": f"O campo '{field}' é obrigatório."}), 400
 
-        jogo = session.query(Catalogo).get(data['id_jogo'])
+        jogo = session.get(Catalogo, data['id_catalogo'])
         if not jogo or not jogo.ativo:
             return jsonify({"erro": "Jogo não existe ou está inativo no catálogo."}), 404
 
@@ -117,7 +120,7 @@ def solicitar_venda():
             id_cliente=cliente.id_usuario,
             valor_total=valor_total,
             status='FINALIZADA', # Em um sistema real seria PENDENTE aguardando pagamento
-            data_transacao=datetime.utcnow(),
+            data_transacao=datetime.now(timezone.utc),
             data_confirmacao=date.today()
         )
         
@@ -169,7 +172,7 @@ def detalhes_venda(id):
         cliente, erro = get_cliente_from_header(session)
         if erro: return jsonify({"erro": erro}), 403
 
-        venda = session.query(Venda).get(id)
+        venda = session.get(Venda, id)
         if not venda or venda.id_cliente != cliente.id_usuario:
             return jsonify({"erro": "Venda não encontrada ou não pertence a este cliente."}), 404
 
@@ -187,7 +190,7 @@ def estornar_venda(id):
         cliente, erro = get_cliente_from_header(session)
         if erro: return jsonify({"erro": erro}), 403
 
-        venda = session.query(Venda).get(id)
+        venda = session.get(Venda, id)
         if not venda or venda.id_cliente != cliente.id_usuario:
             return jsonify({"erro": "Venda não encontrada ou não pertence a este cliente."}), 404
 

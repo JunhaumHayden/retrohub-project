@@ -21,7 +21,7 @@ def get_funcionario_from_header(session):
         func_id = int(func_id)
     except ValueError:
         return None, "O ID do funcionário deve ser um número inteiro."
-    funcionario = session.query(Funcionario).get(func_id)
+    funcionario = session.get(Funcionario, func_id)
     if not funcionario:
         return None, "Funcionário não encontrado."
     return funcionario, None
@@ -75,14 +75,14 @@ def relatorio_compras_locacoes():
             item = session.query(ItemTransacao).filter_by(id_transacao=transacao_id).first()
             if not item:
                 return
-            exemplar = session.query(Exemplar).get(item.id_exemplar)
+            exemplar = session.get(Exemplar, item.id_exemplar)
             if not exemplar:
                 return
-            jogo = session.query(Catalogo).get(exemplar.id_catalogo)
+            jogo = session.get(Catalogo, exemplar.id_catalogo)
             if not jogo:
                 return
             registro = por_jogo.setdefault(jogo.id, {
-                "id_jogo": jogo.id,
+                "id_catalogo": jogo.id,
                 "titulo": jogo.titulo,
                 "quantidade_vendida": 0,
                 "receita_vendas": 0.0,

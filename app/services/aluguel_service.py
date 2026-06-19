@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional, Tuple
 
@@ -15,31 +15,31 @@ def _q2(value: Decimal) -> Decimal:
 
 def registrar_retirada(session: Session, aluguel_id: int) -> Tuple[Optional[Aluguel], Optional[str]]:
     """
-    Registra a saída física/digital do item: status ATIVO, data de retirada,
-    previsão de fim com base no período e atualização do exemplar/catálogo.
+    Registra a saída física/digital do item: define o status ATIVO e atualiza o exemplar/catálogo.
     """
-    aluguel = session.query(Aluguel).get(aluguel_id)
+    aluguel = session.get(Aluguel, aluguel_id)
     if not aluguel:
         return None, "Aluguel não encontrado."
-    if aluguel.status not in ("SOLICITADO", "APROVADO"):
-        return None, "Retirada permitida apenas para aluguel solicitado ou aprovado."
 
-    agora = datetime.utcnow()
+    try:
+        aluguel.registrar_retirada()
+    except ValueError as exc:
+        return None, str(exc)
+
+    agora = datetime.now(timezone.utc)
     aluguel.data_retirada = agora
-    aluguel.status = "ATIVO"
-    di = agora.date()
-    aluguel.data_inicio = di
+    aluguel.data_inicio = agora.date()
     periodo = aluguel.periodo or 0
     if periodo > 0:
-        aluguel.data_prevista_devolucao = di + timedelta(days=periodo)
+        aluguel.data_prevista_devolucao = aluguel.data_inicio + timedelta(days=periodo)
 
     item = session.query(ItemTransacao).filter_by(id_transacao=aluguel.id).first()
     if not item:
         return None, "Item da transação não encontrado."
-    exemplar = session.query(Exemplar).get(item.id_exemplar)
+    exemplar = session.get(Exemplar, item.id_exemplar)
     if exemplar:
         exemplar.situacao = "ALUGADO"
-        jogo = session.query(Catalogo).get(exemplar.id_jogo)
+        jogo = session.get(Catalogo, exemplar.id_catalogo)
         if jogo is not None and jogo.estoque_disponivel is not None and jogo.estoque_disponivel > 0:
             jogo.estoque_disponivel -= 1
 
@@ -62,23 +62,26 @@ def registrar_devolucao(
     if cond_norm not in _CONDICOES_DEVOLUCAO:
         return None, "condicao_item deve ser: bom, danificado ou extraviado."
 
-    aluguel = session.query(Aluguel).get(aluguel_id)
+    aluguel = session.get(Aluguel, aluguel_id)
     if not aluguel:
         return None, "Aluguel não encontrado."
-    if aluguel.status != "ATIVO":
-        return None, "Devolução permitida apenas para aluguel ativo."
     if getattr(aluguel, "data_devolucao_real", None):
         return None, "Devolução já registrada para este aluguel."
 
-    agora = datetime.utcnow()
+    try:
+        aluguel.finalizar_aluguel()
+    except ValueError as exc:
+        return None, str(exc)
+
+    agora = datetime.now(timezone.utc)
     d_real = agora.date()
 
     item = session.query(ItemTransacao).filter_by(id_transacao=aluguel.id).first()
     if not item:
         return None, "Item da transação não encontrado."
 
-    exemplar = session.query(Exemplar).get(item.id_exemplar)
-    jogo = session.query(Catalogo).get(exemplar.id_jogo) if exemplar else None
+    exemplar = session.get(Exemplar, item.id_exemplar)
+    jogo = session.get(Catalogo, exemplar.id_catalogo) if exemplar else None
     valor_diaria = jogo.valor_diaria_aluguel if jogo and jogo.valor_diaria_aluguel else Decimal("0")
     valor_total = aluguel.valor_total if aluguel.valor_total is not None else Decimal("0")
 
@@ -98,7 +101,6 @@ def registrar_devolucao(
 
     aluguel.data_devolucao_real = agora
     aluguel.data_devolucao = d_real
-    aluguel.status = "FINALIZADO"
     aluguel.condicao_item = cond_norm
     aluguel.id_funcionario_recebimento = id_funcionario_recebimento
     aluguel.dias_atraso = dias_atraso

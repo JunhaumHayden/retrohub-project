@@ -7,7 +7,7 @@ from app.database.factories.database_manager import DatabaseManager
 from app.models import (
     Cliente,
     Funcionario,
-    Jogo,
+    Catalogo,
     Exemplar,
     MidiaDigital,
     Transacao,
@@ -52,7 +52,7 @@ class TestHu05Retirada(unittest.TestCase):
         session.query(Transacao).delete()
         session.query(MidiaDigital).delete()
         session.query(Exemplar).delete()
-        session.query(Jogo).delete()
+        session.query(Catalogo).delete()
         session.query(Cliente).delete()
         session.query(Funcionario).delete()
         session.query(Usuario).delete()
@@ -77,7 +77,7 @@ class TestHu05Retirada(unittest.TestCase):
         session.add_all([self.cliente, self.funcionario])
         session.flush()
 
-        self.jogo = Jogo(
+        self.jogo = Catalogo(
             titulo="Secret of Mana",
             plataforma="SNES",
             valor_venda=150.00,
@@ -87,7 +87,7 @@ class TestHu05Retirada(unittest.TestCase):
         session.flush()
 
         self.midia_digital = MidiaDigital(
-            id_jogo=self.jogo.id,
+            id_catalogo=self.jogo.id,
             chave_ativacao="HU05-KEY-DIGITAL",
         )
         session.add(self.midia_digital)
@@ -105,7 +105,7 @@ class TestHu05Retirada(unittest.TestCase):
         hoje = date.today().strftime("%Y-%m-%d")
         dias = 3
         payload = {
-            "id_jogo": self.jogo_id,
+            "id_catalogo": self.jogo_id,
             "dias_alugados": dias,
             "data_inicio": hoje,
             "tipo_midia": "DIGITAL",

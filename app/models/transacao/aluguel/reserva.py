@@ -11,7 +11,7 @@ class Reserva(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     id_cliente: Mapped[Optional[int]] = mapped_column(ForeignKey('cliente.id_usuario'))
-    id_jogo: Mapped[Optional[int]] = mapped_column(ForeignKey('catalogo.id'))
+    id_catalogo: Mapped[Optional[int]] = mapped_column(ForeignKey('catalogo.id'))
     data_reserva: Mapped[Optional[date]] = mapped_column(Date, default=date.today)
     status: Mapped[Optional[str]] = mapped_column(String, default=StatusReserva.ATIVA.value)
     data_expiracao: Mapped[Optional[date]] = mapped_column(Date)

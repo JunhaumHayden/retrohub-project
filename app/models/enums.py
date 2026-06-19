@@ -20,6 +20,7 @@ class StatusAluguel(Enum):
     ATRASADO = 'ATRASADO'
     SOLICITADO = 'SOLICITADO'
     APROVADO = 'APROVADO'
+    CANCELADO = 'CANCELADO'
 
 
 class StatusReserva(Enum):

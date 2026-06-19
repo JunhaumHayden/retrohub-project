@@ -49,7 +49,7 @@ def get_admin_from_header(session):
     except ValueError:
         return None, "X-Admin-Id deve ser um número inteiro."
 
-    admin = session.query(Funcionario).get(admin_id)
+    admin = session.get(Funcionario, admin_id)
     if not admin:
         return None, "Administrador não encontrado."
     
@@ -158,7 +158,7 @@ def listar_funcionarios():
 def buscar_funcionario(id):
     session = DatabaseManager.get_session()
     try:
-        func = session.query(Funcionario).get(id)
+        func = session.get(Funcionario, id)
         if not func:
             return jsonify({"erro": "Funcionário não encontrado."}), 404
         
@@ -184,7 +184,7 @@ def atualizar_funcionario(id):
         if not data:
             return jsonify({"erro": "Dados não fornecidos."}), 400
 
-        func = session.query(Funcionario).get(id)
+        func = session.get(Funcionario, id)
         if not func:
             return jsonify({"erro": "Funcionário não encontrado."}), 404
 
@@ -244,7 +244,7 @@ def excluir_funcionario(id):
         if erro:
             return jsonify({"erro": erro}), 403
 
-        func = session.query(Funcionario).get(id)
+        func = session.get(Funcionario, id)
         if not func:
             return jsonify({"erro": "Funcionário não encontrado."}), 404
 

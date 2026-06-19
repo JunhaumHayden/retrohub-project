@@ -43,7 +43,7 @@ def get_funcionario_from_header(session):
     except ValueError:
         return None, "O ID do funcionário deve ser um número inteiro."
 
-    funcionario = session.query(Funcionario).get(func_id)
+    funcionario = session.get(Funcionario, func_id)
     if not funcionario:
         return None, "Funcionário não encontrado."
         
@@ -145,7 +145,7 @@ def listar_jogos():
 def buscar_jogo(id):
     session = DatabaseManager.get_session()
     try:
-        jogo = session.query(Catalogo).get(id)
+        jogo = session.get(Catalogo, id)
         if not jogo:
             return jsonify({"erro": "Catalogo não encontrado no catálogo."}), 404
             
@@ -172,7 +172,7 @@ def atualizar_jogo(id):
         if not data:
             return jsonify({"erro": "Dados não fornecidos."}), 400
 
-        jogo = session.query(Catalogo).get(id)
+        jogo = session.get(Catalogo, id)
         if not jogo:
             return jsonify({"erro": "Catalogo não encontrado."}), 404
 
@@ -233,7 +233,7 @@ def excluir_jogo(id):
         if erro:
             return jsonify({"erro": erro}), 403
 
-        jogo = session.query(Catalogo).get(id)
+        jogo = session.get(Catalogo, id)
         if not jogo:
             return jsonify({"erro": "Jogo não encontrado."}), 404
 

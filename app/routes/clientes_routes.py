@@ -114,7 +114,7 @@ def listar_clientes():
 def buscar_cliente(id):
     session = DatabaseManager.get_session()
     try:
-        cliente = session.query(Cliente).get(id)
+        cliente = session.get(Cliente, id)
         if not cliente:
             return jsonify({"erro": "Cliente não encontrado."}), 404
         
@@ -135,7 +135,7 @@ def atualizar_cliente(id):
 
     session = DatabaseManager.get_session()
     try:
-        cliente = session.query(Cliente).get(id)
+        cliente = session.get(Cliente, id)
         if not cliente:
             return jsonify({"erro": "Cliente não encontrado."}), 404
 
@@ -190,7 +190,7 @@ def atualizar_cliente(id):
 def excluir_cliente(id):
     session = DatabaseManager.get_session()
     try:
-        cliente = session.query(Cliente).get(id)
+        cliente = session.get(Cliente, id)
         if not cliente:
             return jsonify({"erro": "Cliente não encontrado."}), 404
 

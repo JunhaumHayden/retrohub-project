@@ -4,7 +4,7 @@ from decimal import Decimal
 from app import create_app
 from app.database.database_config import Base
 from app.database.factories.database_manager import DatabaseManager
-from app.models import Cliente, Jogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao, Usuario
+from app.models import Cliente, Catalogo, Exemplar, MidiaFisica, MidiaDigital, Transacao, Aluguel, Venda, ItemTransacao, Usuario
 
 class TestVendasRoutes(unittest.TestCase):
     @classmethod
@@ -39,7 +39,7 @@ class TestVendasRoutes(unittest.TestCase):
         session.query(MidiaFisica).delete()
         session.query(MidiaDigital).delete()
         session.query(Exemplar).delete()
-        session.query(Jogo).delete()
+        session.query(Catalogo).delete()
         session.query(Cliente).delete()
         session.query(Usuario).delete()
         session.commit()
@@ -55,8 +55,8 @@ class TestVendasRoutes(unittest.TestCase):
         )
         session.add(self.cliente)
         
-        # Jogo com Mídia Física e Digital
-        self.jogo = Jogo(
+        # Catalogo com Mídia Física e Digital
+        self.jogo = Catalogo(
             titulo="Halo Combat Evolved",
             plataforma="Xbox",
             valor_venda=100.00,
@@ -66,12 +66,12 @@ class TestVendasRoutes(unittest.TestCase):
         session.flush()
 
         self.midia_fisica = MidiaFisica(
-            id_jogo=self.jogo.id,
+            id_catalogo=self.jogo.id,
             codigo_barras="XBOX-HALO-1",
             estado_conservacao="NOVO"
         )
         self.midia_digital = MidiaDigital(
-            id_jogo=self.jogo.id,
+            id_catalogo=self.jogo.id,
             chave_ativacao="AAAA-BBBB-CCCC"
         )
         session.add_all([self.midia_fisica, self.midia_digital])
@@ -85,7 +85,7 @@ class TestVendasRoutes(unittest.TestCase):
     def test_1_solicitar_venda_fisica_sucesso(self):
         """Testa a solicitação de uma venda física (status 201)."""
         payload = {
-            "id_jogo": self.jogo_id,
+            "id_catalogo": self.jogo_id,
             "tipo_midia": "FISICA"
         }
         response = self.client.post('/api/vendas/solicitar', json=payload, headers=self.headers)
@@ -97,7 +97,7 @@ class TestVendasRoutes(unittest.TestCase):
     def test_2_solicitar_venda_sem_estoque(self):
         """Testa se a API bloqueia venda quando o estoque físico já foi vendido."""
         payload = {
-            "id_jogo": self.jogo_id,
+            "id_catalogo": self.jogo_id,
             "tipo_midia": "FISICA"
         }
         # 1. Vende a única cópia física
@@ -110,7 +110,7 @@ class TestVendasRoutes(unittest.TestCase):
 
     def test_3_listar_minhas_vendas(self):
         """Testa a listagem de vendas do cliente."""
-        payload = {"id_jogo": self.jogo_id, "tipo_midia": "DIGITAL"}
+        payload = {"id_catalogo": self.jogo_id, "tipo_midia": "DIGITAL"}
         self.client.post('/api/vendas/solicitar', json=payload, headers=self.headers)
         
         response = self.client.get('/api/vendas/minhas-vendas', headers=self.headers)
@@ -119,7 +119,7 @@ class TestVendasRoutes(unittest.TestCase):
 
     def test_4_estornar_venda(self):
         """Testa estornar uma venda."""
-        payload = {"id_jogo": self.jogo_id, "tipo_midia": "DIGITAL"}
+        payload = {"id_catalogo": self.jogo_id, "tipo_midia": "DIGITAL"}
         res_create = self.client.post('/api/vendas/solicitar', json=payload, headers=self.headers)
         venda_id = res_create.get_json()['id_transacao']
 

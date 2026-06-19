@@ -33,7 +33,7 @@ class TestCatalogo(unittest.TestCase):
             "valor_diaria_aluguel": 5.00
         }
 
-        # Criar instância do Jogo
+        # Criar instância do Catalogo
         catalogo = Catalogo(
             id=1,
             titulo=data.get('titulo'),

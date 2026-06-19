@@ -134,7 +134,7 @@ class TestCatalogoRoutes(unittest.TestCase):
     def test_6_exclusao_logica(self):
         """Testa a exclusão (que na verdade inativa o jogo)."""
         payload = {
-            "titulo": "Jogo Teste",
+            "titulo": "Catalogo Teste",
             "plataforma": "PC"
         }
         res_create = self.client.post('/api/catalogo/itens/', json=payload, headers=self.headers)

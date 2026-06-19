@@ -11,7 +11,6 @@ class Venda(Transacao):
     __tablename__ = 'venda'
 
     id_transacao: Mapped[int] = mapped_column(ForeignKey('transacao.id', ondelete='CASCADE'), primary_key=True)
-    status: Mapped[Optional[str]] = mapped_column(String, default=StatusVenda.PENDENTE.value)
     data_confirmacao: Mapped[Optional[date]] = mapped_column(Date)
 
     __mapper_args__ = {
