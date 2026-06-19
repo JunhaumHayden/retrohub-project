@@ -6,6 +6,8 @@ from app.routes.catalogo_routes import catalogo_bp
 from app.routes.estoque_routes import estoque_bp
 from app.routes.alugueis_routes import alugueis_bp
 from app.routes.vendas_routes import vendas_bp
+from app.routes.avaliacoes_routes import avaliacoes_bp
+from app.routes.relatorios_routes import relatorios_bp
 
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -24,6 +26,8 @@ def create_app(test_config=None):
     app.register_blueprint(estoque_bp)
     app.register_blueprint(alugueis_bp)
     app.register_blueprint(vendas_bp)
+    app.register_blueprint(avaliacoes_bp)
+    app.register_blueprint(relatorios_bp)
 
     @app.route('/')
     def index():
