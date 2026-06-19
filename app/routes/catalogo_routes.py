@@ -5,7 +5,7 @@ from flask_restx import Namespace, Resource, fields
 
 from app.models import Catalogo, Funcionario
 from app.container.container import container
-from app.models.enums import StatusCatalogo
+from app.models.enums import StatusSituacao
 
 # Criar namespace para catálogo
 catalogo_ns = Namespace('catalogo', description='Operações relacionadas ao catálogo de jogos', path='/api/catalogo/itens')
@@ -25,7 +25,7 @@ catalogo_input_model = catalogo_ns.model('CatalogoInput', {
     'descricao': fields.String(description='Descrição do jogo'),
     'genero': fields.String(description='Gênero do jogo'),
     'classificacao': fields.String(description='Classificação do jogo'),
-    'situacao': fields.String(description='Situação do jogo', default=StatusCatalogo.DISPONIVEL.value)
+    'situacao': fields.String(description='Situação do jogo', default=StatusSituacao.INDISPONIVEL.value)
 })
 
 # Configuração de log
@@ -41,7 +41,7 @@ def serialize_catalogo(jogo: Catalogo):
         "situacao": jogo.situacao,
         "genero": jogo.genero,
         "classificacao": jogo.classificacao,
-        "estoque_disponivel": jogo.estoque_disponivel if hasattr(jogo, 'estoque_disponivel') else 0
+        "estoque_disponivel": container.catalogo_service.get_estoque_disponivel(jogo.id)
     }
 
 def get_funcionario_from_header():
@@ -72,6 +72,7 @@ def get_funcionario_from_header():
 # ==========================================
 @catalogo_ns.route('/')
 class CatalogoCreate(Resource):
+    @catalogo_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}})
     @catalogo_ns.expect(catalogo_input_model)
     def post(self):
         try:
@@ -102,12 +103,12 @@ class CatalogoCreate(Resource):
                 descricao=data.get('descricao'),
                 genero=data.get('genero'),
                 classificacao=data.get('classificacao'),
-                situacao=data.get('situacao', StatusCatalogo.DISPONIVEL.value)
+                situacao=data.get('situacao', StatusSituacao.DISPONIVEL.value)
             )
 
             try:
                 created_catalogo = container.catalogo_service.create(novo_catalogo)
-                logger.info(f"Funcionário ID {funcionario.id_usuario} criou novo item no catálogo: '{data['titulo']}'")
+                logger.info(f"Funcionário ID {funcionario.id} criou novo item no catálogo: '{data['titulo']}'")
                 return {
                     "mensagem": "Item criado com sucesso!",
                     "item": serialize_catalogo(created_catalogo)
@@ -134,7 +135,7 @@ class CatalogoList(Resource):
             # Convert legacy 'ativo' parameter to 'situacao'
             if ativo_param is not None:
                 is_ativo = ativo_param.lower() == 'true'
-                situacao_param = StatusCatalogo.DISPONIVEL.value if is_ativo else StatusCatalogo.INDISPONIVEL.value
+                situacao_param = StatusSituacao.DISPONIVEL.value if is_ativo else StatusSituacao.INDISPONIVEL.value
             
             catalogos = container.catalogo_service.list_all(situacao_param)
                 
@@ -181,6 +182,7 @@ class CatalogoDetailDTO(Resource):
 # ==========================================
 @catalogo_ns.route('/<int:id>')
 class CatalogoUpdate(Resource):
+    @catalogo_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}})
     @catalogo_ns.expect(catalogo_input_model)
     def put(self, id):
         try:
@@ -199,14 +201,14 @@ class CatalogoUpdate(Resource):
 
             # Prevenção contra duplicidade ao alterar título ou plataforma
             novo_titulo = data.get('titulo', jogo.titulo)
-            nova_plataforma = data.get('plataforma', jogo.plataforma)
+            nova_plataforma = data.get('plataforma', getattr(jogo, 'plataforma', None))
 
-            if novo_titulo != jogo.titulo or nova_plataforma != jogo.plataforma:
+            if novo_titulo != jogo.titulo or nova_plataforma != getattr(jogo, 'plataforma', None):
                 catalogos = container.catalogo_service.list_all()
                 jogo_duplicado = None
                 for j in catalogos:
                     if (j.titulo.lower() == novo_titulo.lower() and 
-                        j.plataforma.lower() == nova_plataforma.lower() and 
+                        getattr(j, 'plataforma', '').lower() == (nova_plataforma or '').lower() and 
                         j.id != id):
                         jogo_duplicado = j
                         break
@@ -231,7 +233,7 @@ class CatalogoUpdate(Resource):
             # In a real implementation, you would save this:
             # MockDataSource.save(jogo)
 
-            logger.info(f"Funcionário ID {funcionario.id_usuario} atualizou o jogo ID {id}")
+            logger.info(f"Funcionário ID {funcionario.id} atualizou o jogo ID {id}")
             return {
                 "mensagem": "Item atualizado com sucesso!",
                 "item": serialize_catalogo(jogo)
@@ -246,6 +248,7 @@ class CatalogoUpdate(Resource):
 # ==========================================
 @catalogo_ns.route('/<int:id>')
 class CatalogoDelete(Resource):
+    @catalogo_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}})
     def delete(self, id):
         try:
             # Apenas Funcionários podem excluir
@@ -263,7 +266,7 @@ class CatalogoDelete(Resource):
                 if not inactivated_jogo:
                     return {"erro": "Catalogo não encontrado."}, 404
 
-                logger.info(f"Funcionário ID {funcionario.id_usuario} inativou o jogo ID {id}")
+                logger.info(f"Funcionário ID {funcionario.id} inativou o jogo ID {id}")
                 return {
                     "mensagem": "Item inativado com sucesso.",
                     "item": serialize_catalogo(inactivated_jogo)

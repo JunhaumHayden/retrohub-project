@@ -37,6 +37,7 @@ class TipoComprovante(Enum):
 class TipoCliente(Enum):
     REGULAR = 'REGULAR'
     PREMIUM = 'PREMIUM'
+    BASICO = 'BASICO'
 
 class TipoFuncionario(Enum):
     REGULAR = 'REGULAR'
@@ -53,6 +54,3 @@ class StatusConservacao(Enum):
     AVARIADO = 'AVARIADO'
     RUIM = 'RUIM'
 
-class StatusCatalogo(Enum):
-    ATIVO = 'ATIVO'
-    INATIVO = 'INATIVO'

@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from app.models.catalogo.catalogo import Catalogo
 from app.repository.interface.catalogo_repository_interface import CatalogoRepositoryInterface
-from app.database.mock_data_source import MockDataSource
+from app.database.adapters.mock_data_source import MockDataSource
 
 
 class CatalogoRepositoryMock(CatalogoRepositoryInterface):

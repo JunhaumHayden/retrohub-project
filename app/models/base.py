@@ -1,5 +1,5 @@
 """
-Base model classes and utilities to avoid circular imports
+Classes e utilitários do modelo base para evitar importações circulares.
 """
 
 from typing import Any, Dict, Optional, TYPE_CHECKING
@@ -10,13 +10,13 @@ if TYPE_CHECKING:
 
 
 class BaseModel(ABC):
-    """Base class for all models with common functionality"""
+    """Classe base para todos os modelos com funcionalidade comum"""
     
     def __init__(self, id: Optional[int] = None):
         self.id = id
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert model to dictionary representation"""
+        """Converter modelo em representação de dicionário"""
         result = {}
         for key, value in self.__dict__.items():
             if hasattr(value, 'to_dict'):
@@ -33,7 +33,7 @@ class BaseModel(ABC):
 
 
 class CatalogoReference:
-    """Helper class to handle Catalogo references without circular imports"""
+    """Classe auxiliar para lidar com referências do Catalogo sem importações circulares."""
     
     def __init__(self, catalogo_id: int):
         self._catalogo_id = catalogo_id
@@ -44,35 +44,35 @@ class CatalogoReference:
         return self._catalogo_id
     
     def get_catalogo(self, data_source=None):
-        """Get the actual Catalogo object from data source"""
+        """Obtenha o objeto Catalogo real da fonte de dados."""
         if self._catalogo is None and data_source is not None:
             from app.models.catalogo.catalogo import Catalogo
             self._catalogo = data_source.get_by_id(Catalogo, self._catalogo_id)
         return self._catalogo
     
     def set_catalogo(self, catalogo):
-        """Set the Catalogo object directly"""
+        """Defina o objeto Catalogo diretamente e atualize o ID."""
         self._catalogo = catalogo
         if catalogo is not None:
             self._catalogo_id = catalogo.id
 
 
 class ExemplarCollection:
-    """Helper class to manage exemplar collections without circular imports"""
+    """Classe auxiliar para gerenciar coleções exemplares sem importações circulares."""
     
     def __init__(self):
         self._exemplares = []
     
     def add_exemplar(self, exemplar):
-        """Add an exemplar to the collection"""
+        """Adicione um exemplar à coleção."""
         self._exemplares.append(exemplar)
     
     def get_exemplares(self):
-        """Get all exemplares"""
+        """Obtenha todos os exemplares"""
         return self._exemplares
     
     def get_available_count(self):
-        """Get count of available exemplares"""
+        """Obtenha a contagem de exemplares disponíveis."""
         return sum(1 for ex in self._exemplares if getattr(ex, 'situacao', None) == 'DISPONIVEL')
     
     def __len__(self):

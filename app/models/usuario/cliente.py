@@ -1,10 +1,16 @@
 from datetime import date
 from typing import Optional
+from sqlalchemy import Column, String
 
 from app.models.usuario.usuario import Usuario
 from app.models.enums import TipoCliente
 
 class Cliente(Usuario):
+    __tablename__ = 'clientes'
+
+    dados_pagamento = Column(String(255))
+    tipo_cliente = Column(String(50), default=TipoCliente.REGULAR.value)
+
     def __init__(
             self,
             id_usuario: int = None,

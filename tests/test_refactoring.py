@@ -15,7 +15,7 @@ def test_mock_data_source():
     print("Testing MockDataSource...")
     
     # Import directly to avoid Flask app initialization
-    from app.database.mock_data_source import MockDataSource
+    from app.database.adapters.mock_data_source import MockDataSource
     from app.models.usuario.cliente import Cliente
     from app.models.catalogo.catalogo import Catalogo
     from app.models.enums import TipoCliente, StatusSituacao
@@ -84,7 +84,6 @@ def test_repository():
     
     from app.repository.mock.usuario_repository_mock import UsuarioRepositoryMock
     from app.models.usuario.cliente import Cliente
-    from app.models.usuario.funcionario import Funcionario
     from app.models.enums import TipoCliente
     
     repo = UsuarioRepositoryMock()
@@ -127,8 +126,7 @@ def test_service_layer():
     from app.repository.mock.catalogo_repository_mock import CatalogoRepositoryMock
     from app.models.usuario.cliente import Cliente
     from app.models.catalogo.catalogo import Catalogo
-    from app.models.enums import TipoCliente, StatusSituacao
-    
+
     # Create services with mock repositories
     usuario_repo = UsuarioRepositoryMock()
     catalogo_repo = CatalogoRepositoryMock()

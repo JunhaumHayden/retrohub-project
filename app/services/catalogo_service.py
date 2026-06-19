@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from app.models.catalogo.catalogo import Catalogo
 from app.repository.interface.catalogo_repository_interface import CatalogoRepositoryInterface
-from app.models.enums import StatusCatalogo
+from app.models.enums import StatusSituacao
 
 
 class CatalogoService:
@@ -21,7 +21,7 @@ class CatalogoService:
         
         if ativo is not None:
             # Convert ativo boolean to situacao string
-            situacao_filtro = StatusCatalogo.DISPONIVEL.value if ativo else StatusCatalogo.INDISPONIVEL.value
+            situacao_filtro = StatusSituacao.DISPONIVEL.value if ativo else StatusSituacao.INDISPONIVEL.value
             catalogos = [c for c in catalogos if c.situacao == situacao_filtro]
         
         return catalogos
@@ -47,7 +47,7 @@ class CatalogoService:
         
         # Set default situacao if not provided
         if not catalogo.situacao:
-            catalogo.situacao = StatusCatalogo.DISPONIVEL.value
+            catalogo.situacao = StatusSituacao.DISPONIVEL.value
         
         return self.repository.create(catalogo)
 
@@ -103,7 +103,7 @@ class CatalogoService:
         if not catalogo:
             return None
         
-        catalogo.situacao = StatusCatalogo.INDISPONIVEL.value
+        catalogo.situacao = StatusSituacao.INDISPONIVEL.value
         return self.repository.update(catalogo)
 
     def activate(self, id: int) -> Optional[Catalogo]:
@@ -112,5 +112,12 @@ class CatalogoService:
         if not catalogo:
             return None
         
-        catalogo.situacao = StatusCatalogo.DISPONIVEL.value
+        catalogo.situacao = StatusSituacao.DISPONIVEL.value
         return self.repository.update(catalogo)
+
+    def get_estoque_disponivel(self, catalogo_id: int) -> int:
+        """Calcula o estoque disponível de um item do catálogo (Total de exemplares - Alugados - Vendidos)."""
+        catalogo = self.repository.get_by_id(catalogo_id)
+        if not catalogo:
+            return 0
+        return catalogo.exemplares.get_available_count()

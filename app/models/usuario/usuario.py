@@ -1,9 +1,21 @@
 from abc import ABC
 from datetime import date
 from typing import Optional
+from sqlalchemy import Column, Integer, String, Date
+from app.database.base_model import Base
 
+class Usuario(Base):
+    """ Classe Abstrata Base para representar um usuário (cliente ou funcionario)"""
+    __abstract__ = True
 
-class Usuario(ABC):
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nome = Column(String(255), nullable=False)
+    cpf = Column(String(14), unique=True, nullable=False)
+    email = Column(String(255), unique=True, nullable=False)
+    senha = Column(String(255), nullable=False)
+    data_cadastro = Column(Date, default=date.today)
+    data_nascimento = Column(Date)
+
     def __init__(
             self,
             nome: str,

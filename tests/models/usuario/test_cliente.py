@@ -1,5 +1,7 @@
 import unittest
 from datetime import date
+
+from app.models.enums import TipoCliente
 from app.models.usuario.cliente import Cliente
 
 
@@ -51,6 +53,7 @@ class TestCliente(unittest.TestCase):
         self.assertEqual(cliente.cpf, cpf)
         self.assertEqual(cliente.email, email)
         self.assertEqual(cliente.senha, senha)
+        self.assertEqual(cliente.tipo_cliente, TipoCliente.BASICO.value)
         self.assertEqual(cliente.data_nascimento, data_nascimento)
         self.assertEqual(cliente.dados_pagamento, dados_pagamento)
 

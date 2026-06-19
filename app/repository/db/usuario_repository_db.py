@@ -1,11 +1,13 @@
 from typing import List, Optional
 
-from app.models import Usuario, Funcionario
+from app.models import Usuario, Cliente, Funcionario
 from app.repository.interface.usuario_repository_interface import UsuarioRepositoryInterface
-from app.models.usuario.cliente import Cliente
 
 
 class UsuarioRepositoryDB(UsuarioRepositoryInterface):
+    """
+    Implementação concreta do repositório de Usuário para banco de dados real (via SQLAlchemy).
+    """
 
     def __init__(self, session):
         self.session = session
@@ -13,31 +15,51 @@ class UsuarioRepositoryDB(UsuarioRepositoryInterface):
     def list_all(self) -> List[Usuario]:
         return self.session.query(Usuario).all()
 
+    def list_clientes(self) -> List[Cliente]:
+        return self.session.query(Cliente).all()
+
+    def list_funcionarios(self) -> List[Funcionario]:
+        return self.session.query(Funcionario).all()
+
     def get_by_id(self, id: int) -> Optional[Usuario]:
-        return self.session.query(Usuario).filter(Usuario.id == id).first()
+        # Tenta buscar em Cliente e depois em Funcionario para abranger todos os usuários
+        usuario = self.session.query(Cliente).filter(Cliente.id == id).first()
+        if usuario:
+            return usuario
+        return self.session.query(Funcionario).filter(Funcionario.id == id).first()
+
+    def get_cliente_by_id(self, id: int) -> Optional[Cliente]:
+        return self.session.query(Cliente).filter(Cliente.id == id).first()
+
+    def get_funcionario_by_id(self, id: int) -> Optional[Funcionario]:
+        return self.session.query(Funcionario).filter(Funcionario.id == id).first()
 
     def get_by_user(self, usuario: Usuario) -> Optional[Usuario]:
-        return self.session.query(Usuario).filter(Usuario.cpf == usuario.cpf).first()
+        if hasattr(usuario, 'cpf') and usuario.cpf:
+            return self.session.query(Usuario).filter(Usuario.cpf == usuario.cpf).first()
+        if hasattr(usuario, 'email') and usuario.email:
+            return self.session.query(Usuario).filter(Usuario.email == usuario.email).first()
+        return None
+    
+    def get_cliente_by_cpf(self, cpf: str) -> Optional[Cliente]:
+        return self.session.query(Cliente).filter(Cliente.cpf == cpf).first()
+
+    def get_funcionario_by_matricula(self, matricula: str) -> Optional[Funcionario]:
+        return self.session.query(Funcionario).filter(Funcionario.matricula == matricula).first()
 
     def create(self, usuario: Usuario) -> Optional[Usuario]:
         self.session.add(usuario)
+        self.session.commit()
         return usuario
-
-    def create_client(self, cliente: Cliente) -> Optional[Cliente]:
-        self.session.add(cliente)
-        return cliente
-
-    def create_employee(self, funcionario: Funcionario) -> Optional[Funcionario]:
-        self.session.add(funcionario)
-        return funcionario
 
     def update(self, usuario: Usuario) -> Optional[Usuario]:
         self.session.add(usuario)
+        self.session.commit()
         return usuario
 
-    def delete(self, id: int) -> bool:
-        usuario = self.get_by_id(id)
+    def delete(self, usuario: Usuario) -> bool:
         if usuario:
             self.session.delete(usuario)
+            self.session.commit()
             return True
         return False

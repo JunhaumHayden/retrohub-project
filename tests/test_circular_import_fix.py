@@ -52,13 +52,13 @@ def test_model_relationships():
         from app.models.estoque.exemplar import Exemplar
         from app.models.estoque.midia_fisica import MidiaFisica
         from app.models.base import CatalogoReference
-        from app.models.enums import StatusCatalogo
+        from app.models.enums import StatusSituacao
         
         # Create a catalogo
         catalogo = Catalogo(
             id=1,
             titulo="Test Game",
-            situacao=StatusCatalogo.DISPONIVEL.value,
+            situacao=StatusSituacao.DISPONIVEL.value,
             descricao="A test game",
             genero="Test",
             classificacao="Livre"

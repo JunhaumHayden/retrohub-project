@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional, Tuple
 
-from app.database.mock_data_source import MockDataSource
+from app.database.adapters.mock_data_source import MockDataSource
 from app.models import Aluguel, Exemplar, ItemTransacao, Catalogo, Multa
 
 _CONDICOES_DEVOLUCAO = frozenset({"bom", "danificado", "extraviado"})

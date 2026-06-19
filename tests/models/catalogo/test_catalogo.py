@@ -1,8 +1,5 @@
 import unittest
-from app import create_app
-from app.database.database_config import Base
-from app.database.factories.database_manager import DatabaseManager
-from app.models import Funcionario, Usuario, Catalogo, Exemplar, MidiaFisica, MidiaDigital
+from app.models import Funcionario, Catalogo, MidiaFisica, MidiaDigital
 
 
 class TestCatalogo(unittest.TestCase):
@@ -20,30 +17,24 @@ class TestCatalogo(unittest.TestCase):
             setor="Vendas"
         )
 
-    def test_1_cadastro_jogo_sucesso(self):
+    def test_1_cadastro_catalogo_sucesso(self):
         """Testa o cadastro válido por um funcionário (status 201)."""
         data = {
             "titulo": "Super Mario 64",
-            "plataforma": "Nintendo 64",
+            "situacao": "Disponível",
             "descricao": "O primeiro jogo 3D do Mario",
-            "ativo": True,
-            "genero": "Plataforma",
             "classificacao": "Livre",
-            "valor_venda": 150.00,
-            "valor_diaria_aluguel": 5.00
+            "genero": "Plataforma"
         }
 
         # Criar instância do Jogo
         catalogo = Catalogo(
             id=1,
             titulo=data.get('titulo'),
-            plataforma=data.get('plataforma'),
+            situacao=data.get('situacao'),
             descricao=data.get('descricao'),
-            ativo=data.get('ativo'),
-            genero=data.get('genero'),
             classificacao=data.get('classificacao'),
-            valor_venda=data.get('valor_venda'),
-            valor_diaria_aluguel=data.get('valor_diaria_aluguel')
+            genero=data.get('genero')
         )
 
         # Verificar se os atributos foram definidos corretamente
@@ -59,8 +50,7 @@ class TestCatalogo(unittest.TestCase):
     def test_2_relacionamento_catalogo_exemplares(self):
         """Testa a agregação e navegação entre Catalogo e seus Exemplares (físico e digital)."""
         catalogo = Catalogo(
-            titulo="The Legend of Zelda",
-            plataforma="Nintendo Switch"
+            titulo="The Legend of Zelda"
         )
 
         # Instanciando as subclasses, pois a base Exemplar bloqueia instanciação direta

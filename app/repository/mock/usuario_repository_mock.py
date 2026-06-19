@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from app.models import Usuario, Cliente, Funcionario
 from app.repository.interface.usuario_repository_interface import UsuarioRepositoryInterface
-from app.database.mock_data_source import MockDataSource
+from app.database.adapters.mock_data_source import MockDataSource
 
 
 class UsuarioRepositoryMock(UsuarioRepositoryInterface):

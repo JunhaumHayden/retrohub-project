@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models import Cliente, Usuario
 from app.database.factories.database_manager import DatabaseManager
-from app.database.MockDataSource import MockDataSource
+from app.database.adapters.mock_data_source import MockDataSource
 
 # Criar namespace para clientes
 clientes_ns = Namespace('clientes', description='Operações relacionadas aos clientes', path='/api/clientes')
