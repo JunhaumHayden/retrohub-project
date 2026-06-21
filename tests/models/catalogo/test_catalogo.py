@@ -27,7 +27,7 @@ class TestCatalogo(unittest.TestCase):
             "genero": "Plataforma"
         }
 
-        # Criar instância do Jogo
+        # Criar instância do Catalogo
         catalogo = Catalogo(
             id=1,
             titulo=data.get('titulo'),
