@@ -64,3 +64,6 @@ migrations/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+#Ignore postgre data
+resources/database/postgre/
