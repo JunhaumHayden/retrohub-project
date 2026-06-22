@@ -65,5 +65,9 @@ migrations/
 ehthumbs.db
 Thumbs.db
 
+# Ai agents files
+AGENTS.md
+.cursorrules
+
 #Ignore postgre data
 resources/database/postgre/

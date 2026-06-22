@@ -21,9 +21,14 @@ breakdown_item_model = relatorios_ns.model('BreakdownItem', {
     'valor_total': fields.Float(description='Valor total faturado com este item'),
 })
 
+# Register Wildcard model explicitly for dynamic keys
+wildcard_breakdown_model = relatorios_ns.model('WildcardBreakdown', {
+    '*': fields.Nested(breakdown_item_model, description='Item dinâmico (nome do jogo)')
+})
+
 breakdown_model = relatorios_ns.model('BreakdownRelatorio', {
-    'vendas': fields.Nested(fields.Wildcard(fields.Nested(breakdown_item_model)), description='Detalhamento de vendas por jogo'),
-    'alugueis': fields.Nested(fields.Wildcard(fields.Nested(breakdown_item_model)), description='Detalhamento de aluguéis por jogo'),
+    'vendas': fields.Nested(wildcard_breakdown_model, description='Detalhamento de vendas por jogo'),
+    'alugueis': fields.Nested(wildcard_breakdown_model, description='Detalhamento de aluguéis por jogo'),
 })
 
 relatorio_completo_model = relatorios_ns.model('RelatorioCompleto', {
