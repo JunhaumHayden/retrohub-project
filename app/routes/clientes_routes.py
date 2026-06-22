@@ -1,6 +1,5 @@
 """Rotas REST para o recurso Cliente."""
 import logging
-import re
 from datetime import datetime
 
 from flask import request
@@ -40,20 +39,6 @@ cliente_input_model = clientes_ns.model('ClienteInput', {
 logger = logging.getLogger(__name__)
 
 
-def _is_valid_email(email: str) -> bool:
-    pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
-    return re.match(pattern, email) is not None
-
-
-def _calculate_age(birthdate) -> int:
-    today = datetime.today().date()
-    return (
-        today.year
-        - birthdate.year
-        - ((today.month, today.day) < (birthdate.month, birthdate.day))
-    )
-
-
 def _serialize_cliente(cliente: Cliente) -> dict:
     return {
         'id': cliente.id,
@@ -77,25 +62,14 @@ class CadastroClienteResource(Resource):
     def post(self):
         data = request.get_json() or {}
 
-        required = ['nome', 'cpf', 'email', 'senha', 'data_nascimento']
-        for field in required:
-            if not data.get(field):
-                return {'erro': f"O campo '{field}' é obrigatório."}, 400
-
-        if not _is_valid_email(data['email']):
-            return {'erro': 'Formato de e-mail inválido.'}, 400
-
         try:
             data_nascimento = datetime.strptime(
                 data['data_nascimento'], '%Y-%m-%d'
             ).date()
-        except ValueError:
+        except (ValueError, KeyError):
             return {
                 'erro': 'Formato de data de nascimento inválido. Use AAAA-MM-DD.'
             }, 400
-
-        if _calculate_age(data_nascimento) < 18:
-            return {'erro': 'O cliente deve ter pelo menos 18 anos.'}, 400
 
         novo_cliente = Cliente(
             nome=data['nome'],

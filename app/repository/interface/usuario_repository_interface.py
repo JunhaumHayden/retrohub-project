@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from app.models import Usuario
+from app.models import Usuario, Cliente, Funcionario
 
 
 class UsuarioRepositoryInterface(ABC):
@@ -29,6 +29,30 @@ class UsuarioRepositoryInterface(ABC):
 
     @abstractmethod
     def get_by_cpf(self, cpf: str) -> Optional[Usuario]:
+        pass
+
+    @abstractmethod
+    def list_clientes(self) -> List[Cliente]:
+        pass
+
+    @abstractmethod
+    def list_funcionarios(self) -> List[Funcionario]:
+        pass
+
+    @abstractmethod
+    def get_cliente_by_id(self, id: int) -> Optional[Cliente]:
+        pass
+
+    @abstractmethod
+    def get_funcionario_by_id(self, id: int) -> Optional[Funcionario]:
+        pass
+
+    @abstractmethod
+    def get_cliente_by_cpf(self, cpf: str) -> Optional[Cliente]:
+        pass
+
+    @abstractmethod
+    def get_funcionario_by_matricula(self, matricula: str) -> Optional[Funcionario]:
         pass
 
     @abstractmethod

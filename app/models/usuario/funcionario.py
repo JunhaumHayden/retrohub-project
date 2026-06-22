@@ -1,16 +1,21 @@
 from datetime import date
 from typing import Optional
-from sqlalchemy import Column, String, Date
+from sqlalchemy import Column, String, Date, Integer, ForeignKey
 
 from app.models.usuario.usuario import Usuario
 
 class Funcionario(Usuario):
     __tablename__ = 'funcionarios'
 
+    id = Column(Integer, ForeignKey('usuarios.id'), primary_key=True)
     matricula = Column(String(50), unique=True, nullable=False)
     cargo = Column(String(100))
     setor = Column(String(100))
     data_admissao = Column(Date)
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'funcionario',
+    }
 
     def __init__(
             self,
@@ -36,6 +41,7 @@ class Funcionario(Usuario):
         self.cargo = cargo
         self.setor = setor
         self.data_admissao = data_admissao
+        self.tipo_usuario = 'funcionario'
 
     def __repr__(self):
         return f"<Funcionario(id={self.id}, nome='{self.nome}', matricula='{self.matricula}')>"

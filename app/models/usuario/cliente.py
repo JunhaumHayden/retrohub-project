@@ -1,15 +1,20 @@
 from datetime import date
 from typing import Optional
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, Integer, ForeignKey
 
 from app.models.usuario.usuario import Usuario
 from app.models.enums import TipoCliente
 
 class Cliente(Usuario):
     __tablename__ = 'clientes'
-
+    
+    id = Column(Integer, ForeignKey('usuarios.id'), primary_key=True)
     dados_pagamento = Column(String(255))
-    tipo_cliente = Column(String(50), default=TipoCliente.BASICO.value)
+    tipo_cliente = Column(String(50), default=TipoCliente.REGULAR.value)
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'cliente',
+    }
 
     def __init__(
             self,
@@ -33,4 +38,5 @@ class Cliente(Usuario):
             **kwargs
         )
         self.dados_pagamento = dados_pagamento
-        self.tipo_cliente = tipo_cliente or TipoCliente.BASICO.value
+        self.tipo_cliente = tipo_cliente or TipoCliente.REGULAR.value
+        self.tipo_usuario = 'cliente'

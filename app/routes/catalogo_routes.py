@@ -1,9 +1,8 @@
 import logging
-from decimal import Decimal
 from flask import request
 from flask_restx import Namespace, Resource, fields
 
-from app.models import Catalogo, Funcionario
+from app.models import Catalogo
 from app.container.container import container
 from app.models.enums import StatusSituacao
 
@@ -17,7 +16,8 @@ catalogo_model = catalogo_ns.model('Catalogo', {
     'descricao': fields.String(description='Descrição do jogo'),
     'situacao': fields.String(description='Situação do jogo'),
     'genero': fields.String(description='Gênero do jogo'),
-    'classificacao': fields.String(description='Classificação do jogo')
+    'classificacao': fields.String(description='Classificação do jogo'),
+    'estoque_disponivel': fields.Integer(description='Quantidade de exemplares disponíveis')
 })
 
 catalogo_input_model = catalogo_ns.model('CatalogoInput', {
@@ -25,7 +25,7 @@ catalogo_input_model = catalogo_ns.model('CatalogoInput', {
     'descricao': fields.String(description='Descrição do jogo'),
     'genero': fields.String(description='Gênero do jogo'),
     'classificacao': fields.String(description='Classificação do jogo'),
-    'situacao': fields.String(description='Situação do jogo', default=StatusSituacao.INDISPONIVEL.value)
+    'situacao': fields.String(description='Situação do jogo', default=StatusSituacao.DISPONIVEL.value)
 })
 
 # Configuração de log
@@ -33,12 +33,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 def serialize_catalogo(jogo: Catalogo):
-    """Função utilitária para serializar um objeto Jogo."""
+    """Função utilitária para serializar um objeto Catalogo."""
     return {
         "id": jogo.id,
         "titulo": jogo.titulo,
         "descricao": jogo.descricao,
-        "situacao": jogo.situacao,
+        "situacao": jogo.situacao.value if isinstance(jogo.situacao, StatusSituacao) else jogo.situacao,
         "genero": jogo.genero,
         "classificacao": jogo.classificacao,
         "estoque_disponivel": container.catalogo_service.get_estoque_disponivel(jogo.id)
@@ -46,234 +46,101 @@ def serialize_catalogo(jogo: Catalogo):
 
 def get_funcionario_from_header():
     """Verifica se o header X-Funcionario-Id foi passado e se é um funcionário válido."""
-    func_id = request.headers.get('X-Funcionario-Id')
-    
-    # Faz fallback para X-Admin-Id caso alguém envie como admin
+    func_id = request.headers.get('X-Funcionario-Id') or request.headers.get('X-Admin-Id')
     if not func_id:
-        func_id = request.headers.get('X-Admin-Id')
-        
-    if not func_id:
-        return None, "Header X-Funcionario-Id (ou X-Admin-Id) é obrigatório para esta operação."
+        catalogo_ns.abort(403, "Header X-Funcionario-Id (ou X-Admin-Id) é obrigatório para esta operação.")
     
     try:
-        func_id = int(func_id)
+        funcionario = container.usuario_service.get_funcionario_by_id(int(func_id))
+        if not funcionario:
+            catalogo_ns.abort(403, "Funcionário não encontrado.")
+        return funcionario
     except ValueError:
-        return None, "O ID do funcionário deve ser um número inteiro."
-
-    funcionario = container.usuario_service.get_funcionario_by_id(func_id)
-    if not funcionario:
-        return None, "Funcionário não encontrado."
-        
-    return funcionario, None
+        catalogo_ns.abort(400, "ID de funcionário inválido.")
 
 
-# ==========================================
-# CREATE (C) - Inserir novo item no catálogo
-# ==========================================
 @catalogo_ns.route('/')
-class CatalogoCreate(Resource):
+class CatalogoCollectionResource(Resource):
+    @catalogo_ns.marshal_list_with(catalogo_model)
+    def get(self):
+        """Lista todos os jogos do catálogo, com filtros opcionais."""
+        try:
+            situacao_param = request.args.get('situacao')
+            catalogos = container.catalogo_service.list_all(situacao=situacao_param)
+            return [serialize_catalogo(j) for j in catalogos], 200
+        except Exception as e:
+            logger.error(f"Erro em listar_catalogos: {str(e)}")
+            catalogo_ns.abort(500, "Erro ao buscar catálogo.")
+
     @catalogo_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}})
     @catalogo_ns.expect(catalogo_input_model)
     def post(self):
+        """Cria um novo item no catálogo."""
+        funcionario = get_funcionario_from_header()
+        data = request.get_json()
+        if not data or not data.get('titulo'):
+            catalogo_ns.abort(400, "O campo 'titulo' é obrigatório.")
+
         try:
-            # Apenas Funcionários (ou Admin) podem cadastrar
-            funcionario, erro = get_funcionario_from_header()
-            if erro:
-                return {"erro": erro}, 403
-
-            data = request.get_json()
-            if not data:
-                return {"erro": "Dados não fornecidos."}, 400
-
-            # Validação de campos obrigatórios
-            required_fields = ['titulo']
-            for field in required_fields:
-                if field not in data or not str(data[field]).strip():
-                    return {"erro": f"O campo '{field}' é obrigatório."}, 400
-
-            # Check for existing title
-            existing_jogo = container.catalogo_service.get_by_title(data['titulo'])
-            if existing_jogo:
-                return {"erro": f"O jogo '{data['titulo']}' já está cadastrado."}, 400
-
-            # Create new catalog item using service
             novo_catalogo = Catalogo(
-                id=None,  # Service will assign ID
                 titulo=data['titulo'],
                 descricao=data.get('descricao'),
                 genero=data.get('genero'),
                 classificacao=data.get('classificacao'),
                 situacao=data.get('situacao', StatusSituacao.DISPONIVEL.value)
             )
-
-            try:
-                created_catalogo = container.catalogo_service.create(novo_catalogo)
-                logger.info(f"Funcionário ID {funcionario.id} criou novo item no catálogo: '{data['titulo']}'")
-                return {
-                    "mensagem": "Item criado com sucesso!",
-                    "item": serialize_catalogo(created_catalogo)
-                }, 201
-            except ValueError as e:
-                return {"erro": str(e)}, 400
-
+            created_catalogo = container.catalogo_service.create(novo_catalogo)
+            logger.info(f"Funcionário ID {funcionario.id} criou o item de catálogo '{created_catalogo.titulo}'.")
+            return serialize_catalogo(created_catalogo), 201
+        except ValueError as e:
+            catalogo_ns.abort(400, str(e))
         except Exception as e:
             logger.error(f"Erro em criar_catalogo: {str(e)}")
-            return {"erro": "Erro interno ao criar item no catálogo."}, 500
+            catalogo_ns.abort(500, "Erro interno ao criar item no catálogo.")
 
 
-# ==========================================
-# READ ALL (R) - Listar jogos
-# ==========================================
-@catalogo_ns.route('/all')
-class CatalogoList(Resource):
-    def get(self):
-        try:
-            # Permite filtrar por status (ex: ?situacao=DISPONIVEL)
-            situacao_param = request.args.get('situacao')
-            ativo_param = request.args.get('ativo')  # Legacy support
-            
-            # Convert legacy 'ativo' parameter to 'situacao'
-            if ativo_param is not None:
-                is_ativo = ativo_param.lower() == 'true'
-                situacao_param = StatusSituacao.DISPONIVEL.value if is_ativo else StatusSituacao.INDISPONIVEL.value
-            
-            catalogos = container.catalogo_service.list_all(situacao_param)
-                
-            return [serialize_catalogo(j) for j in catalogos], 200
-        except Exception as e:
-            logger.error(f"Erro em listar_catalogos: {str(e)}")
-            return {"erro": "Erro ao buscar catálogo."}, 500
-
-# ==========================================
-# READ ALL DTO(R) - Listar jogos
-# ==========================================
-@catalogo_ns.route('/')
-class CatalogoListDTO(Resource):
-    def get(self):
-        #to do
-        pass
-# ==========================================
-# READ ONE (R) - Detalhes do jogo
-# ==========================================
-@catalogo_ns.route('/all/<int:id>')
-class CatalogoDetail(Resource):
-    def get(self, id):
-        try:
-            jogo = container.catalogo_service.get_by_id(id)
-            if not jogo:
-                return {"erro": "Catalogo não encontrado no catálogo."}, 404
-                
-            return serialize_catalogo(jogo), 200
-        except Exception as e:
-            logger.error(f"Erro em buscar_catalogo: {str(e)}")
-            return {"erro": "Erro ao buscar jogo."}, 500
-
-# ==========================================
-# READ ONE DTO(R) - lista de jogos resumo
-# ==========================================
 @catalogo_ns.route('/<int:id>')
-class CatalogoDetailDTO(Resource):
+@catalogo_ns.response(404, 'Jogo não encontrado no catálogo.')
+class CatalogoItemResource(Resource):
+    @catalogo_ns.marshal_with(catalogo_model)
     def get(self, id):
-        #to do
-        pass
+        """Busca um item do catálogo por ID."""
+        jogo = container.catalogo_service.get_by_id(id)
+        if not jogo:
+            catalogo_ns.abort(404, "Jogo não encontrado no catálogo.")
+        return serialize_catalogo(jogo)
 
-# ==========================================
-# UPDATE (U) - Atualizar dados do jogo
-# ==========================================
-@catalogo_ns.route('/<int:id>')
-class CatalogoUpdate(Resource):
     @catalogo_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}})
     @catalogo_ns.expect(catalogo_input_model)
     def put(self, id):
+        """Atualiza um item do catálogo."""
+        funcionario = get_funcionario_from_header()
+        data = request.get_json()
+        if not data:
+            catalogo_ns.abort(400, "Dados não fornecidos.")
+
         try:
-            # Apenas Funcionários podem alterar
-            funcionario, erro = get_funcionario_from_header()
-            if erro:
-                return {"erro": erro}, 403
-
-            data = request.get_json()
-            if not data:
-                return {"erro": "Dados não fornecidos."}, 400
-
-            jogo = container.catalogo_service.get_by_id(id)
-            if not jogo:
-                return {"erro": "Catalogo não encontrado."}, 404
-
-            # Prevenção contra duplicidade ao alterar título ou plataforma
-            novo_titulo = data.get('titulo', jogo.titulo)
-            nova_plataforma = data.get('plataforma', getattr(jogo, 'plataforma', None))
-
-            if novo_titulo != jogo.titulo or nova_plataforma != getattr(jogo, 'plataforma', None):
-                catalogos = container.catalogo_service.list_all()
-                jogo_duplicado = None
-                for j in catalogos:
-                    if (j.titulo.lower() == novo_titulo.lower() and 
-                        getattr(j, 'plataforma', '').lower() == (nova_plataforma or '').lower() and 
-                        j.id != id):
-                        jogo_duplicado = j
-                        break
-                if jogo_duplicado:
-                    return {"erro": f"Já existe outro jogo cadastrado como '{novo_titulo}' na plataforma '{nova_plataforma}'."}, 400
-
-            # Note: In mock mode, we can't actually save changes
-            # Atualização dos campos
-            if 'titulo' in data: jogo.titulo = data['titulo']
-            if 'descricao' in data: jogo.descricao = data['descricao']
-            if 'plataforma' in data: jogo.plataforma = data['plataforma']
-            if 'ativo' in data: jogo.ativo = data['ativo']
-            if 'genero' in data: jogo.genero = data['genero']
-            if 'classificacao' in data: jogo.classificacao = data['classificacao']
-            
-            if 'valor_venda' in data:
-                jogo.valor_venda = Decimal(str(data['valor_venda'])) if data['valor_venda'] is not None else None
-                
-            if 'valor_diaria_aluguel' in data:
-                jogo.valor_diaria_aluguel = Decimal(str(data['valor_diaria_aluguel'])) if data['valor_diaria_aluguel'] is not None else None
-
-            # In a real implementation, you would save this:
-            # MockDataSource.save(jogo)
-
-            logger.info(f"Funcionário ID {funcionario.id} atualizou o jogo ID {id}")
-            return {
-                "mensagem": "Item atualizado com sucesso!",
-                "item": serialize_catalogo(jogo)
-            }, 200
-
+            updated_catalogo = container.catalogo_service.update(id, data)
+            if not updated_catalogo:
+                catalogo_ns.abort(404, "Jogo não encontrado.")
+            logger.info(f"Funcionário ID {funcionario.id} atualizou o item de catálogo ID {id}.")
+            return serialize_catalogo(updated_catalogo)
+        except ValueError as e:
+            catalogo_ns.abort(400, str(e))
         except Exception as e:
             logger.error(f"Erro em atualizar_catalogo: {str(e)}")
-            return {"erro": "Erro interno ao atualizar item."}, 500
+            catalogo_ns.abort(500, "Erro interno ao atualizar item.")
 
-# ==========================================
-# DELETE (D) - Inativar ou Excluir item
-# ==========================================
-@catalogo_ns.route('/<int:id>')
-class CatalogoDelete(Resource):
     @catalogo_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}})
     def delete(self, id):
+        """Inativa um item do catálogo (soft delete)."""
+        funcionario = get_funcionario_from_header()
         try:
-            # Apenas Funcionários podem excluir
-            funcionario, erro = get_funcionario_from_header()
-            if erro:
-                return {"erro": erro}, 403
-
-            jogo = container.catalogo_service.get_by_id(id)
-            if not jogo:
-                return {"erro": "Catalogo não encontrado."}, 404
-
-            try:
-                # Soft delete: inativar em vez de excluir
-                inactivated_jogo = container.catalogo_service.inactivate(id)
-                if not inactivated_jogo:
-                    return {"erro": "Catalogo não encontrado."}, 404
-
-                logger.info(f"Funcionário ID {funcionario.id} inativou o jogo ID {id}")
-                return {
-                    "mensagem": "Item inativado com sucesso.",
-                    "item": serialize_catalogo(inactivated_jogo)
-                }, 200
-            except ValueError as e:
-                return {"erro": str(e)}, 400
-
+            inactivated_jogo = container.catalogo_service.inactivate(id)
+            if not inactivated_jogo:
+                catalogo_ns.abort(404, "Jogo não encontrado.")
+            logger.info(f"Funcionário ID {funcionario.id} inativou o jogo ID {id}.")
+            return {"mensagem": "Item inativado com sucesso."}, 200
         except Exception as e:
             logger.error(f"Erro em excluir_catalogo: {str(e)}")
-            return {"erro": "Erro interno ao excluir item."}, 500
+            catalogo_ns.abort(500, "Erro interno ao inativar item.")
