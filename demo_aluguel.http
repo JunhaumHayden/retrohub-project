@@ -21,7 +21,7 @@ X-Cliente-Id: 1
 
 ### Registrar retirada
 PATCH http://127.0.0.1:5000/api/alugueis/{{ID}}/retirada
-X-Funcionario-Id: 1
+X-Funcionario-Id: 2
 
 
 ### Renovar aluguel
@@ -36,7 +36,7 @@ X-Cliente-Id: 1
 ### Devolução
 PATCH http://127.0.0.1:5000/api/alugueis/{{ID}}/devolucao
 Content-Type: application/json
-X-Funcionario-Id: 1
+X-Funcionario-Id: 2
 
 {
   "condicao_item": "bom"

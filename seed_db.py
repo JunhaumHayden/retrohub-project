@@ -88,6 +88,7 @@ try:
 
     session.commit()
     print("\n✓ Banco preenchido com dados mínimos!")
+    print(f"\n→ Use nos headers da demo: X-Cliente-Id: {cliente.id} | X-Funcionario-Id: {funcionario.id}")
 
 except Exception as e:
     session.rollback()

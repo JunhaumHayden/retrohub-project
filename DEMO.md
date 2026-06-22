@@ -66,7 +66,7 @@ Abrir Swagger em http://localhost:5000/docs
 1. Clique em **PATCH /api/alugueis/{id}/retirada**
 2. Clique em "Try it out"
 3. Digite `{ID}` (o id_transacao do aluguel criado, ex: `3`)
-4. Header **X-Funcionario-Id**: `1`
+4. Header **X-Funcionario-Id**: `2`
 5. Clique **Execute** → deve retornar **400 BAD REQUEST** com mensagem "Transição de estado inválida"
    - **Explique**: Não é possível fazer retirada sem processar pagamento primeiro (máquina de estados).
 
@@ -87,7 +87,7 @@ Abrir Swagger em http://localhost:5000/docs
 1. Clique em **PATCH /api/alugueis/{id}/retirada**
 2. Clique em "Try it out"
 3. Digite `{ID}` (mesmo id)
-4. Header **X-Funcionario-Id**: `1`
+4. Header **X-Funcionario-Id**: `2`
 5. Clique **Execute** → deve retornar **200 OK**, status muda para "ATIVO"
 
 #### 2.5 Renovar Aluguel
@@ -107,7 +107,7 @@ Abrir Swagger em http://localhost:5000/docs
 1. Clique em **PATCH /api/alugueis/{id}/devolucao**
 2. Clique em "Try it out"
 3. Digite `{ID}` (mesmo id)
-4. Header **X-Funcionario-Id**: `1`
+4. Header **X-Funcionario-Id**: `2`
 5. Request body:
    ```json
    {
@@ -202,6 +202,10 @@ Se você usar a extensão **REST Client** do VS Code:
 **Erro: "Não há exemplares ... disponíveis"**
 - Rode `python3 seed_db.py` novamente para liberar exemplares
 
+**Erro: "Funcionário não encontrado"**
+- Após `seed_db.py`, o funcionário costuma ser ID `2` (cliente é `1`)
+- Use `X-Funcionario-Id: 2` nas rotas de retirada, devolução e relatório
+
 **Erro: "Aluguel não encontrado ou não pertence a este cliente"**
 - Certifique-se de usar o mesmo `id_transacao` retornado na criação
 - Verifique que está usando `X-Cliente-Id: 1` (cliente que criou o aluguel)
@@ -215,6 +219,6 @@ Se você usar a extensão **REST Client** do VS Code:
 ## Dicas finais
 
 - **Antes de entrar na sala:** rode `seed_db.py` e inicie o servidor
-- **Durante a demo:** use sempre cliente `1` e funcionário `1`
+- **Durante a demo:** use cliente `1` e funcionário `2` (IDs exibidos ao rodar `seed_db.py`)
 - **Se algo quebrar:** re-execute `seed_db.py` e reinicie o servidor
 - **Logs do servidor:** verifique terminal ou arquivo `server.log` (se usar script_demo.sh)
