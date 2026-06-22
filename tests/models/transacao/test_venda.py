@@ -1,120 +1,75 @@
-import unittest
-from datetime import date
-
-from app.models import Funcionario, Venda
+import pytest
+from decimal import Decimal
+from app.models import Cliente, Funcionario, Catalogo, MidiaFisica, Venda, ItemTransacao
 from app.models.enums import StatusVenda
-from app.models.usuario.cliente import Cliente
 
+# A fixture 'db_session' é injetada automaticamente pelo conftest.py
 
-class TestVenda(unittest.TestCase):
+@pytest.fixture
+def setup_venda(db_session):
+    """Fixture para criar entidades básicas necessárias para uma venda."""
+    cliente = Cliente(nome="Cliente Venda", cpf="111.222.333-44", email="venda@test.com", senha="123")
+    funcionario = Funcionario(nome="Func Venda", cpf="555.666.777-88", email="func.venda@test.com", senha="123", matricula="F-VD")
+    catalogo = Catalogo(titulo="Jogo para Vender")
+    
+    db_session.add_all([cliente, funcionario, catalogo])
+    db_session.flush()
 
-    def test_criar_venda(self):
-        """Testa a criação de um objeto Venda em memória."""
+    exemplar = MidiaFisica(
+        catalogo=catalogo,
+        codigo_barras="VENDA-001",
+        valor_venda=Decimal("250.00")
+    )
+    db_session.add(exemplar)
+    db_session.commit()
+    
+    return cliente, funcionario, exemplar
 
-        # Dados para um cliente
-        nome = "Ana Almeida"
-        cpf = "12345678901"
-        email = "ana.almeida@example.com"
-        senha = "senha123"
-        data_nascimento = date(1990, 5, 15)
-        dados_pagamento = "Pix Code"
+def test_criar_venda_e_relacionamentos(db_session, setup_venda):
+    """
+    Testa a criação de uma Venda, seu ItemTransacao e a persistência
+    dos relacionamentos com Cliente, Funcionario e Exemplar.
+    """
+    cliente, funcionario, exemplar = setup_venda
 
-        # Criar instância do Cliente
-        cliente = Cliente(
-            id_usuario=1,
-            nome=nome,
-            cpf=cpf,
-            email=email,
-            senha=senha,
-            data_nascimento=data_nascimento,
-            dados_pagamento=dados_pagamento
-        )
+    # 1. Criar a Venda (Transacao)
+    venda = Venda(
+        cliente=cliente,
+        funcionario=funcionario,
+        valor_total=exemplar.valor_venda,
+        status=StatusVenda.FINALIZADA.value
+    )
+    
+    # 2. Criar o Item da Transação
+    item = ItemTransacao(
+        transacao=venda,
+        exemplar=exemplar,
+        valor_unitario=exemplar.valor_venda,
+        quantidade=1
+    )
+    
+    # Adicionar à sessão e salvar
+    db_session.add(venda)
+    db_session.add(item)
+    db_session.commit()
 
-        # Dados para criar o funcionario
-        nome = "Bia Bianch"
-        cpf = "22222222222"
-        email = "bia.bianch@example.com"
-        senha = "senha222"
-        data_nascimento = date(1992, 2, 22)
-        matricula = "mat2222"
-        cargo = "Atendente"
-        setor = "Balcao"
-        data_admissao = date(2022, 1, 24)
-
-        # Criar instância do funcionario
-        funcionario = Funcionario(
-            id_usuario=1,
-            nome=nome,
-            cpf=cpf,
-            email=email,
-            senha=senha,
-            data_nascimento=data_nascimento,
-            matricula=matricula,
-            cargo=cargo,
-            setor=setor,
-            data_admissao=data_admissao
-        )
-
-        # Dados para criar o venda
-        nome = "João Silva"
-        cpf = "12345678901"
-        email = "joao.silva@example.com"
-        senha = "senha123"
-        data_confirmacao = date(1990, 5, 15)
-        status = StatusVenda.FINALIZADA.value
-        dados_pagamento = "Cartão de Crédito ****1234"
-
-        # Criar instância da venda
-        venda = Venda(
-            id_usuario=1,
-            nome=nome,
-            cpf=cpf,
-            email=email,
-            senha=senha,
-            data_nascimento=data_nascimento,
-            dados_pagamento=dados_pagamento
-        )
-
-        # ===== FORMAS DE IMPRIMIR O OBJETO =====
-        # Forma 1: Usar print() com -s flag do pytest
-        print("\n[FORMA 1] print(cliente):")
-        print(cliente)
-
-        # Forma 2: Usar repr()
-        print("\n[FORMA 2] repr(cliente):")
-        print(repr(cliente))
-
-        # Forma 3: Imprimir atributos específicos
-        print("\n[FORMA 3] Atributos específicos:")
-        print(f"  Nome: {cliente.nome}")
-        print(f"  CPF: {cliente.cpf}")
-        print(f"  Email: {cliente.email}")
-        print(f"  Tipo Cliente: {cliente.tipo_cliente}")
-
-        # Forma 4: Usar vars() para ver todos os atributos
-        print("\n[FORMA 4] vars(cliente) - Todos os atributos:")
-        print(vars(cliente))
-
-        # Verificar se os atributos foram definidos corretamente
-        self.assertEqual(cliente.nome, nome)
-        self.assertEqual(cliente.cpf, cpf)
-        self.assertEqual(cliente.email, email)
-        self.assertEqual(cliente.senha, senha)
-        self.assertEqual(cliente.data_nascimento, data_nascimento)
-        self.assertEqual(cliente.dados_pagamento, dados_pagamento)
-
-        # Verificar valores padrão
-        # Nota: defaults do SQLAlchemy são aplicados apenas quando o objeto é adicionado a uma sessão
-        # Para teste em memória, data_cadastro e tipo_cliente podem ser None se não definidos explicitamente
-        # self.assertIsNotNone(cliente.data_cadastro)
-        # self.assertEqual(cliente.tipo_cliente, 'regular')
-
-        # Testar representação string
-        repr_str = repr(cliente)
-        self.assertIn("Cliente", repr_str)
-        self.assertIn("João Silva", repr_str)
-        self.assertIn("cliente", repr_str)
-
-
-if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    # 3. Verificações
+    assert venda.id is not None
+    assert item.id is not None
+    
+    # Buscar a venda do banco para verificar os relacionamentos
+    venda_persistida = db_session.get(Venda, venda.id)
+    
+    assert venda_persistida is not None
+    assert venda_persistida.tipo == "VENDA"
+    assert venda_persistida.cliente.nome == "Cliente Venda"
+    assert venda_persistida.funcionario.nome == "Func Venda"
+    
+    # Verificar o item da transação
+    assert len(venda_persistida.itens_transacao) == 1
+    item_persistido = venda_persistida.itens_transacao[0]
+    assert item_persistido.exemplar.codigo_barras == "VENDA-001"
+    assert item_persistido.valor_unitario == Decimal("250.00")
+    
+    # Verificar o relacionamento inverso
+    assert item_persistido.transacao.id == venda_persistida.id

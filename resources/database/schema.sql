@@ -25,7 +25,7 @@ CREATE TABLE usuario (
 CREATE TABLE cliente (
     id_usuario INTEGER PRIMARY KEY REFERENCES usuario(id) ON DELETE CASCADE,
     dados_pagamento VARCHAR(255),
-    tipo_cliente VARCHAR(50) DEFAULT 'REGULAR'
+    tipo_cliente VARCHAR(50) DEFAULT 'BASICO'
 );
 
 CREATE TABLE funcionario (

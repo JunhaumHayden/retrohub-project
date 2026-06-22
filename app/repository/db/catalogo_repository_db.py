@@ -1,8 +1,9 @@
 from typing import List, Optional
+
+from app.models import Exemplar
 from app.models.catalogo.catalogo import Catalogo
 from app.repository.interface.catalogo_repository_interface import CatalogoRepositoryInterface
 from app.database.interfaces.data_source_interface import DataSourceInterface
-
 
 class CatalogoRepositoryDB(CatalogoRepositoryInterface):
     """
@@ -31,9 +32,10 @@ class CatalogoRepositoryDB(CatalogoRepositoryInterface):
         return self.data_source.delete(Catalogo, id)
 
     def get_by_genero(self, genero: str) -> List[Catalogo]:
-        all_catalogos = self.data_source.get_all(Catalogo)
-        return [c for c in all_catalogos if c.genero == genero]
+        return [c for c in self.data_source.get_all(Catalogo) if c.genero == genero]
 
     def get_by_situacao(self, situacao: str) -> List[Catalogo]:
-        all_catalogos = self.data_source.get_all(Catalogo)
-        return [c for c in all_catalogos if c.situacao == situacao]
+        return [c for c in self.data_source.get_all(Catalogo) if c.situacao == situacao]
+
+    def add_exemplar(self, exemplar: Exemplar) -> Optional[Exemplar]:
+        return self.data_source.add_exemplar(exemplar)

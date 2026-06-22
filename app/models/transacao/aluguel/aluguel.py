@@ -2,8 +2,8 @@ from __future__ import annotations
 from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
-from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean, ForeignKey, Numeric
+from sqlalchemy.orm import relationship, Mapped, mapped_column, reconstructor
 
 from app.models.transacao.transacao import Transacao
 from app.models.transacao.aluguel.multa import Multa
@@ -27,73 +27,27 @@ if TYPE_CHECKING:
 
 
 class Aluguel(Transacao):
-    __tablename__ = 'aluguel'
+    __tablename__ = 'alugueis'
 
-    id_transacao: Mapped[int] = mapped_column(ForeignKey('transacao.id', ondelete='CASCADE'), primary_key=True)
-    periodo: Mapped[Optional[int]] = mapped_column(Integer)
-    data_devolucao: Mapped[Optional[date]] = mapped_column(Date)
-    id_reserva: Mapped[Optional[int]] = mapped_column(ForeignKey('reserva.id'))
-    data_inicio: Mapped[Optional[date]] = mapped_column(Date)
-    data_prevista_devolucao: Mapped[Optional[date]] = mapped_column(Date)
-    data_retirada: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    data_devolucao_real: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    condicao_item: Mapped[Optional[str]] = mapped_column(String(50))
-    id_funcionario_recebimento: Mapped[Optional[int]] = mapped_column(ForeignKey('funcionario.id_usuario'))
-    multa_aplicada: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
-    multa_paga: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    dias_atraso: Mapped[Optional[int]] = mapped_column(Integer)
-
-    def __init__(self, *args, status: Optional[str] = None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.status = status if status is not None else StatusAluguel.SOLICITADO.value
-        self._set_state(self.status)
-
-    @reconstructor
-    def init_on_load(self):
-        self._set_state(self.status)
-
-    def _set_state(self, status: Optional[str] = None):
-        status = status or self.status
-        if status == StatusAluguel.SOLICITADO.value:
-            self.state = EstadoSolicitado(self)
-        elif status == StatusAluguel.APROVADO.value:
-            self.state = EstadoPagamentoConfirmado(self)
-        elif status == StatusAluguel.ATIVO.value:
-            self.state = EstadoAtivo(self)
-        elif status == StatusAluguel.PENDENTE.value:
-            self.state = EstadoSolicitado(self)
-        elif status == StatusAluguel.ATRASADO.value:
-            self.state = EstadoAtrasado(self)
-        elif status == StatusAluguel.FINALIZADO.value:
-            self.state = EstadoFinalizado(self)
-        elif status == StatusAluguel.CANCELADO.value:
-            self.state = EstadoCancelado(self)
-        else:
-            raise ValueError(f"Status de aluguel desconhecido: {status}")
-        self.status = status
-
-    def processar_pagamento(self, sucesso: bool):
-        self.state.processar_pagamento(sucesso)
-        self._set_state(self.status)
-
-    def registrar_retirada(self):
-        self.state.registrar_retirada()
-        self._set_state(self.status)
-
-    def finalizar_aluguel(self):
-        self.state.finalizar_aluguel()
-        self._set_state(self.status)
-
-    def renovar_aluguel(self, dias_adicionais: int):
-        self.state.renovar_aluguel(dias_adicionais)
-        self._set_state(self.status)
-
-    def cancelar_aluguel(self):
-        self.state.cancelar_aluguel()
-        self._set_state(self.status)
+    id = Column(Integer, ForeignKey('transacoes.id'), primary_key=True)
+    periodo = Column(Integer)
+    data_devolucao = Column(Date)
+    status = Column(String(50), default=StatusAluguel.SOLICITADO.value)
+    data_inicio = Column(Date)
+    data_prevista_devolucao = Column(Date)
+    data_retirada = Column(DateTime)
+    data_devolucao_real = Column(DateTime)
+    condicao_item = Column(String(255))
+    id_funcionario_recebimento = Column(Integer, ForeignKey('funcionarios.id'))
+    multa_paga = Column(Boolean, default=False)
+    
+    # id_reserva = Column(Integer, ForeignKey('reservas.id'), nullable=True) # Assuming Reserva model exists
+    
+    funcionario_recebimento = relationship("Funcionario", foreign_keys=[id_funcionario_recebimento])
+    multa_aplicada = relationship("Multa", uselist=False, back_populates="aluguel")
 
     __mapper_args__ = {
-        "polymorphic_identity": "aluguel",
+        'polymorphic_identity': 'aluguel',
     }
 
     def __init__(
@@ -138,7 +92,7 @@ class Aluguel(Transacao):
         )
         self.periodo = periodo
         self.data_devolucao = data_devolucao
-        self.status = status or StatusAluguel.PENDENTE.value
+        self.status = status if status is not None else StatusAluguel.SOLICITADO.value
         self.reserva = reserva
         self.data_inicio = data_inicio
         self.data_prevista_devolucao = data_prevista_devolucao
@@ -150,12 +104,62 @@ class Aluguel(Transacao):
             self.multa_aplicada = multa_aplicada
         self.multa_paga = multa_paga if multa_paga is not None else False
         self._dias_atraso = dias_atraso
+        
+        self._set_state(self.status)
 
         if dias_atraso is not None and self.multa_aplicada:
             try:
                 self.multa_aplicada.dias_atraso = dias_atraso
             except Exception:
                 pass
+
+    @reconstructor
+    def init_on_load(self):
+        """Inicializa o state ao carregar do banco."""
+        self._set_state(self.status)
+
+    def _set_state(self, status: Optional[str] = None):
+        """Ajusta a instância de state pattern baseado na string de status."""
+        status = status or self.status
+        if status == StatusAluguel.SOLICITADO.value:
+            self.state = EstadoSolicitado(self)
+        elif status == StatusAluguel.APROVADO.value:
+            self.state = EstadoPagamentoConfirmado(self)
+        elif status == StatusAluguel.ATIVO.value:
+            self.state = EstadoAtivo(self)
+        elif status == StatusAluguel.PENDENTE.value:
+            self.state = EstadoSolicitado(self) # Fallback para antigo PENDENTE
+        elif status == StatusAluguel.ATRASADO.value:
+            self.state = EstadoAtrasado(self)
+        elif status == StatusAluguel.FINALIZADO.value:
+            self.state = EstadoFinalizado(self)
+        elif status == StatusAluguel.CANCELADO.value:
+            self.state = EstadoCancelado(self)
+        else:
+            raise ValueError(f"Status de aluguel desconhecido: {status}")
+        self.status = status
+
+    # --- Delegação para o State Pattern ---
+    def processar_pagamento(self, sucesso: bool):
+        self.state.processar_pagamento(sucesso)
+        self._set_state(self.status)
+
+    def registrar_retirada(self):
+        self.state.registrar_retirada()
+        self._set_state(self.status)
+
+    def finalizar_aluguel(self):
+        self.state.finalizar_aluguel()
+        self._set_state(self.status)
+
+    def renovar_aluguel(self, dias_adicionais: int):
+        self.state.renovar_aluguel(dias_adicionais)
+        self._set_state(self.status)
+
+    def cancelar_aluguel(self):
+        self.state.cancelar_aluguel()
+        self._set_state(self.status)
+    # -------------------------------------
 
     def get_multa(self) -> Multa:
         """Diagrama de classes — getMulta()."""

@@ -78,7 +78,7 @@ class UsuarioService:
         
         # Set default tipo_cliente if not provided
         if not cliente.tipo_cliente:
-            cliente.tipo_cliente = TipoCliente.REGULAR.value
+            cliente.tipo_cliente = TipoCliente.BASICO.value
         
         return self.repository.create(cliente)
 

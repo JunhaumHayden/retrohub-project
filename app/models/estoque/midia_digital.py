@@ -21,9 +21,9 @@ class MidiaDigital(Exemplar):
 
     def __init__(
             self,
-            id_exemplar: int,
-            chave_ativacao: str,
             catalogo,
+            chave_ativacao: str = None,
+            id_exemplar: int = None,
             data_expiracao: Optional[date] = None,
             plataforma: Optional[str] = None,
             valor_venda: Optional[Decimal] = None,

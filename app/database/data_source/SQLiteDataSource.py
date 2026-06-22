@@ -13,7 +13,7 @@ class SQLiteDataSource(DataSourceInterface):
 
     def __init__(self, db_url: str):
         self.engine = create_engine(db_url, echo=True)  # echo=True para logar as queries SQL
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=self.engine)
 
     def _get_session(self) -> Session:
         return self.SessionLocal()
@@ -26,38 +26,37 @@ class SQLiteDataSource(DataSourceInterface):
         pass
 
     def get_all(self, entity_type: Type[T]) -> List[T]:
-        with self._get_session() as session:
-            return session.query(entity_type).all()
+        session = self._get_session()
+        return session.query(entity_type).all()
 
     def get_by_id(self, entity_type: Type[T], entity_id: int) -> Optional[T]:
-        with self._get_session() as session:
-            return session.query(entity_type).get(entity_id)
+        session = self._get_session()
+        return session.query(entity_type).get(entity_id)
 
     def get_by_field(self, entity_type: Type[T], field_name: str, value) -> Optional[T]:
-        with self._get_session() as session:
-            return session.query(entity_type).filter(getattr(entity_type, field_name) == value).first()
+        session = self._get_session()
+        return session.query(entity_type).filter(getattr(entity_type, field_name) == value).first()
 
     def create(self, entity: T) -> T:
-        with self._get_session() as session:
-            session.add(entity)
-            session.commit()
-            session.refresh(entity)
-            return entity
+        session = self._get_session()
+        session.add(entity)
+        session.commit()
+        return entity
 
     def update(self, entity: T) -> Optional[T]:
-        with self._get_session() as session:
-            session.merge(entity)
-            session.commit()
-            return entity
+        session = self._get_session()
+        entity = session.merge(entity)
+        session.commit()
+        return entity
 
     def delete(self, entity_type: Type[T], entity_id: int) -> bool:
-        with self._get_session() as session:
-            entity = self.get_by_id(entity_type, entity_id)
-            if entity:
-                session.delete(entity)
-                session.commit()
-                return True
-            return False
+        session = self._get_session()
+        entity = session.query(entity_type).get(entity_id)
+        if entity:
+            session.delete(entity)
+            session.commit()
+            return True
+        return False
 
     def get_next_id(self, entity_type: Type[T]) -> int:
         # Em um DB real, o ID é geralmente autoincrementado pelo banco.

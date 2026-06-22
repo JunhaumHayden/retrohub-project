@@ -1,10 +1,7 @@
 from typing import List, Optional
-from decimal import Decimal
-
 from app.models.catalogo.catalogo import Catalogo
 from app.repository.interface.catalogo_repository_interface import CatalogoRepositoryInterface
 from app.models.enums import StatusSituacao
-
 
 class CatalogoService:
     """
@@ -18,12 +15,11 @@ class CatalogoService:
     def list_all(self, ativo: Optional[bool] = None) -> List[Catalogo]:
         """List all catalog items, optionally filtered by active status"""
         catalogos = self.repository.list_all()
-        
         if ativo is not None:
             # Convert ativo boolean to situacao string
             situacao_filtro = StatusSituacao.DISPONIVEL.value if ativo else StatusSituacao.INDISPONIVEL.value
             catalogos = [c for c in catalogos if c.situacao == situacao_filtro]
-        
+
         return catalogos
 
     def get_by_id(self, id: int) -> Optional[Catalogo]:
@@ -39,16 +35,12 @@ class CatalogoService:
         # Validate required fields
         if not catalogo.titulo:
             raise ValueError("Título é obrigatório")
-        
-        # Check for duplicates by title
-        existing = self.repository.get_by_title(catalogo.titulo)
-        if existing:
+        if self.repository.get_by_title(catalogo.titulo):
             raise ValueError(f"Jogo com título '{catalogo.titulo}' já existe")
-        
+
         # Set default situacao if not provided
         if not catalogo.situacao:
             catalogo.situacao = StatusSituacao.DISPONIVEL.value
-        
         return self.repository.create(catalogo)
 
     def update(self, id: int, catalogo_data: dict) -> Optional[Catalogo]:
@@ -56,7 +48,7 @@ class CatalogoService:
         catalogo = self.repository.get_by_id(id)
         if not catalogo:
             return None
-        
+
         # Update fields
         if 'titulo' in catalogo_data:
             new_title = catalogo_data['titulo']
@@ -66,13 +58,13 @@ class CatalogoService:
                 if existing and existing.id != id:
                     raise ValueError(f"Jogo com título '{new_title}' já existe")
             catalogo.titulo = new_title
-        
+
         if 'descricao' in catalogo_data:
             catalogo.descricao = catalogo_data['descricao']
-        
+
         if 'genero' in catalogo_data:
             catalogo.genero = catalogo_data['genero']
-        
+
         if 'classificacao' in catalogo_data:
             catalogo.classificacao = catalogo_data['classificacao']
         
@@ -86,7 +78,7 @@ class CatalogoService:
         catalogo = self.repository.get_by_id(id)
         if not catalogo:
             return False
-        
+
         return self.repository.delete(id)
 
     def get_by_genero(self, genero: str) -> List[Catalogo]:
@@ -102,7 +94,7 @@ class CatalogoService:
         catalogo = self.repository.get_by_id(id)
         if not catalogo:
             return None
-        
+
         catalogo.situacao = StatusSituacao.INDISPONIVEL.value
         return self.repository.update(catalogo)
 
@@ -111,7 +103,7 @@ class CatalogoService:
         catalogo = self.repository.get_by_id(id)
         if not catalogo:
             return None
-        
+
         catalogo.situacao = StatusSituacao.DISPONIVEL.value
         return self.repository.update(catalogo)
 

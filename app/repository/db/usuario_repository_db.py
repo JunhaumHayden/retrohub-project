@@ -44,7 +44,7 @@ class UsuarioRepositoryDB(UsuarioRepositoryInterface):
         if hasattr(usuario, 'email') and usuario.email:
             return self.data_source.get_by_field(Usuario, 'email', usuario.email)
         return None
-    
+
     def get_by_email(self, email: str) -> Optional[Usuario]:
         # Try Cliente first
         result = self.data_source.get_by_field(Cliente, 'email', email)
@@ -52,7 +52,7 @@ class UsuarioRepositoryDB(UsuarioRepositoryInterface):
             return result
         # Try Funcionario
         return self.data_source.get_by_field(Funcionario, 'email', email)
-    
+
     def get_by_cpf(self, cpf: str) -> Optional[Usuario]:
         # Try Cliente first
         result = self.data_source.get_by_field(Cliente, 'cpf', cpf)
@@ -60,7 +60,7 @@ class UsuarioRepositoryDB(UsuarioRepositoryInterface):
             return result
         # Try Funcionario
         return self.data_source.get_by_field(Funcionario, 'cpf', cpf)
-    
+
     def get_cliente_by_cpf(self, cpf: str) -> Optional[Cliente]:
         return self.data_source.get_by_field(Cliente, 'cpf', cpf)
 

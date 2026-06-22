@@ -1,349 +1,167 @@
 import logging
-from datetime import datetime, timedelta, date
+from datetime import datetime, date
 from flask import request
 from flask_restx import Namespace, Resource, fields
 
-from app.models import Aluguel
+from app.models import Aluguel, ItemTransacao, Comprovante, Exemplar
 from app.container.container import container
 
-# Criar namespace para aluguéis
-alugueis_ns = Namespace('alugueis', description='Operações relacionadas aos aluguéis de jogos', path='/api/alugueis')
+# Namespace e Modelos
+alugueis_ns = Namespace('alugueis', description='Operações relacionadas a aluguéis', path='/api/alugueis')
 
-# Modelos para documentação Swagger
+item_transacao_model = alugueis_ns.model('ItemTransacao', {
+    'id_item': fields.Integer,
+    'id_exemplar': fields.Integer,
+    'titulo_jogo': fields.String,
+    'valor_diaria': fields.Float,
+})
+
+comprovante_model = alugueis_ns.model('Comprovante', {
+    'id_comprovante': fields.Integer,
+    'tipo_comprovante': fields.String,
+    'data_emissao': fields.DateTime,
+})
+
 aluguel_model = alugueis_ns.model('Aluguel', {
-    'id': fields.Integer(description='ID do aluguel'),
-    'id_cliente': fields.Integer(description='ID do cliente'),
-    'id_funcionario': fields.Integer(description='ID do funcionário'),
-    'data_solicitacao': fields.Date(description='Data da solicitação'),
-    'data_retirada': fields.Date(description='Data da retirada'),
-    'data_devolucao_prevista': fields.Date(description='Data de devolução prevista'),
-    'data_devolucao_real': fields.Date(description='Data de devolução real'),
-    'status': fields.String(description='Status do aluguel'),
-    'valor_total': fields.Float(description='Valor total'),
-    'multa_atraso': fields.Float(description='Multa por atraso')
+    'id_transacao': fields.Integer,
+    'id_cliente': fields.Integer,
+    'cliente_nome': fields.String,
+    'status_aluguel': fields.String,
+    'valor_total': fields.Float,
+    'data_transacao': fields.DateTime,
+    'data_retirada': fields.DateTime,
+    'data_prevista_devolucao': fields.Date,
+    'itens': fields.List(fields.Nested(item_transacao_model)),
+    'comprovantes': fields.List(fields.Nested(comprovante_model)),
 })
 
 aluguel_solicitacao_model = alugueis_ns.model('AluguelSolicitacao', {
-    'itens': fields.List(fields.Integer, required=True, description='Lista de IDs dos jogos do catálogo'),
-    'tipo_midia': fields.String(required=True, description='Tipo de mídia (FISICO ou DIGITAL)')
+    'id_catalogo': fields.Integer(required=True),
+    'dias_alugados': fields.Integer(required=True),
+    'data_inicio': fields.String(required=True, description='YYYY-MM-DD'),
+    'tipo_midia': fields.String(required=True, enum=['FISICA', 'DIGITAL'])
 })
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+aluguel_devolucao_model = alugueis_ns.model('AluguelDevolucao', {
+    'condicao_item': fields.String(required=True, description='bom, danificado, extraviado')
+})
+
+aluguel_renovacao_model = alugueis_ns.model('AluguelRenovacao', {
+    'dias_adicionais': fields.Integer(required=True, min=1)
+})
+
+pagamento_model = alugueis_ns.model('Pagamento', {
+    'sucesso': fields.Boolean(required=True)
+})
+
 logger = logging.getLogger(__name__)
 
-def get_cliente_from_header():
-    cliente_id = request.headers.get('X-Cliente-Id')
-    if not cliente_id:
-        return None, "Header X-Cliente-Id é obrigatório."
-    try:
-        cliente_id = int(cliente_id)
-    except ValueError:
-        return None, "X-Cliente-Id inválido."
-    
-    cliente = container.usuario_service.get_cliente_by_id(cliente_id)
-    if not cliente:
-        return None, "Cliente não cadastrado ou não encontrado."
-    
-    return cliente, None
-
-def get_funcionario_from_header():
-    func_id = request.headers.get('X-Funcionario-Id')
-    if not func_id:
-        func_id = request.headers.get('X-Admin-Id')
-    if not func_id:
-        return None, "Header X-Funcionario-Id (ou X-Admin-Id) é obrigatório para esta operação."
-    try:
-        func_id = int(func_id)
-    except ValueError:
-        return None, "O ID do funcionário deve ser um número inteiro."
-    funcionario = container.usuario_service.get_funcionario_by_id(func_id)
-    if not funcionario:
-        return None, "Funcionário não encontrado."
-    return funcionario, None
-
-def find_exemplar_disponivel(id_catalogo, tipo_midia):
-    """Find available exemplar for rental"""
-    return container.venda_service.find_exemplar_disponivel_venda(id_catalogo, tipo_midia)
-
-def serialize_aluguel(aluguel: Aluguel):
+# Funções Auxiliares
+def _serialize_item(item: ItemTransacao):
+    exemplar = container.aluguel_repository.get_exemplar_by_id(item.id_exemplar)
+    titulo = exemplar.catalogo.titulo if exemplar and exemplar.catalogo else "N/A"
     return {
-        "id_transacao": aluguel.id,
-        "data_transacao": aluguel.data_transacao.isoformat() if aluguel.data_transacao else None,
-        "valor_total": float(aluguel.valor_total) if aluguel.valor_total else None,
-        "status_transacao": aluguel.status,
-        "id_cliente": aluguel.id_cliente,
-        "periodo_dias": aluguel.periodo,
-        "data_inicio": aluguel.data_inicio.isoformat() if aluguel.data_inicio else None,
-        "data_prevista_devolucao": aluguel.data_prevista_devolucao.isoformat() if aluguel.data_prevista_devolucao else None,
-        "data_fim_prevista": aluguel.data_prevista_devolucao.isoformat() if aluguel.data_prevista_devolucao else None,
-        "data_devolucao": aluguel.data_devolucao.isoformat() if aluguel.data_devolucao else None,
-        "data_devolucao_real": aluguel.data_devolucao_real.isoformat() if getattr(aluguel, "data_devolucao_real", None) else None,
-        "data_retirada": aluguel.data_retirada.isoformat() if getattr(aluguel, 'data_retirada', None) else None,
-        "condicao_item": getattr(aluguel, "condicao_item", None),
-        "id_funcionario_recebimento": getattr(aluguel, "id_funcionario_recebimento", None),
-        "multa_aplicada": float(aluguel.multa_aplicada) if getattr(aluguel, "multa_aplicada", None) is not None else None,
-        "multa_paga": aluguel.multa_paga if getattr(aluguel, "multa_paga", None) is not None else None,
-        "dias_atraso": getattr(aluguel, "dias_atraso", None),
-        "status_aluguel": getattr(aluguel, 'status', 'ATIVO')
+        "id_item": item.id,
+        "id_exemplar": item.id_exemplar,
+        "titulo_jogo": titulo,
+        "valor_diaria": float(item.valor_unitario) if item.valor_unitario else None,
     }
 
+def _serialize_comprovante(comprovante: Comprovante):
+    return {
+        "id_comprovante": comprovante.id,
+        "tipo_comprovante": comprovante.tipo_comprovante,
+        "data_emissao": comprovante.data_envio.isoformat() if comprovante.data_envio else None,
+    }
 
+def serialize_aluguel_completo(aluguel: Aluguel):
+    cliente = container.usuario_service.get_cliente_by_id(aluguel.id_cliente)
+    return {
+        "id_transacao": aluguel.id,
+        "id_cliente": aluguel.id_cliente,
+        "cliente_nome": cliente.nome if cliente else "N/A",
+        "status_aluguel": aluguel.status,
+        "valor_total": float(aluguel.valor_total) if aluguel.valor_total else None,
+        "data_transacao": aluguel.data_transacao.isoformat(),
+        "data_retirada": aluguel.data_retirada.isoformat() if aluguel.data_retirada else None,
+        "data_prevista_devolucao": aluguel.data_prevista_devolucao.isoformat() if aluguel.data_prevista_devolucao else None,
+        "itens": [_serialize_item(item) for item in aluguel.itens_transacao],
+        "comprovantes": [_serialize_comprovante(comp) for comp in aluguel.comprovantes],
+    }
+
+def _get_cliente_from_header():
+    cliente_id = request.headers.get('X-Cliente-Id')
+    if not cliente_id: alugueis_ns.abort(403, "Header X-Cliente-Id é obrigatório.")
+    cliente = container.usuario_service.get_cliente_by_id(int(cliente_id))
+    if not cliente: alugueis_ns.abort(403, "Cliente não encontrado.")
+    return cliente
+
+def _get_funcionario_from_header():
+    func_id = request.headers.get('X-Funcionario-Id') or request.headers.get('X-Admin-Id')
+    if not func_id: alugueis_ns.abort(403, "Header X-Funcionario-Id é obrigatório.")
+    funcionario = container.usuario_service.get_funcionario_by_id(int(func_id))
+    if not funcionario: alugueis_ns.abort(403, "Funcionário não encontrado.")
+    return funcionario
+
+# Endpoints
 @alugueis_ns.route('/solicitar')
-class SolicitarAluguelResource(Resource):
+class SolicitarAluguel(Resource):
     @alugueis_ns.expect(aluguel_solicitacao_model)
+    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'required': True}})
     def post(self):
-        """Solicitar um novo aluguel"""
-        try:
-            cliente, erro = get_cliente_from_header()
-            if erro: return {"erro": erro}, 403
+        cliente = _get_cliente_from_header()
+        data = request.get_json()
+        aluguel, erro = container.aluguel_service.solicitar_aluguel(
+            cliente.id, data['id_catalogo'], data['dias_alugados'], 
+            datetime.strptime(data['data_inicio'], '%Y-%m-%d').date(), data['tipo_midia'].upper()
+        )
+        if erro: alugueis_ns.abort(400, erro)
+        return {"mensagem": "Aluguel solicitado!", "aluguel": serialize_aluguel_completo(aluguel)}, 201
 
-            data = request.get_json()
-            if not data: return {"erro": "Dados não fornecidos."}, 400
-
-            required_fields = ['id_jogo', 'dias_alugados', 'data_inicio', 'tipo_midia']
-            for field in required_fields:
-                if field not in data or str(data[field]).strip() == "":
-                    return {"erro": f"O campo '{field}' é obrigatório."}, 400
-
-            dias_alugados = int(data['dias_alugados'])
-            if dias_alugados <= 0 or dias_alugados > 30:
-                return {"erro": "O período de aluguel deve ser entre 1 e 30 dias."}, 400
-
-            try:
-                data_inicio = datetime.strptime(data['data_inicio'], '%Y-%m-%d').date()
-            except ValueError:
-                return {"erro": "Formato de data_inicio inválido. Use AAAA-MM-DD."}, 400
-
-            if data_inicio < date.today():
-                return {"erro": "A data de início não pode ser anterior à data atual."}, 400
-
-            jogo = container.catalogo_service.get_by_id(data['id_jogo'])
-            if not jogo:
-                return {"erro": "Jogo não encontrado no catálogo."}, 404
-
-            if not jogo.valor_diaria_aluguel:
-                return {"erro": "Este jogo não está disponível para aluguel (valor da diária não definido)."}, 400
-
-            tipo_midia = str(data['tipo_midia']).upper()
-            if tipo_midia not in ['FISICA', 'DIGITAL']:
-                return {"erro": "tipo_midia deve ser FISICA ou DIGITAL."}, 400
-
-            # Buscar exemplar disponível
-            exemplar_disponivel = find_exemplar_disponivel(jogo.id, tipo_midia)
-            if not exemplar_disponivel:
-                return {"erro": f"Não há exemplares da mídia {tipo_midia} disponíveis no momento para este jogo."}, 400
-
-            # Calcular valor total
-            valor_total = jogo.valor_diaria_aluguel * dias_alugados
-            data_prevista_devolucao = data_inicio + timedelta(days=dias_alugados)
-
-            # Note: In mock mode, we can't actually save new rentals
-            # This would need to be handled differently in a real implementation
-            novo_aluguel = Aluguel(
-                id=1,  # Placeholder ID
-                id_cliente=cliente.id_usuario,
-                valor_total=valor_total,
-                status='SOLICITADO',
-                data_transacao=datetime.utcnow(),
-                periodo=dias_alugados,
-                data_inicio=data_inicio,
-                data_prevista_devolucao=data_prevista_devolucao
-            )
-            # In a real implementation, you would save this:
-            # MockDataSource.save(novo_aluguel)
-            # MockDataSource.save(ItemTransacao(...))
-
-            return {
-                "mensagem": "Aluguel solicitado com sucesso!",
-                "aluguel": serialize_aluguel(novo_aluguel),
-                "exemplar_id": exemplar_disponivel.id
-            }, 201
-
-        except Exception as e:
-            logger.error(f"Erro em solicitar_aluguel: {str(e)}")
-            return {"erro": "Erro interno ao processar solicitação de aluguel."}, 500
-
-
-@alugueis_ns.route('/meus-alugueis')
-class MeusAlugueisResource(Resource):
-    def get(self):
-        """Listar meus aluguéis"""
-        try:
-            cliente, erro = get_cliente_from_header()
-            if erro: return {"erro": erro}, 403
-
-            from app.models.transacao.aluguel.aluguel import Aluguel
-            alugueis = container.aluguel_repository.get_all(Aluguel) if hasattr(container.aluguel_repository, 'get_all') else []
-            meus_alugueis = [a for a in alugueis if a.id_cliente == cliente.id_usuario]
-            return [serialize_aluguel(a) for a in meus_alugueis], 200
-
-        except Exception as e:
-            logger.error(f"Erro em meus_alugueis: {str(e)}")
-            return {"erro": "Erro interno ao buscar alugueis."}, 500
+@alugueis_ns.route('/<int:id>/pagamento')
+class Pagamento(Resource):
+    @alugueis_ns.expect(pagamento_model)
+    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'required': True}})
+    def patch(self, id):
+        _get_cliente_from_header()
+        aluguel, erro = container.aluguel_service.processar_pagamento(id, request.get_json()['sucesso'])
+        if erro: alugueis_ns.abort(400, erro)
+        return serialize_aluguel_completo(aluguel)
 
 @alugueis_ns.route('/<int:id>/retirada')
-class RegistrarRetiradaAluguelResource(Resource):
+class Retirada(Resource):
+    @alugueis_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'required': True}})
     def patch(self, id):
-        """Registrar retirada de aluguel"""
-        try:
-            _, erro = get_funcionario_from_header()
-            if erro:
-                return {"erro": erro}, 403
-
-            aluguel, err = container.aluguel_service.registrar_retirada(id)
-            if err:
-                return {"erro": err}, 400
-
-            logger.info(f"Funcionário registrou retirada do aluguel ID {id}")
-            return {
-                "mensagem": "Retirada registrada com sucesso.",
-                "aluguel": serialize_aluguel(aluguel)
-            }, 200
-
-        except Exception as e:
-            logger.error(f"Erro em registrar_retirada_aluguel: {str(e)}")
-            return {"erro": "Erro interno ao registrar retirada."}, 500
+        _get_funcionario_from_header()
+        aluguel, erro = container.aluguel_service.registrar_retirada(id)
+        if erro: alugueis_ns.abort(400, erro)
+        return serialize_aluguel_completo(aluguel)
 
 @alugueis_ns.route('/<int:id>/devolucao')
-class RegistrarDevolucaoAluguelResource(Resource):
+class Devolucao(Resource):
+    @alugueis_ns.expect(aluguel_devolucao_model)
+    @alugueis_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'required': True}})
     def patch(self, id):
-        """Registrar devolução de aluguel"""
-        try:
-            funcionario, erro = get_funcionario_from_header()
-            if erro:
-                return {"erro": erro}, 403
-
-            data = request.get_json()
-            if not data:
-                return {"erro": "Dados não fornecidos."}, 400
-            condicao = data.get("condicao_item")
-            aluguel, err = container.aluguel_service.registrar_devolucao(id, condicao, funcionario.id_usuario)
-            if err:
-                code = 404 if "não encontrado" in err.lower() else 400
-                return {"erro": err}, code
-
-            logger.info(f"Devolução registrada para aluguel ID {id}.")
-            return serialize_aluguel(aluguel), 200
-
-        except Exception as e:
-            logger.error(f"Erro em registrar_devolucao_aluguel: {str(e)}")
-            return {"erro": "Erro interno ao registrar devolução."}, 500
-
-@alugueis_ns.route('/<int:id>')
-class DetalhesAluguelResource(Resource):
-    def get(self, id):
-        """Obter detalhes de um aluguel"""
-        try:
-            cliente, erro = get_cliente_from_header()
-            if erro: return {"erro": erro}, 403
-
-            from app.models.transacao.aluguel.aluguel import Aluguel
-            aluguel = container.aluguel_repository.get_by_id(Aluguel, id)
-            if not aluguel or aluguel.id_cliente != cliente.id_usuario:
-                return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
-
-            return serialize_aluguel(aluguel), 200
-
-        except Exception as e:
-            logger.error(f"Erro em detalhes_aluguel: {str(e)}")
-            return {"erro": "Erro interno ao buscar detalhes do aluguel."}, 500
+        funcionario = _get_funcionario_from_header()
+        aluguel, erro = container.aluguel_service.registrar_devolucao(id, request.get_json()['condicao_item'], funcionario.id)
+        if erro: alugueis_ns.abort(400, erro)
+        return serialize_aluguel_completo(aluguel)
 
 @alugueis_ns.route('/<int:id>/cancelar')
-class CancelarAluguelResource(Resource):
+class Cancelar(Resource):
+    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'required': True}})
     def patch(self, id):
-        """Cancelar um aluguel"""
-        try:
-            cliente, erro = get_cliente_from_header()
-            if erro: return {"erro": erro}, 403
-
-            from app.models.transacao.aluguel.aluguel import Aluguel
-            aluguel = container.aluguel_repository.get_by_id(Aluguel, id)
-            if not aluguel or aluguel.id_cliente != cliente.id_usuario:
-                return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
-
-            if aluguel.data_inicio <= date.today():
-                return {"erro": "Não é possível cancelar um aluguel que já iniciou ou está no dia de retirada."}, 400
-
-            # Note: In mock mode, we can't actually save changes
-            aluguel.status = 'FINALIZADO'
-            
-            # Find and update the associated item and exemplar
-            from app.models.transacao.item_transacao import ItemTransacao
-            from app.models.estoque.exemplar import Exemplar
-            item_tr = container.venda_repository.get_item_by_transacao(aluguel.id)
-            if item_tr:
-                exemplar = container.estoque_repository.get_exemplar_by_id(item_tr.id_exemplar)
-                if exemplar and exemplar.situacao == 'RESERVADO':
-                    exemplar.situacao = 'DISPONIVEL'
-                    if hasattr(exemplar, 'codigo_barras'):
-                        container.estoque_repository.update_midia_fisica(exemplar)
-
-            # Update aluguel
-            container.aluguel_repository.update(aluguel)
-
-            logger.info(f"Cliente ID {cliente.id_usuario} cancelou aluguel ID {id}")
-            return {"mensagem": "Aluguel cancelado com sucesso."}, 200
-
-        except Exception as e:
-            logger.error(f"Erro em cancelar_aluguel: {str(e)}")
-            return {"erro": "Erro interno ao cancelar aluguel."}, 500
+        cliente = _get_cliente_from_header()
+        _, erro = container.aluguel_service.cancelar_aluguel(id, cliente.id)
+        if erro: alugueis_ns.abort(400, erro)
+        return {"mensagem": "Aluguel cancelado com sucesso."}
 
 @alugueis_ns.route('/<int:id>/renovar')
-class RenovarAluguelResource(Resource):
+class Renovar(Resource):
+    @alugueis_ns.expect(aluguel_renovacao_model)
+    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'required': True}})
     def patch(self, id):
-        """Renovar um aluguel"""
-        try:
-            cliente, erro = get_cliente_from_header()
-            if erro: return {"erro": erro}, 403
-
-            data = request.get_json()
-            if not data or 'dias_adicionais' not in data:
-                return {"erro": "O campo 'dias_adicionais' é obrigatório."}, 400
-
-            dias_adicionais = int(data['dias_adicionais'])
-            if dias_adicionais <= 0 or dias_adicionais > 30:
-                return {"erro": "O período de renovação deve ser entre 1 e 30 dias."}, 400
-
-            from app.models.transacao.aluguel.aluguel import Aluguel
-            aluguel = container.aluguel_repository.get_by_id(Aluguel, id)
-            if not aluguel or aluguel.id_cliente != cliente.id_usuario:
-                return {"erro": "Aluguel não encontrado ou não pertence a este cliente."}, 404
-
-            if aluguel.status == 'FINALIZADO':
-                return {"erro": "Não é possível renovar um aluguel já finalizado."}, 400
-
-            # Para renovar, pega o valor da diária atual do jogo
-            from app.models.transacao.item_transacao import ItemTransacao
-            from app.models.estoque.exemplar import Exemplar
-            item_transacao = container.venda_repository.get_item_by_transacao(aluguel.id)
-            
-            if not item_transacao:
-                return {"erro": "Item da transação não encontrado."}, 404
-                
-            exemplar = container.estoque_repository.get_exemplar_by_id(item_transacao.id_exemplar)
-            if not exemplar:
-                return {"erro": "Exemplar não encontrado."}, 404
-                
-            jogo = container.catalogo_service.get_by_id(exemplar.id_catalogo)
-            if not jogo:
-                return {"erro": "Jogo não encontrado."}, 404
-
-            # Note: In mock mode, we can't actually save changes
-            acrescimo = jogo.valor_diaria_aluguel * dias_adicionais
-            aluguel.periodo += dias_adicionais
-            aluguel.data_prevista_devolucao += timedelta(days=dias_adicionais)
-            aluguel.valor_total += acrescimo
-
-            # Update aluguel
-            container.aluguel_repository.update(aluguel)
-
-            logger.info(f"Cliente ID {cliente.id_usuario} RENOVOU o aluguel ID {aluguel.id} por mais {dias_adicionais} dias.")
-            return {
-                "mensagem": "Aluguel renovado com sucesso.",
-                "nova_data_devolucao": aluguel.data_prevista_devolucao.isoformat(),
-                "novo_valor_total": float(aluguel.valor_total)
-            }, 200
-
-        except Exception as e:
-            logger.error(f"Erro em renovar_aluguel: {str(e)}")
-            return {"erro": "Erro interno ao renovar aluguel."}, 500
+        cliente = _get_cliente_from_header()
+        aluguel, erro = container.aluguel_service.renovar_aluguel(id, cliente.id, request.get_json()['dias_adicionais'])
+        if erro: alugueis_ns.abort(400, erro)
+        return {"aluguel": serialize_aluguel_completo(aluguel)}

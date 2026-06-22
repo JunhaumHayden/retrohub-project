@@ -1,72 +1,69 @@
-import unittest
+import pytest
 from app.models import Funcionario, Catalogo, MidiaFisica, MidiaDigital
+from app.models.enums import StatusSituacao
 
+def test_1_cadastro_catalogo_sucesso(db_session):
+    """Testa o cadastro válido (status 201) e a persistência no DB em memória."""
+    data = {
+        "titulo": "Super Mario 64",
+        "situacao": StatusSituacao.DISPONIVEL,
+        "descricao": "O primeiro jogo 3D do Mario",
+        "classificacao": "Livre",
+        "genero": "Plataforma"
+    }
 
-class TestCatalogo(unittest.TestCase):
+    # Criar instância do Catalogo
+    catalogo = Catalogo(
+        titulo=data.get('titulo'),
+        situacao=data.get('situacao'),
+        descricao=data.get('descricao'),
+        classificacao=data.get('classificacao'),
+        genero=data.get('genero')
+    )
 
-    def setUp(self):
-        """Antes de cada teste, limpa as tabelas e recria o cenário base."""
+    db_session.add(catalogo)
+    db_session.commit()
 
-        self.funcionario = Funcionario(
-            nome="Atendente Teste",
-            cpf="12345678901",
-            email="atendente@retrohub.com",
-            senha="hash",
-            matricula="AT001",
-            cargo="Atendente",
-            setor="Vendas"
-        )
+    # Verificar se os atributos foram definidos e salvos corretamente
+    assert catalogo.id is not None
+    assert catalogo.titulo == "Super Mario 64"
 
-    def test_1_cadastro_catalogo_sucesso(self):
-        """Testa o cadastro válido por um funcionário (status 201)."""
-        data = {
-            "titulo": "Super Mario 64",
-            "situacao": "Disponível",
-            "descricao": "O primeiro jogo 3D do Mario",
-            "classificacao": "Livre",
-            "genero": "Plataforma"
-        }
+    # Testar representação string
+    repr_str = repr(catalogo)
+    assert "id" in repr_str
+    assert "titulo" in repr_str
 
-        # Criar instância do Catalogo
-        catalogo = Catalogo(
-            id=1,
-            titulo=data.get('titulo'),
-            situacao=data.get('situacao'),
-            descricao=data.get('descricao'),
-            classificacao=data.get('classificacao'),
-            genero=data.get('genero')
-        )
+def test_2_relacionamento_catalogo_exemplares(db_session):
+    """Testa a agregação e navegação entre Catalogo e seus Exemplares (físico e digital)."""
+    catalogo = Catalogo(
+        titulo="The Legend of Zelda",
+        situacao=StatusSituacao.DISPONIVEL
+    )
+    db_session.add(catalogo)
+    db_session.flush() # Para gerar o ID do catálogo sem commitar a transação
 
-        # Verificar se os atributos foram definidos corretamente
-        self.assertEqual(data['titulo'], "Super Mario 64")
+    # Instanciando as subclasses
+    exemplar_fisico = MidiaFisica(
+        id_exemplar=1, # Fake ID just for testing relationship mapping
+        codigo_barras="ZELDA-001",
+        catalogo=catalogo
+    )
+    
+    exemplar_digital = MidiaDigital(
+        id_exemplar=2,
+        chave_ativacao="ZELDA-DIGITAL",
+        catalogo=catalogo
+    )
 
+    # Adicionando os objetos à lista do catálogo
+    catalogo.exemplares.append(exemplar_fisico)
+    catalogo.exemplares.append(exemplar_digital)
 
-        # Testar representação string
-        repr_str = repr(catalogo)
-        print(repr_str)
-        self.assertIn("id", repr_str)
-        self.assertIn("titulo", repr_str)
+    db_session.commit()
 
-    def test_2_relacionamento_catalogo_exemplares(self):
-        """Testa a agregação e navegação entre Catalogo e seus Exemplares (físico e digital)."""
-        catalogo = Catalogo(
-            titulo="The Legend of Zelda"
-        )
+    # Verifica se o catálogo "conhece" os exemplares
+    assert len(catalogo.exemplares) == 2
 
-        # Instanciando as subclasses, pois a base Exemplar bloqueia instanciação direta
-        exemplar_fisico = MidiaFisica(tipo_midia="FISICA")
-        exemplar_digital = MidiaDigital(tipo_midia="DIGITAL")
-
-        # Adicionando os objetos à lista do catálogo
-        catalogo.exemplares.append(exemplar_fisico)
-        catalogo.exemplares.append(exemplar_digital)
-
-        # Verifica se o catálogo "conhece" os exemplares
-        self.assertEqual(len(catalogo.exemplares), 2)
-
-        # Verifica se a navegação inversa (back_populates) ocorreu automaticamente em memória
-        self.assertEqual(exemplar_fisico.catalogo, catalogo)
-        self.assertEqual(exemplar_digital.catalogo.titulo, "The Legend of Zelda")
-
-if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    # Verifica se a navegação inversa ocorreu automaticamente
+    assert exemplar_fisico.catalogo == catalogo
+    assert exemplar_digital.catalogo.titulo == "The Legend of Zelda"

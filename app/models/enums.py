@@ -41,17 +41,23 @@ class TipoCliente(Enum):
     BASICO = 'BASICO'
 
 class TipoFuncionario(Enum):
-    REGULAR = 'REGULAR'
-    PREMIUM = 'PREMIUM'
+    ADMIN = 'ADMIN'
+    FUNCIONARIO = 'FUNCIONARIO'
 
 class StatusSituacao(Enum):
     DISPONIVEL = 'DISPONIVEL'
     INDISPONIVEL = 'INDISPONIVEL'
+    VENDIDO = 'VENDIDO'
+    ALUGADO = 'ALUGADO'
+    RESERVADO = 'RESERVADO'
 
 class StatusConservacao(Enum):
+    NOVO = 'NOVO'
     EXCELENTE = 'EXCELENTE'
     BOM = 'BOM'
     POUCA_AVARIA = 'POUCA_AVARIA'
     AVARIADO = 'AVARIADO'
     RUIM = 'RUIM'
+    DANIFICADO = 'DANIFICADO'
+    EXTRAVIADO = 'EXTRAVIADO'
 

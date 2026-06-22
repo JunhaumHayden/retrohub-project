@@ -36,7 +36,7 @@ def test_mock_data_source():
         cpf="123.456.789-00",
         email="test@example.com",
         senha="password123",
-        tipo_cliente=TipoCliente.REGULAR.value
+        tipo_cliente=TipoCliente.BASICO.value
     )
     
     created_cliente = ds.create(new_cliente)

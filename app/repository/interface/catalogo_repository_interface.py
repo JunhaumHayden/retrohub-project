@@ -30,7 +30,7 @@ class CatalogoRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def delete(self, id: int) -> bool:
+    def delete(self, catalogo: Catalogo) -> bool:
         pass
 
     @abstractmethod

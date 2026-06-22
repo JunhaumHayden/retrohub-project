@@ -176,7 +176,7 @@ erDiagram
     CLIENTE {
         INTEGER id_usuario PK,FK
         VARCHAR dados_pagamento
-        VARCHAR tipo_cliente "REGULAR|PREMIUM"
+        VARCHAR tipo_cliente "BASICO|PREMIUM"
     }
 
     CATALOGO {
@@ -327,7 +327,7 @@ Regras de Negócio
 
 MULTA vinculada a aluguéis atrasados
 RESERVA pode se converter em ALUGUEL
-CLIENTE tem tipo (REGULAR/PREMIUM) para regras diferenciadas
+CLIENTE tem tipo (BASICO/PREMIUM) para regras diferenciadas
 
 ## Como Funciona a Inicialização
 

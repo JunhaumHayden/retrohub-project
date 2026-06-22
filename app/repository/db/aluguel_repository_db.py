@@ -3,6 +3,7 @@ from app.models import Aluguel, ItemTransacao, Exemplar, Multa, Comprovante
 from app.repository.interface.aluguel_repository_interface import AluguelRepositoryInterface
 from app.models import Venda, MidiaDigital, MidiaFisica
 from app.database.interfaces.data_source_interface import DataSourceInterface
+from app.models.enums import StatusAluguel, StatusSituacao
 
 class AluguelRepositoryDB(AluguelRepositoryInterface):
     """
@@ -22,35 +23,47 @@ class AluguelRepositoryDB(AluguelRepositoryInterface):
     def get_exemplar_by_id(self, exemplar_id: int) -> Optional[Exemplar]:
         return self.data_source.get_by_id(Exemplar, exemplar_id)
 
+    def get_catalogo_by_id(self, catalogo_id: int):
+        from app.models.catalogo.catalogo import Catalogo
+        return self.data_source.get_by_id(Catalogo, catalogo_id)
+
     def find_exemplar_disponivel(self, id_catalogo: int, tipo_midia: str) -> Optional[Exemplar]:
         # Simplified logic using DataSourceInterface
         exemplares = self.data_source.get_all(Exemplar)
         alugueis = self.data_source.get_all(Aluguel)
         vendas = self.data_source.get_all(Venda)
         itens_transacao = self.data_source.get_all(ItemTransacao)
-        
+
         # Get occupied exemplar IDs from active rentals
-        alugueis_ativos_ids = {a.id for a in alugueis if a.status in ['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO']}
-        vendas_ids = {v.id for v in vendas if v.status == 'FINALIZADA'}
-        
+        # Support both Enum and string values for status
+        alugueis_ativos_ids = {a.id for a in alugueis if (
+            getattr(a.status, 'value', a.status) in ['ATIVO', 'ATRASADO', 'SOLICITADO', 'APROVADO']
+        )}
+        vendas_ids = {v.id for v in vendas if (
+            getattr(getattr(v, 'status', None), 'value', getattr(v, 'status', None)) == 'FINALIZADA'
+        )}
+
         # Get exemplar IDs that are in transactions
         exemplares_indisponiveis = set()
         for item in itens_transacao:
             if item.id_transacao in alugueis_ativos_ids or item.id_transacao in vendas_ids:
                 exemplares_indisponiveis.add(item.id_exemplar)
-        
+
         # Filter exemplares by catalog and availability
         for exemplar in exemplares:
-            if (exemplar.id_catalogo == id_catalogo and 
+            situacao = getattr(exemplar, 'situacao', None)
+            # Support both Enum and string values for situacao
+            situacao_val = getattr(situacao, 'value', situacao) if situacao else None
+            if (getattr(exemplar, 'id_catalogo', None) == id_catalogo and
                 exemplar.id not in exemplares_indisponiveis and
-                (exemplar.situacao is None or exemplar.situacao == 'DISPONIVEL')):
-                
+                (situacao_val is None or situacao_val == 'DISPONIVEL')):
+
                 # Check if it has the right media type
-                if tipo_midia == 'DIGITAL' and exemplar.tipo_midia == 'DIGITAL':
+                if tipo_midia == 'DIGITAL' and getattr(exemplar, 'tipo_midia', None) == 'DIGITAL':
                     return exemplar
-                elif tipo_midia == 'FISICA' and exemplar.tipo_midia == 'FISICA':
+                elif tipo_midia == 'FISICA' and getattr(exemplar, 'tipo_midia', None) == 'FISICA':
                     return exemplar
-        
+
         return None
 
     def create_aluguel(self, aluguel: Aluguel) -> Aluguel:

@@ -40,7 +40,7 @@
   "midias_fisicas": [
     { "id_exemplar": 1, "codigo_barras": "MGS001-BR", "plataforma": "PS2", "valor_venda": 89.90, "valor_diaria_aluguel": 5.90, "estado_conservacao": "EXCELENTE" },
     { "id_exemplar": 3, "codigo_barras": "UNCHARTED01-BR", "plataforma": "PS4", "valor_venda": null, "valor_diaria_aluguel": 7.90, "estado_conservacao": "EXCELENTE" },
-    { "id_exemplar": 4, "codigo_barras": "RE301-BR", "plataforma": "PS1", "valor_venda": 89.90, "valor_diaria_aluguel": 5.90, "estado_conservacao": "REGULAR" },
+    { "id_exemplar": 4, "codigo_barras": "RE301-BR", "plataforma": "PS1", "valor_venda": 89.90, "valor_diaria_aluguel": 5.90, "estado_conservacao": "BASICO" },
     { "id_exemplar": 5, "codigo_barras": "NFS-BR", "plataforma": "PS4", "valor_venda": 129.90, "valor_diaria_aluguel": 6.90, "estado_conservacao": "BOM" },
     { "id_exemplar": 6, "codigo_barras": "SF5-BR", "plataforma": "PS4", "valor_venda": 79.90, "valor_diaria_aluguel": 5.90, "estado_conservacao": "EXCELENTE" },
     { "id_exemplar": 6, "codigo_barras": "SF5-BR-2", "plataforma": "PS4", "valor_venda": 50.20, "valor_diaria_aluguel": 5.90, "estado_conservacao": "BOM" }

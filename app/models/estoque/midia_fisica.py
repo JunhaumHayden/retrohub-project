@@ -21,10 +21,10 @@ class MidiaFisica(Exemplar):
 
     def __init__(
             self,
-            id_exemplar: int,
-            codigo_barras: str,
             catalogo,
             estado_conservacao: Optional[StatusConservacao] = StatusConservacao.BOM,
+            codigo_barras: str = None,
+            id_exemplar: int = None,
             plataforma: Optional[str] = None,
             valor_venda: Optional[Decimal] = None,
             valor_diaria_aluguel: Optional[Decimal] = None,
@@ -44,5 +44,8 @@ class MidiaFisica(Exemplar):
 
     def set_estado_conservacao(self, condicao: str) -> str:
         """sd Devolucao — setEstadoConservacao(condicao)."""
-        self.estado_conservacao = StatusConservacao(condicao)
+        # Handle both uppercase and lowercase input
+        condicao_upper = condicao.upper() if condicao else condicao
+        self.estado_conservacao = StatusConservacao(condicao_upper)
         return self.estado_conservacao
+

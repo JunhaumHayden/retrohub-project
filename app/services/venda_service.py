@@ -7,6 +7,7 @@ from app.models.estoque.exemplar import Exemplar
 from app.models.estoque.midia_fisica import MidiaFisica
 from app.models.estoque.midia_digital import MidiaDigital
 from app.models.catalogo.catalogo import Catalogo
+from app.models.enums import StatusSituacao, StatusVenda
 from app.repository.interface.venda_repository_interface import VendaRepositoryInterface
 from app.repository.interface.estoque_repository_interface import EstoqueRepositoryInterface
 from app.repository.interface.catalogo_repository_interface import CatalogoRepositoryInterface
@@ -56,7 +57,8 @@ class VendaService:
             for fisica in fisicas:
                 if isinstance(fisica, MidiaFisica):
                     # Check if this physical copy is available
-                    if fisica.situacao == 'DISPONIVEL' or fisica.situacao is None:
+                    situacao = getattr(fisica.situacao, 'value', fisica.situacao) if hasattr(fisica, 'situacao') else None
+                    if situacao == 'DISPONIVEL' or situacao is None:
                         return fisica
         
         return None
@@ -92,21 +94,30 @@ class VendaService:
         # Create venda
         valor_total = catalogo.valor_venda
         nova_venda = Venda(
-            id_cliente=cliente_id,
             valor_total=valor_total,
             status='FINALIZADA',
             data_transacao=datetime.utcnow(),
             data_confirmacao=date.today()
         )
+        # set foreign key id explicitly (repository/create will persist this)
+        nova_venda.id_cliente = cliente_id
 
         venda_criada = self.venda_repository.create(nova_venda)
         if not venda_criada:
             return None, "Erro ao criar venda."
 
+        # Ensure the foreign key to cliente is persisted. Some constructors
+        # and polymorphic mappings may not persist the id set on the Python
+        # instance, so update explicitly if needed.
+        if getattr(venda_criada, 'id_cliente', None) != cliente_id:
+            venda_criada.id_cliente = cliente_id
+            venda_criada = self.venda_repository.update(venda_criada)
+
         # Create item transacao
+        # ItemTransacao constructor accepts related objects (transacao, exemplar)
         item = ItemTransacao(
-            id_transacao=venda_criada.id,
-            id_exemplar=exemplar.id,
+            transacao=venda_criada,
+            exemplar=exemplar,
             valor_unitario=valor_total
         )
 
@@ -133,11 +144,12 @@ class VendaService:
         if venda.id_cliente != cliente_id:
             return False, "Venda não pertence a este cliente."
 
-        if venda.status == 'ESTORNADA':
+        venda_status = getattr(venda.status, 'value', venda.status)
+        if venda_status == 'ESTORNADA':
             return False, "Esta venda já foi estornada."
 
         # Update venda status
-        venda.status = 'ESTORNADA'
+        venda.status = StatusVenda.ESTORNADA.value
         self.venda_repository.update(venda)
 
         # Restore exemplar availability
@@ -145,7 +157,7 @@ class VendaService:
         if item:
             exemplar = self.estoque_repository.get_exemplar_by_id(item.id_exemplar)
             if exemplar and isinstance(exemplar, MidiaFisica):
-                exemplar.situacao = 'DISPONIVEL'
+                exemplar.situacao = StatusSituacao.DISPONIVEL.value
                 self.estoque_repository.update_midia_fisica(exemplar)
 
         return True, None

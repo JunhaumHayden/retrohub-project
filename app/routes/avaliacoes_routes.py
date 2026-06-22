@@ -1,152 +1,86 @@
 import logging
-from datetime import date
-from flask import Blueprint, request, jsonify
+from flask import request
+from flask_restx import Namespace, Resource, fields
 
-from app.models import Cliente, Catalogo, Exemplar, Transacao, Venda, Aluguel, ItemTransacao, Avaliacao
-from app.database.factories.database_manager import DatabaseManager
+from app.container.container import container
+from app.models import Avaliacao
 
-avaliacoes_bp = Blueprint('avaliacoes', __name__, url_prefix='/api/avaliacoes')
+avaliacoes_ns = Namespace('avaliacoes', description='Operações relacionadas a avaliações de transações', path='/api/avaliacoes')
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+avaliacao_model = avaliacoes_ns.model('Avaliacao', {
+    'id': fields.Integer(description='ID da avaliação'),
+    'id_transacao': fields.Integer(description='ID da transação avaliada'),
+    'nota': fields.Integer(description='Nota (1 a 5)'),
+    'comentario': fields.String(description='Comentário opcional'),
+    'data_avaliacao': fields.Date(description='Data da avaliação'),
+})
+
+avaliacao_input_model = avaliacoes_ns.model('AvaliacaoInput', {
+    'nota': fields.Integer(required=True, description='Nota da avaliação (1 a 5)'),
+    'comentario': fields.String(description='Comentário opcional'),
+})
+
 logger = logging.getLogger(__name__)
 
-
-def get_cliente_from_header(session):
-    cliente_id = request.headers.get('X-Cliente-Id')
-    if not cliente_id:
-        return None, "Header X-Cliente-Id é obrigatório."
-    try:
-        cliente_id = int(cliente_id)
-    except ValueError:
-        return None, "X-Cliente-Id inválido."
-
-    cliente = session.get(Cliente, cliente_id)
-    if not cliente:
-        return None, "Cliente não cadastrado ou não encontrado."
-
-    return cliente, None
-
-
-def serialize_avaliacao(avaliacao: Avaliacao):
+def _serialize_avaliacao(avaliacao: Avaliacao):
     return {
         "id": avaliacao.id,
         "id_transacao": avaliacao.id_transacao,
         "nota": avaliacao.nota,
         "comentario": avaliacao.comentario,
-        "data_avaliacao": avaliacao.data_avaliacao.isoformat() if avaliacao.data_avaliacao else None
+        "data_avaliacao": avaliacao.data_avaliacao.isoformat() if avaliacao.data_avaliacao else None,
     }
 
-
-_STATUS_FINALIZADO = {
-    'venda': {'FINALIZADA'},
-    'aluguel': {'FINALIZADO'}
-}
-
-
-@avaliacoes_bp.route('/<int:id_transacao>', methods=['POST'])
-def avaliar_transacao(id_transacao):
-    session = DatabaseManager.get_session()
+def _get_cliente_from_header():
+    cliente_id = request.headers.get('X-Cliente-Id')
+    if not cliente_id:
+        avaliacoes_ns.abort(403, "Header X-Cliente-Id é obrigatório.")
     try:
-        cliente, erro = get_cliente_from_header(session)
-        if erro:
-            return jsonify({"erro": erro}), 403
+        cliente = container.usuario_service.get_cliente_by_id(int(cliente_id))
+        if not cliente:
+            avaliacoes_ns.abort(403, "Cliente não encontrado.")
+        return cliente
+    except ValueError:
+        avaliacoes_ns.abort(403, "X-Cliente-Id inválido.")
 
+@avaliacoes_ns.route('/<int:id_transacao>')
+class AvaliacaoResource(Resource):
+    @avaliacoes_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}})
+    @avaliacoes_ns.expect(avaliacao_input_model)
+    @avaliacoes_ns.marshal_with(avaliacao_model, code=201)
+    def post(self, id_transacao):
+        """Cria uma nova avaliação para uma transação."""
+        cliente = _get_cliente_from_header()
         data = request.get_json()
-        if not data or 'nota' not in data:
-            return jsonify({"erro": "O campo 'nota' é obrigatório."}), 400
-
+        
         try:
-            nota = int(data['nota'])
-        except (TypeError, ValueError):
-            return jsonify({"erro": "O campo 'nota' deve ser um número inteiro."}), 400
+            nova_avaliacao = container.avaliacao_service.criar_avaliacao(
+                id_cliente=cliente.id,
+                id_transacao=id_transacao,
+                nota=data.get('nota'),
+                comentario=data.get('comentario')
+            )
+            return _serialize_avaliacao(nova_avaliacao), 201
+        except (ValueError, PermissionError) as e:
+            avaliacoes_ns.abort(400, str(e))
+        except Exception as e:
+            logger.error(f"Erro ao criar avaliação: {e}")
+            avaliacoes_ns.abort(500, "Erro interno ao processar a avaliação.")
 
-        if nota < 1 or nota > 5:
-            return jsonify({"erro": "A nota deve ser um valor entre 1 e 5."}), 400
+@avaliacoes_ns.route('/minhas')
+class MinhasAvaliacoesResource(Resource):
+    @avaliacoes_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}})
+    @avaliacoes_ns.marshal_list_with(avaliacao_model)
+    def get(self):
+        """Lista todas as avaliações feitas pelo cliente."""
+        cliente = _get_cliente_from_header()
+        avaliacoes = container.avaliacao_service.get_avaliacoes_por_cliente(cliente.id)
+        return [_serialize_avaliacao(av) for av in avaliacoes]
 
-        comentario = data.get('comentario')
-
-        transacao = session.get(Transacao, id_transacao)
-        if not transacao or transacao.id_cliente != cliente.id_usuario:
-            return jsonify({"erro": "Transação não encontrada ou não pertence a este cliente."}), 404
-
-        status_esperado = _STATUS_FINALIZADO.get(transacao.tipo)
-        if not status_esperado or transacao.status not in status_esperado:
-            return jsonify({"erro": "Só é possível avaliar uma compra ou aluguel já finalizado."}), 400
-
-        avaliacao_existente = session.query(Avaliacao).filter_by(id_transacao=id_transacao).first()
-        if avaliacao_existente:
-            return jsonify({"erro": "Esta transação já foi avaliada."}), 400
-
-        nova_avaliacao = Avaliacao(
-            id_transacao=id_transacao,
-            nota=nota,
-            comentario=comentario,
-            data_avaliacao=date.today()
-        )
-        session.add(nova_avaliacao)
-        session.commit()
-
-        logger.info(f"Cliente ID {cliente.id_usuario} AVALIOU a transação ID {id_transacao} com nota {nota}.")
-        return jsonify({
-            "mensagem": "Avaliação registrada com sucesso.",
-            "avaliacao": serialize_avaliacao(nova_avaliacao)
-        }), 201
-
-    except Exception as e:
-        session.rollback()
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
-    finally:
-        session.close()
-
-
-@avaliacoes_bp.route('/minhas', methods=['GET'])
-def minhas_avaliacoes():
-    session = DatabaseManager.get_session()
-    try:
-        cliente, erro = get_cliente_from_header(session)
-        if erro:
-            return jsonify({"erro": erro}), 403
-
-        avaliacoes = session.query(Avaliacao).join(
-            Transacao, Transacao.id == Avaliacao.id_transacao
-        ).filter(Transacao.id_cliente == cliente.id_usuario).all()
-
-        return jsonify([serialize_avaliacao(a) for a in avaliacoes]), 200
-
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
-    finally:
-        session.close()
-
-
-@avaliacoes_bp.route('/jogo/<int:id_catalogo>', methods=['GET'])
-def avaliacoes_do_jogo(id_catalogo):
-    session = DatabaseManager.get_session()
-    try:
-        jogo = session.get(Catalogo, id_catalogo)
-        if not jogo:
-            return jsonify({"erro": "Jogo não encontrado no catálogo."}), 404
-
-        avaliacoes = session.query(Avaliacao).join(
-            Transacao, Transacao.id == Avaliacao.id_transacao
-        ).join(
-            ItemTransacao, ItemTransacao.id_transacao == Transacao.id
-        ).join(
-            Exemplar, Exemplar.id == ItemTransacao.id_exemplar
-        ).filter(Exemplar.id_catalogo == id_catalogo).all()
-
-        notas = [a.nota for a in avaliacoes if a.nota is not None]
-        media = round(sum(notas) / len(notas), 2) if notas else None
-
-        return jsonify({
-            "id_catalogo": id_catalogo,
-            "titulo": jogo.titulo,
-            "media_nota": media,
-            "total_avaliacoes": len(avaliacoes),
-            "avaliacoes": [serialize_avaliacao(a) for a in avaliacoes]
-        }), 200
-
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
-    finally:
-        session.close()
+@avaliacoes_ns.route('/jogo/<int:id_catalogo>')
+class AvaliacoesJogoResource(Resource):
+    @avaliacoes_ns.marshal_list_with(avaliacao_model)
+    def get(self, id_catalogo):
+        """Lista todas as avaliações para um determinado jogo."""
+        avaliacoes = container.avaliacao_service.get_avaliacoes_por_jogo(id_catalogo)
+        return [_serialize_avaliacao(av) for av in avaliacoes]
