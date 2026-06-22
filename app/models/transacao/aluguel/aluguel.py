@@ -73,6 +73,8 @@ class Aluguel(Transacao):
             multa_aplicada: Optional[Multa] = None,
             multa_paga: Optional[bool] = None,
             dias_atraso: Optional[int] = None,
+            id_cliente: Optional[int] = None,
+            id_funcionario: Optional[int] = None,
             **kwargs,
     ):
         # Allow passing id_transacao for backwards compatibility
@@ -88,6 +90,8 @@ class Aluguel(Transacao):
             comprovantes=comprovantes,
             itens_transacao=itens_transacao,
             tipo="aluguel",
+            id_cliente=id_cliente,
+            id_funcionario=id_funcionario,
             **kwargs,
         )
         self.periodo = periodo
@@ -123,6 +127,8 @@ class Aluguel(Transacao):
         status = status or self.status
         if status == StatusAluguel.SOLICITADO.value:
             self.state = EstadoSolicitado(self)
+        elif status == StatusAluguel.PROCESSANDO_PAGAMENTO.value:
+            self.state = EstadoProcessandoPagamento(self)
         elif status == StatusAluguel.APROVADO.value:
             self.state = EstadoPagamentoConfirmado(self)
         elif status == StatusAluguel.ATIVO.value:
@@ -142,6 +148,18 @@ class Aluguel(Transacao):
     # --- Delegação para o State Pattern ---
     def processar_pagamento(self, sucesso: bool):
         self.state.processar_pagamento(sucesso)
+        self._set_state(self.status)
+
+    def pagamento_com_sucesso(self):
+        self.state.pagamento_com_sucesso()
+        self._set_state(self.status)
+
+    def pagamento_recusado(self):
+        self.state.pagamento_recusado()
+        self._set_state(self.status)
+
+    def verificar_atraso(self):
+        self.state.verificar_atraso()
         self._set_state(self.status)
 
     def registrar_retirada(self):

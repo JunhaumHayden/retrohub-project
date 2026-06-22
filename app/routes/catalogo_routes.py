@@ -32,13 +32,18 @@ catalogo_input_model = catalogo_ns.model('CatalogoInput', {
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+def _enum_to_str(value):
+    if value is None:
+        return None
+    return getattr(value, "value", getattr(value, "name", value))
+
 def serialize_catalogo(jogo: Catalogo):
     """Função utilitária para serializar um objeto Catalogo."""
     return {
         "id": jogo.id,
         "titulo": jogo.titulo,
         "descricao": jogo.descricao,
-        "situacao": jogo.situacao.value if isinstance(jogo.situacao, StatusSituacao) else jogo.situacao,
+        "situacao": _enum_to_str(jogo.situacao),
         "genero": jogo.genero,
         "classificacao": jogo.classificacao,
         "estoque_disponivel": container.catalogo_service.get_estoque_disponivel(jogo.id)

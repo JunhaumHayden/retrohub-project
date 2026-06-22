@@ -107,7 +107,7 @@ def _get_funcionario_from_header():
 @alugueis_ns.route('/solicitar')
 class SolicitarAluguel(Resource):
     @alugueis_ns.expect(aluguel_solicitacao_model)
-    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'required': True}})
+    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}})
     def post(self):
         cliente = _get_cliente_from_header()
         data = request.get_json()
@@ -121,16 +121,25 @@ class SolicitarAluguel(Resource):
 @alugueis_ns.route('/<int:id>/pagamento')
 class Pagamento(Resource):
     @alugueis_ns.expect(pagamento_model)
-    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'required': True}})
+    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}})
     def patch(self, id):
         _get_cliente_from_header()
         aluguel, erro = container.aluguel_service.processar_pagamento(id, request.get_json()['sucesso'])
         if erro: alugueis_ns.abort(400, erro)
         return serialize_aluguel_completo(aluguel)
 
+@alugueis_ns.route('/<int:id>/pagamento/recusar')
+class PagamentoRecusado(Resource):
+    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}})
+    def patch(self, id):
+        _get_cliente_from_header()
+        aluguel, erro = container.aluguel_service.pagamento_recusado(id)
+        if erro: alugueis_ns.abort(400, erro)
+        return serialize_aluguel_completo(aluguel)
+
 @alugueis_ns.route('/<int:id>/retirada')
 class Retirada(Resource):
-    @alugueis_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'required': True}})
+    @alugueis_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}})
     def patch(self, id):
         _get_funcionario_from_header()
         aluguel, erro = container.aluguel_service.registrar_retirada(id)
@@ -140,7 +149,7 @@ class Retirada(Resource):
 @alugueis_ns.route('/<int:id>/devolucao')
 class Devolucao(Resource):
     @alugueis_ns.expect(aluguel_devolucao_model)
-    @alugueis_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'required': True}})
+    @alugueis_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}})
     def patch(self, id):
         funcionario = _get_funcionario_from_header()
         aluguel, erro = container.aluguel_service.registrar_devolucao(id, request.get_json()['condicao_item'], funcionario.id)
@@ -149,7 +158,7 @@ class Devolucao(Resource):
 
 @alugueis_ns.route('/<int:id>/cancelar')
 class Cancelar(Resource):
-    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'required': True}})
+    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}})
     def patch(self, id):
         cliente = _get_cliente_from_header()
         _, erro = container.aluguel_service.cancelar_aluguel(id, cliente.id)
@@ -159,7 +168,7 @@ class Cancelar(Resource):
 @alugueis_ns.route('/<int:id>/renovar')
 class Renovar(Resource):
     @alugueis_ns.expect(aluguel_renovacao_model)
-    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'required': True}})
+    @alugueis_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}})
     def patch(self, id):
         cliente = _get_cliente_from_header()
         aluguel, erro = container.aluguel_service.renovar_aluguel(id, cliente.id, request.get_json()['dias_adicionais'])

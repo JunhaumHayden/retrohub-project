@@ -72,7 +72,6 @@ def get_funcionario_from_header():
 @estoque_ns.route('/fisico')
 class MidiaFisicaResource(Resource):
     @estoque_ns.expect(midia_fisica_input_model)
-    @estoque_ns.marshal_with(midia_fisica_model, code=201)
     def post(self):
         try:
             funcionario, erro = get_funcionario_from_header()
@@ -95,7 +94,7 @@ class MidiaFisicaResource(Resource):
             if erro:
                 return {"erro": erro}, 400
 
-            logger.info(f"Funcionário ID {funcionario.id_usuario} cadastrou mídia FÍSICA '{midia.codigo_barras}'.")
+            logger.info(f"Funcionário ID {funcionario.id} cadastrou mídia FÍSICA '{midia.codigo_barras}'.")
             return container.estoque_service.serialize_exemplar(midia), 201
 
         except Exception as e:
@@ -108,7 +107,6 @@ class MidiaFisicaResource(Resource):
 @estoque_ns.route('/digital')
 class MidiaDigitalResource(Resource):
     @estoque_ns.expect(midia_digital_input_model)
-    @estoque_ns.marshal_with(midia_digital_model, code=201)
     def post(self):
         try:
             funcionario, erro = get_funcionario_from_header()
@@ -138,7 +136,7 @@ class MidiaDigitalResource(Resource):
             if erro:
                 return {"erro": erro}, 400
 
-            logger.info(f"Funcionário ID {funcionario.id_usuario} cadastrou mídia DIGITAL para o catalogo ID {data['id_catalogo']}.")
+            logger.info(f"Funcionário ID {funcionario.id} cadastrou mídia DIGITAL para o catalogo ID {data['id_catalogo']}.")
             return container.estoque_service.serialize_exemplar(midia), 201
 
         except Exception as e:
@@ -150,8 +148,6 @@ class MidiaDigitalResource(Resource):
 # ==========================================
 @estoque_ns.route('/catalogo/<int:id_catalogo>')
 class EstoqueCatalogoResource(Resource):
-    @estoque_ns.marshal_with(midia_fisica_model, code=200, as_list=True)
-    @estoque_ns.marshal_with(midia_digital_model, code=200, as_list=True)
     def get(self, id_catalogo):
         try:
             exemplares = container.estoque_service.get_exemplares_by_catalogo(id_catalogo)
@@ -183,7 +179,7 @@ class MidiaFisicaEstadoResource(Resource):
             if erro:
                 return {"erro": erro}, 400
 
-            logger.info(f"Funcionário ID {funcionario.id_usuario} ATUALIZOU o estado da mídia {midia.codigo_barras}.")
+            logger.info(f"Funcionário ID {funcionario.id} ATUALIZOU o estado da mídia {midia.codigo_barras}.")
             return container.estoque_service.serialize_exemplar(midia), 200
 
         except Exception as e:
@@ -209,7 +205,7 @@ class ExemplarResource(Resource):
             if erro:
                 return {"erro": erro}, 400
             
-            logger.warning(f"Funcionário ID {funcionario.id_usuario} EXCLUIU o exemplar ID {id} ({tipo}).")
+            logger.warning(f"Funcionário ID {funcionario.id} EXCLUIU o exemplar ID {id} ({tipo}).")
             return {"mensagem": "Exemplar excluído do estoque com sucesso."}, 200
             
         except Exception as e:

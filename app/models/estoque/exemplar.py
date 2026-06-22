@@ -20,3 +20,15 @@ class Exemplar(Base):
 
     def set_situacao(self, situacao: str):
         self.situacao = StatusSituacao(situacao)
+
+    def registrar_retirada(self):
+        situacao_atual = getattr(self.situacao, "value", self.situacao)
+        if situacao_atual != StatusSituacao.DISPONIVEL.value:
+            raise ValueError("Exemplar não está disponível para retirada.")
+        self.situacao = StatusSituacao.INDISPONIVEL
+
+    def registrar_devolucao(self):
+        situacao_atual = getattr(self.situacao, "value", self.situacao)
+        if situacao_atual != StatusSituacao.INDISPONIVEL.value:
+            raise ValueError("Exemplar não está indisponível para devolução.")
+        self.situacao = StatusSituacao.DISPONIVEL

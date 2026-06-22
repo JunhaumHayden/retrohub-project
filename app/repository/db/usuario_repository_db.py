@@ -1,6 +1,7 @@
 from typing import List, Optional
 
-from app.models import Usuario, Cliente, Funcionario
+from app.models import Usuario, Cliente, Funcionario, Venda, Aluguel
+from app.models.transacao.avaliacao import Avaliacao
 from app.repository.interface.usuario_repository_interface import UsuarioRepositoryInterface
 from app.database.interfaces.data_source_interface import DataSourceInterface
 
@@ -77,3 +78,21 @@ class UsuarioRepositoryDB(UsuarioRepositoryInterface):
         if usuario:
             return self.data_source.delete(type(usuario), usuario.id)
         return False
+
+    def get_transacao_by_id(self, id_transacao: int):
+        transacao = self.data_source.get_by_id(Venda, id_transacao)
+        if transacao:
+            return transacao
+        return self.data_source.get_by_id(Aluguel, id_transacao)
+
+    def create_avaliacao(self, avaliacao: Avaliacao) -> Optional[Avaliacao]:
+        return self.data_source.create(avaliacao)
+
+    def get_avaliacoes_by_cliente(self, id_cliente: int) -> List[Avaliacao]:
+        avaliacoes = self.data_source.get_all(Avaliacao)
+        result = []
+        for avaliacao in avaliacoes:
+            transacao = self.get_transacao_by_id(avaliacao.id_transacao)
+            if transacao and getattr(transacao, "id_cliente", None) == id_cliente:
+                result.append(avaliacao)
+        return result

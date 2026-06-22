@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional, Tuple
 
 from app.repository.interface.aluguel_repository_interface import AluguelRepositoryInterface
@@ -22,6 +22,9 @@ class AluguelService:
             return None, "Jogo não existe ou está inativo."
 
         exemplar = self.repo.find_exemplar_disponivel(catalogo.id, tipo_midia)
+        # re-fetch exemplar by id to ensure the instance is bound to an active Session
+        if exemplar and getattr(exemplar, 'id', None) is not None:
+            exemplar = self.repo.get_exemplar_by_id(exemplar.id)
         if not exemplar:
             return None, f"Não há exemplares da mídia {tipo_midia} disponíveis no momento para este jogo."
 
@@ -38,9 +41,9 @@ class AluguelService:
             status=StatusAluguel.SOLICITADO.value,
             periodo=dias_alugados,
             data_inicio=data_inicio,
-            data_prevista_devolucao=data_prevista_devolucao
+            data_prevista_devolucao=data_prevista_devolucao,
         )
-        
+
         aluguel_criado = self.repo.create_aluguel(novo_aluguel)
         
         item_transacao = ItemTransacao(
@@ -64,6 +67,18 @@ class AluguelService:
         except ValueError as e:
             return None, str(e)
 
+    def pagamento_recusado(self, aluguel_id: int) -> Tuple[Optional[Aluguel], Optional[str]]:
+        aluguel = self.repo.get_by_id(aluguel_id)
+        if not aluguel:
+            return None, "Aluguel não encontrado."
+
+        try:
+            aluguel.pagamento_recusado()
+            self.repo.update(aluguel)
+            return aluguel, None
+        except ValueError as e:
+            return None, str(e)
+
     def registrar_retirada(self, aluguel_id: int) -> Tuple[Optional[Aluguel], Optional[str]]:
         aluguel = self.repo.get_by_id(aluguel_id)
         if not aluguel:
@@ -81,7 +96,7 @@ class AluguelService:
             for item in items:
                 exemplar = self.repo.get_exemplar_by_id(item.id_exemplar)
                 if exemplar:
-                    exemplar.set_situacao("ALUGADO")
+                    exemplar.registrar_retirada()
                     self.repo.update(exemplar)
 
             self._gerar_e_salvar_comprovante(aluguel, TipoComprovante.ALUGUEL.value)
@@ -117,7 +132,7 @@ class AluguelService:
             for item in items:
                 exemplar = self.repo.get_exemplar_by_id(item.id_exemplar)
                 if exemplar:
-                    exemplar.set_situacao("DISPONIVEL")
+                    exemplar.registrar_devolucao()
                     if isinstance(exemplar, MidiaFisica):
                         exemplar.set_estado_conservacao(cond_norm)
                     self.repo.update(exemplar)
@@ -137,7 +152,8 @@ class AluguelService:
             return None, "Aluguel não encontrado ou não pertence a este cliente."
         
         try:
-            aluguel.renovar_aluguel(dias_adicionais) # Delega a transição de estado
+            aluguel.verificar_atraso()
+            aluguel.renovar_aluguel(dias_adicionais)
 
             item_transacao = self.repo.get_items_by_transacao(aluguel.id)
             exemplar = self.repo.get_exemplar_by_id(item_transacao[0].id_exemplar)

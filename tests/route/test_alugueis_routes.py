@@ -224,7 +224,7 @@ class TestAlugueisRotas:
     def test_registrar_retirada(self, test_container, setup_test_entities):
         """
         Testa o registro de retirada de um aluguel.
-        Esperado: Status muda para ATIVO e exemplo fica em situação ALUGADO.
+        Esperado: Status muda para ATIVO e exemplar fica em situação INDISPONIVEL.
         """
         aluguel_service = test_container.aluguel_service
         
@@ -401,22 +401,19 @@ class TestAlugueisRotas:
         cliente_id = setup_test_entities["cliente_id"]
         catalogo_id = setup_test_entities["catalogo_id"]
         
-        # Criar aluguel
+        # Criar aluguel com data futura para permitir cancelamento
         aluguel, _ = aluguel_service.solicitar_aluguel(
             id_cliente=cliente_id,
             id_catalogo=catalogo_id,
             dias_alugados=3,
-            data_inicio=date.today(),
+            data_inicio=date.today() + timedelta(days=7),
             tipo_midia="FISICA"
         )
-        
-        # Cancelar aluguel (pode falhar se não encontrado ou em estado inválido)
+
         aluguel_cancelado, erro = aluguel_service.cancelar_aluguel(aluguel.id, cliente_id)
-        
-        # Aceitar ambos os cenários: sucesso ou erro
-        if erro:
-            # Se há erro, pode ser porque o aluguel não foi encontrado ou está em estado inválido
-            assert "não encontrado" in erro.lower() or "não pertence" in erro.lower()
+        assert erro is None
+        assert aluguel_cancelado is not None
+        assert aluguel_cancelado.status == "CANCELADO"
 
     def test_renovar_aluguel(self, test_container, setup_test_entities):
         """
@@ -438,21 +435,16 @@ class TestAlugueisRotas:
         )
         
         aluguel, _ = aluguel_service.processar_pagamento(aluguel.id, sucesso=True)
-        
-        # Renovar com 2 dias adicionais
-        dias_adicionais = 2
+        aluguel, _ = aluguel_service.registrar_retirada(aluguel.id)
+
         aluguel_renovado, erro = aluguel_service.renovar_aluguel(
             aluguel.id,
             cliente_id,
-            dias_adicionais
+            2,
         )
-        
-        if erro:
-            # Aceitar erro se o aluguel não for encontrado ou estiver em estado inválido
-            assert "não encontrado" in erro.lower() or "não pertence" in erro.lower()
-        else:
-            assert aluguel_renovado is not None
-            assert aluguel_renovado.periodo == 5  # 3 + 2
+        assert erro is None
+        assert aluguel_renovado is not None
+        assert aluguel_renovado.periodo == 5  # 3 + 2
 
     def test_fluxo_completo_aluguel(self, test_container, setup_test_entities):
         """

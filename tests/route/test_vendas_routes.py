@@ -31,22 +31,21 @@ def setup_venda_entities(test_container):
     )
 
     jogo = catalogo_service.create(Catalogo(titulo="Halo Combat Evolved"))
-    # The domain model stores price on exemplars in this refactor; keep a helper attribute
-    # to match legacy behaviour used by venda_service (it reads catalogo.valor_venda).
-    jogo.valor_venda = Decimal("100.00")
 
     midia_fisica = estoque_service.create_exemplar(
         MidiaFisica(
             catalogo=jogo,
             codigo_barras="XBOX-HALO-1",
-            estado_conservacao="NOVO"
+            estado_conservacao="NOVO",
+            valor_venda=Decimal("100.00"),
         )
     )
 
     midia_digital = estoque_service.create_exemplar(
         MidiaDigital(
             catalogo=jogo,
-            chave_ativacao="AAAA-BBBB-CCCC"
+            chave_ativacao="AAAA-BBBB-CCCC",
+            valor_venda=Decimal("79.90"),
         )
     )
 

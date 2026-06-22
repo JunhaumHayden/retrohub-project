@@ -84,3 +84,17 @@ def test_relacionamento_catalogo_exemplares(db_session, catalogo_teste):
     assert len(catalogo_recarregado.exemplares) == 2
     assert isinstance(catalogo_recarregado.exemplares[0], MidiaFisica)
     assert catalogo_recarregado.exemplares[1].catalogo.id == catalogo_recarregado.id
+
+
+def test_maquina_estados_exemplar_disponivel_indisponivel():
+    exemplar = Exemplar(id_catalogo=1, tipo_midia="FISICA", situacao=StatusSituacao.DISPONIVEL)
+
+    exemplar.registrar_retirada()
+    assert exemplar.situacao == StatusSituacao.INDISPONIVEL
+
+    exemplar.registrar_devolucao()
+    assert exemplar.situacao == StatusSituacao.DISPONIVEL
+
+    with pytest.raises(ValueError, match="não está disponível"):
+        exemplar.registrar_retirada()
+        exemplar.registrar_retirada()

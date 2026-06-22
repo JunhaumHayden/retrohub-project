@@ -1,5 +1,5 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import create_engine, inspect as sa_inspect
+from sqlalchemy.orm import sessionmaker, Session, scoped_session
 from typing import List, Optional, Type, TypeVar
 
 from app.database.interfaces.data_source_interface import DataSourceInterface
@@ -13,9 +13,11 @@ class SQLiteDataSource(DataSourceInterface):
 
     def __init__(self, db_url: str):
         self.engine = create_engine(db_url, echo=True)  # echo=True para logar as queries SQL
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=self.engine)
+        # Use scoped_session to keep a consistent session per thread/request
+        self.SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=self.engine))
 
     def _get_session(self) -> Session:
+        # scoped_session is callable and returns the current Session
         return self.SessionLocal()
 
     def load_data(self):
@@ -27,11 +29,27 @@ class SQLiteDataSource(DataSourceInterface):
 
     def get_all(self, entity_type: Type[T]) -> List[T]:
         session = self._get_session()
-        return session.query(entity_type).all()
+        results = session.query(entity_type).all()
+        # access column attributes to ensure they are loaded while session is active
+        for obj in results:
+            for col in getattr(entity_type, '__table__', []).columns if hasattr(entity_type, '__table__') else []:
+                _ = getattr(obj, col.name, None)
+        return results
+
+    def _touch_mapped_columns(self, entity_type: Type[T], obj: T) -> None:
+        """Carrega colunas de todas as tabelas do mapeamento (inclui herança join)."""
+        mapper = sa_inspect(entity_type)
+        for table in mapper.tables:
+            for col in table.columns:
+                _ = getattr(obj, col.key, None)
 
     def get_by_id(self, entity_type: Type[T], entity_id: int) -> Optional[T]:
         session = self._get_session()
-        return session.query(entity_type).get(entity_id)
+        # prefer Session.get for modern SQLAlchemy
+        result = session.get(entity_type, entity_id)
+        if result is not None:
+            self._touch_mapped_columns(entity_type, result)
+        return result
 
     def get_by_field(self, entity_type: Type[T], field_name: str, value) -> Optional[T]:
         session = self._get_session()
@@ -41,12 +59,21 @@ class SQLiteDataSource(DataSourceInterface):
         session = self._get_session()
         session.add(entity)
         session.commit()
+        # refresh to load generated values
+        session.refresh(entity)
         return entity
 
     def update(self, entity: T) -> Optional[T]:
         session = self._get_session()
+        # Evita merge em instância já rastreada pela sessão (preserva FKs da superclasse).
+        if entity in session:
+            session.commit()
+            session.refresh(entity)
+            return entity
+
         entity = session.merge(entity)
         session.commit()
+        session.refresh(entity)
         return entity
 
     def delete(self, entity_type: Type[T], entity_id: int) -> bool:

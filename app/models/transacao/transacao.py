@@ -49,6 +49,8 @@ class Transacao(Base):
             comprovantes: Optional[List["Comprovante"]] = None,
             itens_transacao: Optional[List["ItemTransacao"]] = None,
             avaliacao: Optional["Avaliacao"] = None,
+            id_cliente: Optional[int] = None,
+            id_funcionario: Optional[int] = None,
             **kwargs,
     ):
         if type(self) is Transacao:
@@ -58,9 +60,22 @@ class Transacao(Base):
         self.valor_total = valor_total
         self.tipo = tipo
         self.data_transacao = data_transacao or datetime.utcnow()
-        self.pagamento = status_pagamento or StatusPagamento.PENDENTE.value
-        self.cliente = cliente
-        self.funcionario = funcionario
+        self.status_pagamento = (
+            StatusPagamento(status_pagamento)
+            if status_pagamento is not None
+            else StatusPagamento.PENDENTE
+        )
+        # Não atribuir None às relationships: o SQLAlchemy sincroniza id_cliente/id_funcionario
+        # com o objeto relacionado e apagaria os FKs definidos apenas por id.
+        if cliente is not None:
+            self.cliente = cliente
+        elif id_cliente is not None:
+            self.id_cliente = id_cliente
+
+        if funcionario is not None:
+            self.funcionario = funcionario
+        elif id_funcionario is not None:
+            self.id_funcionario = id_funcionario
         self.itens_transacao = list(itens_transacao) if itens_transacao else []
         self.comprovantes = list(comprovantes) if comprovantes else []
         self.avaliacao = avaliacao

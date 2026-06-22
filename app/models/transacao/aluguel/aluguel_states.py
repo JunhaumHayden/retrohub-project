@@ -15,6 +15,12 @@ class AluguelState:
     def processar_pagamento(self, sucesso: bool):
         raise ValueError("Transição de estado inválida")
 
+    def pagamento_com_sucesso(self):
+        raise ValueError("Transição de estado inválida")
+
+    def pagamento_recusado(self):
+        raise ValueError("Transição de estado inválida")
+
     def registrar_retirada(self):
         raise ValueError("Transição de estado inválida")
 
@@ -27,10 +33,15 @@ class AluguelState:
     def cancelar_aluguel(self):
         raise ValueError("Transição de estado inválida")
 
+    def verificar_atraso(self):
+        pass
+
 
 class EstadoSolicitado(AluguelState):
     def processar_pagamento(self, sucesso: bool):
-        self.aluguel.state = EstadoProcessandoPagamento(self.aluguel)
+        self.aluguel._contexto_pagamento = "SOLICITADO"
+        self.aluguel.status = StatusAluguel.PROCESSANDO_PAGAMENTO.value
+        self.aluguel._set_state(self.aluguel.status)
         self.aluguel.state.processar_pagamento(sucesso)
 
     def cancelar_aluguel(self):
@@ -43,17 +54,30 @@ class EstadoSolicitado(AluguelState):
     def renovar_aluguel(self, dias_adicionais: int):
         if dias_adicionais <= 0:
             raise ValueError("O período de renovação deve ser maior que zero.")
-        dias_atraso = getattr(self.aluguel, 'dias_atraso', 0) or 0
+        dias_atraso = getattr(self.aluguel, "dias_atraso", 0) or 0
         if dias_atraso > 0:
             raise ValueError("Não é possível renovar um aluguel em atraso.")
-        # Permite apenas estender o período no estado SOLICITADO sem alterar o status.
-        return
 
 
 class EstadoProcessandoPagamento(AluguelState):
     def processar_pagamento(self, sucesso: bool):
         if sucesso:
+            self.pagamento_com_sucesso()
+        else:
+            self.aluguel.status = StatusAluguel.PROCESSANDO_PAGAMENTO.value
+
+    def pagamento_com_sucesso(self):
+        contexto = getattr(self.aluguel, "_contexto_pagamento", "SOLICITADO")
+        if contexto == "ATRASADO":
+            self.aluguel.status = StatusAluguel.ATIVO.value
+        else:
             self.aluguel.status = StatusAluguel.APROVADO.value
+        self.aluguel._set_state(self.aluguel.status)
+
+    def pagamento_recusado(self):
+        contexto = getattr(self.aluguel, "_contexto_pagamento", "SOLICITADO")
+        if contexto == "ATRASADO":
+            self.aluguel.status = StatusAluguel.ATRASADO.value
         else:
             self.aluguel.status = StatusAluguel.CANCELADO.value
         self.aluguel._set_state(self.aluguel.status)
@@ -69,6 +93,14 @@ class EstadoPagamentoConfirmado(AluguelState):
 
 
 class EstadoAtivo(AluguelState):
+    def verificar_atraso(self):
+        if (
+            self.aluguel.data_prevista_devolucao
+            and self.aluguel.data_prevista_devolucao < date.today()
+        ):
+            self.aluguel.status = StatusAluguel.ATRASADO.value
+            self.aluguel._set_state(self.aluguel.status)
+
     def finalizar_aluguel(self):
         self.aluguel.status = StatusAluguel.FINALIZADO.value
         self.aluguel._set_state(self.aluguel.status)
@@ -76,7 +108,10 @@ class EstadoAtivo(AluguelState):
     def renovar_aluguel(self, dias_adicionais: int):
         if dias_adicionais <= 0:
             raise ValueError("O período de renovação deve ser maior que zero.")
-        dias_atraso = getattr(self.aluguel, 'dias_atraso', 0) or 0
+        self.verificar_atraso()
+        if self.aluguel.status == StatusAluguel.ATRASADO.value:
+            raise ValueError("Não é possível renovar um aluguel em atraso.")
+        dias_atraso = getattr(self.aluguel, "dias_atraso", 0) or 0
         if dias_atraso > 0:
             self.aluguel.status = StatusAluguel.ATRASADO.value
             self.aluguel._set_state(self.aluguel.status)
@@ -87,6 +122,12 @@ class EstadoAtivo(AluguelState):
 
 
 class EstadoAtrasado(AluguelState):
+    def processar_pagamento(self, sucesso: bool):
+        self.aluguel._contexto_pagamento = "ATRASADO"
+        self.aluguel.status = StatusAluguel.PROCESSANDO_PAGAMENTO.value
+        self.aluguel._set_state(self.aluguel.status)
+        self.aluguel.state.processar_pagamento(sucesso)
+
     def finalizar_aluguel(self):
         self.aluguel.status = StatusAluguel.FINALIZADO.value
         self.aluguel._set_state(self.aluguel.status)

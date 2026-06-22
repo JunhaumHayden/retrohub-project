@@ -37,7 +37,7 @@ class DatabaseFactory:
                 cls._data_source = PostgresDataSource(db_url)
             elif db_type == 'sqlite':
                 # Padroniza o caminho do banco de dados para a pasta resources
-                db_path = os.path.join('resources', 'database', 'sqlite', 'app.db')
+                db_path = os.path.join('resources', 'database', 'sqlite', 'retrohub.db')
                 db_url = os.getenv('SQLITE_DATABASE_URL', f'sqlite:///{db_path}')
                 cls._data_source = SQLiteDataSource(db_url)
             else:

@@ -37,15 +37,15 @@ class VendaService:
         """Get all vendas for a specific cliente"""
         return self.venda_repository.get_by_cliente(cliente_id)
 
-    def find_exemplar_disponivel_venda(self, id_jogo: int, tipo_midia: str) -> Optional[Exemplar]:
-        """Find available exemplar for sale based on game and media type"""
-        catalogo = self.catalogo_repository.get_by_id(id_jogo)
+    def find_exemplar_disponivel_venda(self, id_catalogo: int, tipo_midia: str) -> Optional[Exemplar]:
+        """Find available exemplar for sale based on catalog and media type"""
+        catalogo = self.catalogo_repository.get_by_id(id_catalogo)
         if not catalogo:
             return None
 
         if tipo_midia == 'DIGITAL':
             # For digital media, check if there's an available digital copy
-            digitais = self.estoque_repository.get_exemplares_by_catalogo(id_jogo)
+            digitais = self.estoque_repository.get_exemplares_by_catalogo(id_catalogo)
             for digital in digitais:
                 if isinstance(digital, MidiaDigital):
                     # Check if this digital copy is not already sold
@@ -53,7 +53,7 @@ class VendaService:
                     return digital
         elif tipo_midia == 'FISICA':
             # For physical media, find an available physical copy
-            fisicas = self.estoque_repository.get_exemplares_by_catalogo(id_jogo)
+            fisicas = self.estoque_repository.get_exemplares_by_catalogo(id_catalogo)
             for fisica in fisicas:
                 if isinstance(fisica, MidiaFisica):
                     # Check if this physical copy is available
@@ -66,20 +66,17 @@ class VendaService:
     def criar_venda(
         self,
         cliente_id: int,
-        id_jogo: int,
+        id_catalogo: int,
         tipo_midia: str
     ) -> tuple[Optional[Venda], Optional[str]]:
         """
         Create a new venda
         Returns (venda, error_message)
         """
-        # Validate catalogo exists and is available for sale
-        catalogo = self.catalogo_repository.get_by_id(id_jogo)
+        # Validate catalogo exists
+        catalogo = self.catalogo_repository.get_by_id(id_catalogo)
         if not catalogo:
             return None, "Jogo não encontrado no catálogo."
-
-        if not catalogo.valor_venda:
-            return None, "Este jogo não está disponível para venda."
 
         # Validate media type
         tipo_midia = tipo_midia.upper()
@@ -87,31 +84,27 @@ class VendaService:
             return None, "tipo_midia deve ser FISICA ou DIGITAL."
 
         # Find available exemplar
-        exemplar = self.find_exemplar_disponivel_venda(id_jogo, tipo_midia)
+        exemplar = self.find_exemplar_disponivel_venda(id_catalogo, tipo_midia)
         if not exemplar:
             return None, f"Não há exemplares da mídia {tipo_midia} disponíveis para este jogo."
 
+        # Validate exemplar has price
+        if not exemplar.valor_venda:
+            return None, "Este exemplar não está disponível para venda."
+
         # Create venda
-        valor_total = catalogo.valor_venda
+        valor_total = exemplar.valor_venda
         nova_venda = Venda(
             valor_total=valor_total,
             status='FINALIZADA',
             data_transacao=datetime.utcnow(),
-            data_confirmacao=date.today()
+            data_confirmacao=date.today(),
+            id_cliente=cliente_id,
         )
-        # set foreign key id explicitly (repository/create will persist this)
-        nova_venda.id_cliente = cliente_id
 
         venda_criada = self.venda_repository.create(nova_venda)
         if not venda_criada:
             return None, "Erro ao criar venda."
-
-        # Ensure the foreign key to cliente is persisted. Some constructors
-        # and polymorphic mappings may not persist the id set on the Python
-        # instance, so update explicitly if needed.
-        if getattr(venda_criada, 'id_cliente', None) != cliente_id:
-            venda_criada.id_cliente = cliente_id
-            venda_criada = self.venda_repository.update(venda_criada)
 
         # Create item transacao
         # ItemTransacao constructor accepts related objects (transacao, exemplar)

@@ -1,4 +1,5 @@
 from typing import List, Optional
+
 from app.models import Aluguel, ItemTransacao, Exemplar, Multa, Comprovante
 from app.repository.interface.aluguel_repository_interface import AluguelRepositoryInterface
 from app.models import Venda, MidiaDigital, MidiaFisica
@@ -60,8 +61,11 @@ class AluguelRepositoryDB(AluguelRepositoryInterface):
 
                 # Check if it has the right media type
                 if tipo_midia == 'DIGITAL' and getattr(exemplar, 'tipo_midia', None) == 'DIGITAL':
+                    # ensure subclass-specific attributes are loaded while session is open
+                    _ = getattr(exemplar, 'valor_diaria_aluguel', None)
                     return exemplar
                 elif tipo_midia == 'FISICA' and getattr(exemplar, 'tipo_midia', None) == 'FISICA':
+                    _ = getattr(exemplar, 'valor_diaria_aluguel', None)
                     return exemplar
 
         return None

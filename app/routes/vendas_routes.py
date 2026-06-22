@@ -21,7 +21,7 @@ venda_model = vendas_ns.model('Venda', {
 })
 
 venda_solicitacao_model = vendas_ns.model('VendaSolicitacao', {
-    'id_jogo': fields.Integer(required=True, description='ID do jogo do catálogo'),
+    'id_catalogo': fields.Integer(required=True, description='ID do catálogo do jogo'),
     'tipo_midia': fields.String(required=True, description='Tipo de mídia (FISICO ou DIGITAL)')
 })
 
@@ -49,6 +49,7 @@ def get_cliente_from_header():
 @vendas_ns.route('/solicitar')
 class SolicitarVendaResource(Resource):
     @vendas_ns.expect(venda_solicitacao_model)
+    @vendas_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}})
     def post(self):
         try:
             cliente, erro = get_cliente_from_header()
@@ -57,21 +58,21 @@ class SolicitarVendaResource(Resource):
             data = request.get_json()
             if not data: return {"erro": "Dados não fornecidos."}, 400
 
-            required_fields = ['id_jogo', 'tipo_midia']
+            required_fields = ['id_catalogo', 'tipo_midia']
             for field in required_fields:
                 if field not in data or str(data[field]).strip() == "":
                     return {"erro": f"O campo '{field}' é obrigatório."}, 400
 
             venda, erro = container.venda_service.criar_venda(
-                cliente_id=cliente.id_usuario,
-                id_jogo=data['id_jogo'],
+                cliente_id=cliente.id,
+                id_catalogo=data['id_catalogo'],
                 tipo_midia=data['tipo_midia']
             )
             
             if erro:
                 return {"erro": erro}, 400
 
-            logger.info(f"Cliente ID {cliente.id_usuario} COMPROU o jogo ID {data['id_jogo']}.")
+            logger.info(f"Cliente ID {cliente.id} COMPROU o catalogo ID {data['id_catalogo']}.")
             return {
                 "mensagem": "Venda realizada com sucesso.",
                 "id_transacao": venda.id,
@@ -83,12 +84,13 @@ class SolicitarVendaResource(Resource):
 
 @vendas_ns.route('/minhas-vendas')
 class MinhasVendasResource(Resource):
+    @vendas_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}})
     def get(self):
         try:
             cliente, erro = get_cliente_from_header()
             if erro: return {"erro": erro}, 403
 
-            vendas = container.venda_service.get_by_cliente(cliente.id_usuario)
+            vendas = container.venda_service.get_by_cliente(cliente.id)
             return [container.venda_service.serialize_venda(v) for v in vendas], 200
 
         except Exception as e:
@@ -96,13 +98,14 @@ class MinhasVendasResource(Resource):
 
 @vendas_ns.route('/<int:id>')
 class DetalhesVendaResource(Resource):
+    @vendas_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}})
     def get(self, id):
         try:
             cliente, erro = get_cliente_from_header()
             if erro: return {"erro": erro}, 403
 
             venda = container.venda_service.get_by_id(id)
-            if not venda or venda.id_cliente != cliente.id_usuario:
+            if not venda or venda.id_cliente != cliente.id:
                 return {"erro": "Venda não encontrada ou não pertence a este cliente."}, 404
 
             return container.venda_service.serialize_venda(venda), 200
@@ -112,16 +115,17 @@ class DetalhesVendaResource(Resource):
 
 @vendas_ns.route('/<int:id>/cancelar')
 class EstornarVendaResource(Resource):
+    @vendas_ns.doc(params={'X-Cliente-Id': {'in': 'header', 'description': 'ID do cliente', 'required': True}})
     def patch(self, id):
         try:
             cliente, erro = get_cliente_from_header()
             if erro: return {"erro": erro}, 403
 
-            success, erro = container.venda_service.estornar_venda(id, cliente.id_usuario)
+            success, erro = container.venda_service.estornar_venda(id, cliente.id)
             if erro:
                 return {"erro": erro}, 400
 
-            logger.info(f"Cliente ID {cliente.id_usuario} SOLICITOU ESTORNO da venda ID {id}.")
+            logger.info(f"Cliente ID {cliente.id} SOLICITOU ESTORNO da venda ID {id}.")
             return {"mensagem": "Venda estornada com sucesso."}, 200
 
         except Exception as e:
