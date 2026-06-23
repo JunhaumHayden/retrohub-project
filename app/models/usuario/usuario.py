@@ -1,34 +1,45 @@
+from abc import ABC
 from datetime import date
 from typing import Optional
-from sqlalchemy import String, Date
-from sqlalchemy.orm import Mapped, mapped_column
-
-from app.database.database_config import Base
+from sqlalchemy import Column, Integer, String, Date
+from app.database.base_model import Base
 
 class Usuario(Base):
-    __tablename__ = 'usuario'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    nome: Mapped[str] = mapped_column(String(255), nullable=False)
-    cpf: Mapped[str] = mapped_column(String(14), unique=True, nullable=False)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    senha: Mapped[str] = mapped_column(String(255), nullable=False)
-    data_cadastro: Mapped[Optional[date]] = mapped_column(Date, default=date.today)
-    data_nascimento: Mapped[Optional[date]] = mapped_column(Date)
-    tipo: Mapped[str] = mapped_column(String(50), nullable=False)
+    __tablename__ = 'usuarios'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nome = Column(String(255), nullable=False)
+    cpf = Column(String(14), unique=True, nullable=False)
+    email = Column(String(255), unique=True, nullable=False)
+    senha = Column(String(255), nullable=False)
+    data_cadastro = Column(Date, default=date.today)
+    data_nascimento = Column(Date)
+    
+    tipo_usuario = Column(String(50))
 
     __mapper_args__ = {
-        "polymorphic_on": tipo,
-        "polymorphic_identity": "transacao",
+        'polymorphic_identity': 'usuario',
+        'polymorphic_on': tipo_usuario
     }
 
-    def __init__(self, *args, **kwargs):
-        if type(self) is Usuario:
-            raise TypeError("Erro: Operação Não permitida")
-        super().__init__(*args, **kwargs)
-
+    def __init__(
+            self,
+            nome: str,
+            cpf: str,
+            email: str,
+            senha: str,
+            id: int = None,
+            data_cadastro: Optional[date] = None,
+            data_nascimento: Optional[date] = None,
+            **kwargs
+    ):
+        self.id = id
+        self.nome = nome
+        self.cpf = cpf
+        self.email = email
+        self.senha = senha
+        self.data_cadastro = data_cadastro or date.today()
+        self.data_nascimento = data_nascimento
+        
     def __repr__(self):
-        return f"<{self.__class__.__name__}(id={self.id}, nome='{self.nome},tipo='{self.tipo}')>"
-
-    def __str__(self):
-        return f"{self.__class__.__name__} id={self.id}, nome={self.nome}, cpf={self.cpf}, email={self.email}, data_cadastro={self.data_cadastro}, data_nascimento={self.data_nascimento}"
+        return f"<{self.__class__.__name__}(id={self.id}, nome='{self.nome}', tipo='{self.tipo_usuario}')>"

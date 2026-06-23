@@ -1,15 +1,17 @@
 from datetime import date
 from typing import Optional
-from sqlalchemy import Integer, Text, Date, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Column, Integer, String, Date, ForeignKey
+from sqlalchemy.orm import relationship
+from app.database.base_model import Base
 
-from app.database.database_config import Base
 
 class Avaliacao(Base):
-    __tablename__ = 'avaliacao'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    id_transacao: Mapped[Optional[int]] = mapped_column(ForeignKey('transacao.id', ondelete='CASCADE'))
-    nota: Mapped[Optional[int]] = mapped_column(Integer)
-    comentario: Mapped[Optional[str]] = mapped_column(Text)
-    data_avaliacao: Mapped[Optional[date]] = mapped_column(Date)
+    __tablename__ = 'avaliacoes'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    id_transacao = Column(Integer, ForeignKey('transacoes.id'), nullable=False)
+    nota = Column(Integer)
+    comentario = Column(String(500))
+    data_avaliacao = Column(Date, default=date.today)
+    
+    transacao = relationship("Transacao", back_populates="avaliacao")

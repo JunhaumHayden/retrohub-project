@@ -35,6 +35,8 @@ services:
       PG_DATABASE_URL: postgresql+psycopg2://${DB_USER:-admin}:${DB_PASSWORD:-admin}@postgres:5432/${DB_NAME:-retrohub}
       FLASK_APP: run.py
       FLASK_DEBUG: 1
+      APP_MODE: ${APP_MODE:-sqlite} # Adicionado para flexibilidade
+      SQLITE_DATABASE_URL: ${SQLITE_DATABASE_URL:-sqlite:////app/resources/database/sqlite/app.db} # Caminho dentro do container
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,6 +44,8 @@ services:
       # Mount source code for live reloading during development
       - ./app:/app/app
       - ./run.py:/app/run.py
+      # Mount a pasta de resources para que o SQLite DB seja persistido
+      - ./resources:/app/resources
     networks:
       - retrohub-network
 

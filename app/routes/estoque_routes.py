@@ -1,18 +1,47 @@
 import logging
 from datetime import datetime
-from flask import Blueprint, request, jsonify
+from flask import request
+from flask_restx import Namespace, Resource, fields
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Catalogo, Exemplar, MidiaFisica, MidiaDigital, Funcionario
-from app.database.factories.database_manager import DatabaseManager
+from app.models import Funcionario
+from app.container.container import container
 
-estoque_bp = Blueprint('estoque', __name__, url_prefix='/api/estoque')
+# Criar namespace para estoque
+estoque_ns = Namespace('estoque', description='Operações relacionadas ao estoque de jogos', path='/api/estoque')
+
+# Modelos para documentação Swagger
+midia_fisica_model = estoque_ns.model('MidiaFisica', {
+    'id': fields.Integer(description='ID do exemplar'),
+    'id_catalogo': fields.Integer(description='ID do catálogo'),
+    'tipo_midia': fields.String(description='Tipo de mídia'),
+    'codigo_barras': fields.String(description='Código de barras'),
+    'estado_conservacao': fields.String(description='Estado de conservação')
+})
+
+midia_digital_model = estoque_ns.model('MidiaDigital', {
+    'id': fields.Integer(description='ID do exemplar'),
+    'id_catalogo': fields.Integer(description='ID do catálogo'),
+    'tipo_midia': fields.String(description='Tipo de mídia'),
+    'chave_ativacao': fields.String(description='Chave de ativação')
+})
+
+midia_fisica_input_model = estoque_ns.model('MidiaFisicaInput', {
+    'id_catalogo': fields.Integer(required=True, description='ID do catálogo'),
+    'codigo_barras': fields.String(required=True, description='Código de barras'),
+    'estado_conservacao': fields.String(description='Estado de conservação')
+})
+
+midia_digital_input_model = estoque_ns.model('MidiaDigitalInput', {
+    'id_catalogo': fields.Integer(required=True, description='ID do catálogo'),
+    'chave_ativacao': fields.String(required=True, description='Chave de ativação')
+})
 
 # Configuração de log
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def get_funcionario_from_header(session):
+def get_funcionario_from_header():
     """Verifica se o header X-Funcionario-Id foi passado e se é um funcionário válido."""
     func_id = request.headers.get('X-Funcionario-Id')
     
@@ -28,221 +57,156 @@ def get_funcionario_from_header(session):
     except ValueError:
         return None, "O ID do funcionário deve ser um número inteiro."
 
-    funcionario = session.query(Funcionario).get(func_id)
+    funcionario = container.usuario_service.get_funcionario_by_id(func_id)
     if not funcionario:
         return None, "Funcionário não encontrado."
         
     return funcionario, None
 
 
-def serialize_exemplar(exemplar: Exemplar):
-    """Serializa um Exemplar baseando-se no seu tipo real (Físico ou Digital)."""
-    base_data = {
-        "id": exemplar.id,
-        "id_catalogo": exemplar.id_catalogo,
-        "tipo_midia": exemplar.tipo_midia
-    }
-    
-    if isinstance(exemplar, MidiaFisica):
-        base_data.update({
-            "codigo_barras": exemplar.codigo_barras,
-            "estado_conservacao": exemplar.estado_conservacao
-        })
-    elif isinstance(exemplar, MidiaDigital):
-        base_data.update({
-            "chave_ativacao": exemplar.chave_ativacao,
-            "data_expiracao": exemplar.data_expiracao.isoformat() if exemplar.data_expiracao else None
-        })
-        
-    return base_data
 
 
 # ==========================================
 # CREATE (C) - Cadastro de Mídia Física
 # ==========================================
-@estoque_bp.route('/fisico', methods=['POST'])
-def cadastrar_midia_fisica():
-    session = DatabaseManager.get_session()
-    try:
-        funcionario, erro = get_funcionario_from_header(session)
-        if erro: return jsonify({"erro": erro}), 403
+@estoque_ns.route('/fisico')
+class MidiaFisicaResource(Resource):
+    @estoque_ns.expect(midia_fisica_input_model)
+    def post(self):
+        try:
+            funcionario, erro = get_funcionario_from_header()
+            if erro: return {"erro": erro}, 403
 
-        data = request.get_json()
-        if not data: return jsonify({"erro": "Dados não fornecidos."}), 400
+            data = request.get_json()
+            if not data: return {"erro": "Dados não fornecidos."}, 400
 
-        required_fields = ['id_catalogo', 'codigo_barras', 'estado_conservacao']
-        for field in required_fields:
-            if field not in data or not str(data[field]).strip():
-                return jsonify({"erro": f"O campo '{field}' é obrigatório."}), 400
+            required_fields = ['id_catalogo', 'codigo_barras', 'estado_conservacao']
+            for field in required_fields:
+                if field not in data or not str(data[field]).strip():
+                    return {"erro": f"O campo '{field}' é obrigatório."}, 400
 
-        catalogo = session.query(Catalogo).get(data['id_catalogo'])
-        if not catalogo:
-            return jsonify({"erro": "Jogo não encontrado no catálogo."}), 404
+            midia, erro = container.estoque_service.create_midia_fisica(
+                id_catalogo=data['id_catalogo'],
+                codigo_barras=data['codigo_barras'],
+                estado_conservacao=data['estado_conservacao']
+            )
+            
+            if erro:
+                return {"erro": erro}, 400
 
-        # Prevenção de duplicidade
-        codigo_existe = session.query(MidiaFisica).filter_by(codigo_barras=data['codigo_barras']).first()
-        if codigo_existe:
-            return jsonify({"erro": f"O código de barras '{data['codigo_barras']}' já está cadastrado no sistema."}), 400
+            logger.info(f"Funcionário ID {funcionario.id} cadastrou mídia FÍSICA '{midia.codigo_barras}'.")
+            return container.estoque_service.serialize_exemplar(midia), 201
 
-        nova_midia = MidiaFisica(
-            id_catalogo=catalogo.id,
-            codigo_barras=data['codigo_barras'],
-            estado_conservacao=data['estado_conservacao']
-        )
-
-        session.add(nova_midia)
-        session.commit()
-
-        logger.info(f"Funcionário ID {funcionario.id_usuario} cadastrou mídia FÍSICA '{nova_midia.codigo_barras}' para o jogo '{catalogo.titulo}'.")
-        return jsonify(serialize_exemplar(nova_midia)), 201
-
-    except IntegrityError:
-        session.rollback()
-        return jsonify({"erro": "Erro de integridade ao salvar no banco."}), 400
-    except Exception as e:
-        session.rollback()
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
-    finally:
-        session.close()
+        except Exception as e:
+            return {"erro": f"Erro interno: {str(e)}"}, 500
 
 
 # ==========================================
 # CREATE (C) - Cadastro de Mídia Digital
 # ==========================================
-@estoque_bp.route('/digital', methods=['POST'])
-def cadastrar_midia_digital():
-    session = DatabaseManager.get_session()
-    try:
-        funcionario, erro = get_funcionario_from_header(session)
-        if erro: return jsonify({"erro": erro}), 403
+@estoque_ns.route('/digital')
+class MidiaDigitalResource(Resource):
+    @estoque_ns.expect(midia_digital_input_model)
+    def post(self):
+        try:
+            funcionario, erro = get_funcionario_from_header()
+            if erro: return {"erro": erro}, 403
 
-        data = request.get_json()
-        if not data: return jsonify({"erro": "Dados não fornecidos."}), 400
+            data = request.get_json()
+            if not data: return {"erro": "Dados não fornecidos."}, 400
 
-        required_fields = ['id_catalogo', 'chave_ativacao']
-        for field in required_fields:
-            if field not in data or not str(data[field]).strip():
-                return jsonify({"erro": f"O campo '{field}' é obrigatório."}), 400
+            required_fields = ['id_catalogo', 'chave_ativacao']
+            for field in required_fields:
+                if field not in data or not str(data[field]).strip():
+                    return {"erro": f"O campo '{field}' é obrigatório."}, 400
 
-        catalogo = session.query(Catalogo).get(data['id_catalogo'])
-        if not catalogo:
-            return jsonify({"erro": "Jogo não encontrado no catálogo."}), 404
+            data_expiracao = None
+            if 'data_expiracao' in data and data['data_expiracao']:
+                try:
+                    data_expiracao = datetime.strptime(data['data_expiracao'], '%Y-%m-%d').date()
+                except ValueError:
+                    return {"erro": "Formato de data inválido. Use AAAA-MM-DD."}, 400
 
-        # Prevenção de duplicidade
-        chave_existe = session.query(MidiaDigital).filter_by(chave_ativacao=data['chave_ativacao']).first()
-        if chave_existe:
-            return jsonify({"erro": "Esta chave de ativação já está cadastrada no sistema."}), 400
+            midia, erro = container.estoque_service.create_midia_digital(
+                id_catalogo=data['id_catalogo'],
+                chave_ativacao=data['chave_ativacao'],
+                data_expiracao=data_expiracao
+            )
+            
+            if erro:
+                return {"erro": erro}, 400
 
-        data_expiracao = None
-        if 'data_expiracao' in data and data['data_expiracao']:
-            try:
-                data_expiracao = datetime.strptime(data['data_expiracao'], '%Y-%m-%d').date()
-            except ValueError:
-                return jsonify({"erro": "Formato de data inválido. Use AAAA-MM-DD."}), 400
+            logger.info(f"Funcionário ID {funcionario.id} cadastrou mídia DIGITAL para o catalogo ID {data['id_catalogo']}.")
+            return container.estoque_service.serialize_exemplar(midia), 201
 
-        nova_midia = MidiaDigital(
-            id_catalogo=catalogo.id,
-            chave_ativacao=data['chave_ativacao'],
-            data_expiracao=data_expiracao
-        )
-
-        session.add(nova_midia)
-        session.commit()
-
-        logger.info(f"Funcionário ID {funcionario.id_usuario} cadastrou mídia DIGITAL para o catalogo '{catalogo.titulo}'.")
-        return jsonify(serialize_exemplar(nova_midia)), 201
-
-    except IntegrityError:
-        session.rollback()
-        return jsonify({"erro": "Erro de integridade ao salvar no banco."}), 400
-    except Exception as e:
-        session.rollback()
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
-    finally:
-        session.close()
+        except Exception as e:
+            return {"erro": f"Erro interno: {str(e)}"}, 500
 
 
 # ==========================================
 # READ ALL (R) - Lista o estoque de um Jogo
 # ==========================================
-@estoque_bp.route('/catalogo/<int:id_catalogo>', methods=['GET'])
-def listar_estoque_do_catalogo(id_catalogo):
-    session = DatabaseManager.get_session()
-    try:
-        catalogo = session.query(Catalogo).get(id_catalogo)
-        if not catalogo:
-            return jsonify({"erro": "Jogo não encontrado no catálogo."}), 404
-
-        # Consulta baseada no relacionamento de Herança
-        exemplares = session.query(Exemplar).filter_by(id_catalogo=id_catalogo).all()
-        
-        return jsonify([serialize_exemplar(ex) for ex in exemplares]), 200
-    except Exception as e:
-        return jsonify({"erro": f"Erro ao buscar estoque: {str(e)}"}), 500
-    finally:
-        session.close()
+@estoque_ns.route('/catalogo/<int:id_catalogo>')
+class EstoqueCatalogoResource(Resource):
+    def get(self, id_catalogo):
+        try:
+            exemplares = container.estoque_service.get_exemplares_by_catalogo(id_catalogo)
+            if not exemplares:
+                return {"erro": "Jogo não encontrado no catálogo ou sem exemplares."}, 404
+            
+            return [container.estoque_service.serialize_exemplar(ex) for ex in exemplares], 200
+        except Exception as e:
+            return {"erro": f"Erro ao buscar estoque: {str(e)}"}, 500
 
 
 # ==========================================
 # UPDATE (U) - Atualizar estado de conservação
 # ==========================================
-@estoque_bp.route('/fisico/<int:id>', methods=['PUT'])
-def atualizar_estado_fisico(id):
-    session = DatabaseManager.get_session()
-    try:
-        funcionario, erro = get_funcionario_from_header(session)
-        if erro: return jsonify({"erro": erro}), 403
+@estoque_ns.route('/fisico/<int:id>')
+class MidiaFisicaEstadoResource(Resource):
+    @estoque_ns.expect(midia_fisica_model)
+    @estoque_ns.marshal_with(midia_fisica_model, code=200)
+    def put(self, id):
+        try:
+            funcionario, erro = get_funcionario_from_header()
+            if erro: return {"erro": erro}, 403
 
-        data = request.get_json()
-        if not data or 'estado_conservacao' not in data:
-            return jsonify({"erro": "O campo 'estado_conservacao' é obrigatório."}), 400
+            data = request.get_json()
+            if not data or 'estado_conservacao' not in data:
+                return {"erro": "O campo 'estado_conservacao' é obrigatório."}, 400
 
-        midia = session.query(MidiaFisica).get(id)
-        if not midia:
-            return jsonify({"erro": "Exemplar físico não encontrado."}), 404
+            midia, erro = container.estoque_service.update_estado_conservacao(id, data['estado_conservacao'])
+            if erro:
+                return {"erro": erro}, 400
 
-        estado_antigo = midia.estado_conservacao
-        midia.estado_conservacao = data['estado_conservacao']
-        
-        session.commit()
+            logger.info(f"Funcionário ID {funcionario.id} ATUALIZOU o estado da mídia {midia.codigo_barras}.")
+            return container.estoque_service.serialize_exemplar(midia), 200
 
-        logger.info(f"Funcionário ID {funcionario.id_usuario} ATUALIZOU o estado da mídia {midia.codigo_barras} de '{estado_antigo}' para '{midia.estado_conservacao}'.")
-        return jsonify(serialize_exemplar(midia)), 200
-
-    except Exception as e:
-        session.rollback()
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
-    finally:
-        session.close()
+        except Exception as e:
+            return {"erro": f"Erro interno: {str(e)}"}, 500
 
 
 # ==========================================
 # DELETE (D) - Exclusão de Exemplar
 # ==========================================
-@estoque_bp.route('/<int:id>', methods=['DELETE'])
-def excluir_exemplar(id):
-    session = DatabaseManager.get_session()
-    try:
-        funcionario, erro = get_funcionario_from_header(session)
-        if erro: return jsonify({"erro": erro}), 403
+@estoque_ns.route('/<int:id>')
+class ExemplarResource(Resource):
+    def delete(self, id):
+        try:
+            funcionario, erro = get_funcionario_from_header()
+            if erro: return {"erro": erro}, 403
 
-        exemplar = session.query(Exemplar).get(id)
-        if not exemplar:
-            return jsonify({"erro": "Exemplar não encontrado."}), 404
+            exemplar = container.estoque_service.get_exemplar_by_id(id)
+            if not exemplar:
+                return {"erro": "Exemplar não encontrado."}, 404
 
-        tipo = exemplar.tipo_midia
-        session.delete(exemplar)
-        session.commit()
-        
-        logger.warning(f"Funcionário ID {funcionario.id_usuario} EXCLUIU o exemplar ID {id} ({tipo}).")
-        return jsonify({"mensagem": "Exemplar excluído do estoque com sucesso."}), 200
-        
-    except IntegrityError:
-        session.rollback()
-        # Se houver uma transação vinculada a este exemplar, a FK impedirá a exclusão.
-        return jsonify({"erro": "Não é possível excluir este exemplar pois existem transações atreladas a ele (venda ou aluguel histórico)."}), 400
-    except Exception as e:
-        session.rollback()
-        return jsonify({"erro": f"Erro ao excluir exemplar: {str(e)}"}), 500
-    finally:
-        session.close()
+            tipo = exemplar.tipo_midia
+            success, erro = container.estoque_service.delete_exemplar(id)
+            if erro:
+                return {"erro": erro}, 400
+            
+            logger.warning(f"Funcionário ID {funcionario.id} EXCLUIU o exemplar ID {id} ({tipo}).")
+            return {"mensagem": "Exemplar excluído do estoque com sucesso."}, 200
+            
+        except Exception as e:
+            return {"erro": f"Erro ao excluir exemplar: {str(e)}"}, 500

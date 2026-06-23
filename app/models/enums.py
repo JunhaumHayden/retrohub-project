@@ -1,16 +1,10 @@
 from enum import Enum
 
-
-class StatusTransacao(Enum):
-    PENDENTE = 'PENDENTE'
-    CONCLUIDA = 'CONCLUIDA'
-    CANCELADA = 'CANCELADA'
-
-
 class StatusVenda(Enum):
     FINALIZADA = 'FINALIZADA'
     PENDENTE = 'PENDENTE'
     ESTORNADA = 'ESTORNADA'
+    CANCELADA = 'CANCELADA'
 
 
 class StatusAluguel(Enum):
@@ -19,16 +13,16 @@ class StatusAluguel(Enum):
     FINALIZADO = 'FINALIZADO'
     ATRASADO = 'ATRASADO'
     SOLICITADO = 'SOLICITADO'
+    PROCESSANDO_PAGAMENTO = 'PROCESSANDO_PAGAMENTO'
     APROVADO = 'APROVADO'
-
+    CANCELADO = 'CANCELADO'
 
 class StatusReserva(Enum):
     ATIVA = 'ATIVA'
     PENDENTE = 'PENDENTE'
     CANCELADA = 'CANCELADA'
     EXPIRADA = 'EXPIRADA'
-    CONVERTIDA = 'CONVERTIDA'
-
+    ATENDIDA = 'ATENDIDA'
 
 class StatusPagamento(Enum):
     PENDENTE = 'PENDENTE'
@@ -36,14 +30,35 @@ class StatusPagamento(Enum):
     CANCELADO = 'CANCELADO'
     PAGO = 'PAGO'
 
-
 class TipoComprovante(Enum):
     VENDA = 'VENDA'
     ALUGUEL = 'ALUGUEL'
     RESERVA = 'RESERVA'
     DEVOLUCAO = 'DEVOLUCAO'
 
-
 class TipoCliente(Enum):
     REGULAR = 'REGULAR'
     PREMIUM = 'PREMIUM'
+    BASICO = 'BASICO'
+
+class TipoFuncionario(Enum):
+    ADMIN = 'ADMIN'
+    FUNCIONARIO = 'FUNCIONARIO'
+
+class StatusSituacao(Enum):
+    DISPONIVEL = 'DISPONIVEL'
+    INDISPONIVEL = 'INDISPONIVEL'
+    VENDIDO = 'VENDIDO'
+    ALUGADO = 'ALUGADO'
+    RESERVADO = 'RESERVADO'
+
+class StatusConservacao(Enum):
+    NOVO = 'NOVO'
+    EXCELENTE = 'EXCELENTE'
+    BOM = 'BOM'
+    POUCA_AVARIA = 'POUCA_AVARIA'
+    AVARIADO = 'AVARIADO'
+    RUIM = 'RUIM'
+    DANIFICADO = 'DANIFICADO'
+    EXTRAVIADO = 'EXTRAVIADO'
+

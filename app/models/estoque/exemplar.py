@@ -1,30 +1,34 @@
-from typing import Optional
-from sqlalchemy import String, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.database.database_config import Base
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey
+from sqlalchemy.orm import relationship
+from app.database.base_model import Base
+from app.models.enums import StatusSituacao
 
 class Exemplar(Base):
-    __tablename__ = 'exemplar'
+    __tablename__ = 'exemplares'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    id_catalogo = Column(Integer, ForeignKey('catalogo.id'), nullable=False)
+    tipo_midia = Column(String(50), nullable=False)
+    situacao = Column(Enum(StatusSituacao), default=StatusSituacao.DISPONIVEL)
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    id_catalogo: Mapped[int] = mapped_column(ForeignKey('catalogo.id', ondelete='CASCADE'))
-    catalogo: Mapped["Catalogo"] = relationship(back_populates="exemplares")
-    tipo_midia: Mapped[str] = mapped_column(String(50), nullable=False)
-    situacao: Mapped[Optional[str]] = mapped_column(String(50), default='DISPONIVEL')
+    catalogo = relationship("Catalogo", back_populates="exemplares")
 
     __mapper_args__ = {
-        "polymorphic_on": "tipo_midia",
-        "polymorphic_identity": "exemplar"
+        'polymorphic_identity': 'exemplar',
+        'polymorphic_on': tipo_midia
     }
 
-    def __init__(self, *args, **kwargs):
-        if type(self) is Exemplar:
-            raise TypeError("Erro: Operação Não permitida")
-        super().__init__(*args, **kwargs)
+    def set_situacao(self, situacao: str):
+        self.situacao = StatusSituacao(situacao)
 
-    def __repr__(self):
-        return f"<{self.__class__.__name__}(id={self.id}, id_catalogo={self.id_catalogo}, tipo={self.tipo_midia})>"
+    def registrar_retirada(self):
+        situacao_atual = getattr(self.situacao, "value", self.situacao)
+        if situacao_atual != StatusSituacao.DISPONIVEL.value:
+            raise ValueError("Exemplar não está disponível para retirada.")
+        self.situacao = StatusSituacao.INDISPONIVEL
 
-    def __str__(self):
-        return f"{self.__class__.__name__} exemplar (ID: {self.id})"
+    def registrar_devolucao(self):
+        situacao_atual = getattr(self.situacao, "value", self.situacao)
+        if situacao_atual != StatusSituacao.INDISPONIVEL.value:
+            raise ValueError("Exemplar não está indisponível para devolução.")
+        self.situacao = StatusSituacao.DISPONIVEL

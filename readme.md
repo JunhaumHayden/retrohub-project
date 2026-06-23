@@ -1,376 +1,133 @@
-<h1 align="center"> <img src="https://github.com/user-attachments/assets/61463e20-5ba3-4ce4-a632-8905ed1357b0" width="48" height="48" alt="RetroHub Logo" align="center" />RetroHub Web</h1>
-
+<div align="center">
 <p align="center">
   <img src="http://img.shields.io/static/v1?label=STATUS&message=Em%20Desenvolvimento&color=brightgreen&style=for-the-badge"/>
 </p>
 
----
-
-<div align="center">
-
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-green.svg)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-red.svg)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)
+![SQLite](https://img.shields.io/badge/SQLite-Local-blue.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)
-[![Next.js](https://img.shields.io/badge/Next.js-13%2B-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-18%2B-61DAFB?logo=react)](https://react.dev/)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3%2B-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
-[![Shadcn/UI](https://img.shields.io/badge/Shadcn/UI-Clean%20Components-purple)](https://ui.shadcn.com/)
-[![Python Backend](https://img.shields.io/badge/API-SmartRent%20Estimator%20API-blue?logo=fastapi)](https://github.com/JunhaumHayden/SmartRent-API)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/license/mit/)
-
-[![GitHub Repo stars](https://img.shields.io/github/stars/JunhaumHayden/SmartRent?style=social)](https://github.com/JunhaumHayden/SmartRent)
-[![GitHub forks](https://img.shields.io/github/forks/JunhaumHayden/SmartRent?style=social)](https://github.com/JunhaumHayden/SmartRent/fork)
-[![GitHub watchers](https://img.shields.io/github/watchers/JunhaumHayden/SmartRent?style=social)](https://github.com/JunhaumHayden/SmartRent/watchers)
-
 </div>
 
-
 ---
 
-[English Version](#english-version) | [Versão em Português](#versão-em-português)
+# RetroHub API
 
----
+Esta é uma plataforma digital para entusiastas de jogos retrô, desenvolvida para modernizar e otimizar os processos de venda, aluguel e gestão de estoque de mídias físicas e digitais. A plataforma é construída sobre uma arquitetura limpa e robusta, focada em boas práticas de Engenharia de Software.
 
-## English Version
+### 🚀 Principais Funcionalidades e Arquitetura
 
-This is a digital platform for retro gaming enthusiasts, not only modernizing and optimizing sales, rental, and inventory processes, but also enriching the customer experience through advanced personalization, community engagement, and intelligent tools. We will implement predictive intelligence for inventory management, recommendation systems, and an ecosystem that values the passion for classic games, maintaining nostalgic authenticity through elements such as personalized rental receipts and improving operational efficiency for the team.
-
-### 🚀 Key Features
-
-- **Clean Architecture**: Separation of concerns using Models, Routes, and Templates.
-- **Robust Data Modeling**: SQLAlchemy 2.0 ORM with comprehensive constraints and relationships. Uses the **Catalog vs Inventory** pattern (Title vs Item).
-- **Database Factory**: Modular support for PostgreSQL (Production/Docker) and SQLite (Local testing).
-- **Modern UI**: Responsive Dashboard built with Bootstrap 5.
-- **Dockerized**: Fully automated setup with Docker Compose.
-
-### 🔌 API Endpoints (Current Progress)
-- **Clients (CRUD)**
-  - `POST /api/clientes/cadastro`: Registers a new client (Validates 18+ age, unique CPF/Email, password hashing).
-  - `GET /api/clientes/`: Lists all clients.
-  - `GET /api/clientes/<id>`: Retrieves a specific client.
-  - `PUT /api/clientes/<id>`: Updates client data.
-  - `DELETE /api/clientes/<id>`: Removes a client.
-
-- **Employees (CRUD)**
-  - `POST /api/funcionarios/`: Registers a new employee (Requires Admin via `X-Admin-Id` header).
-  - `GET /api/funcionarios/`: Lists all employees.
-  - `GET /api/funcionarios/<id>`: Retrieves a specific employee.
-  - `PUT /api/funcionarios/<id>`: Updates employee data.
-  - `DELETE /api/funcionarios/<id>`: Inactivates/removes an employee.
-
-- **Catalog (CRUD)**
-  - `POST /api/catalogo/itens/`: Registers a new game in the storefront catalog (Requires Employee via `X-Funcionario-Id`).
-  - `GET /api/catalogo/itens/`: Lists all available games in the catalog.
-  - `GET /api/catalogo/itens/<id>`: Retrieves a specific game.
-  - `PUT /api/catalogo/itens/<id>`: Updates game details (Prevents title+platform duplication).
-  - `DELETE /api/catalogo/itens/<id>`: Logically deletes (inactivates) a game from the catalog.
-
-- **Inventory (Stock)**
-  - `POST /api/estoque/fisico`: Registers a physical cartridge (Barcode, Condition).
-  - `POST /api/estoque/digital`: Registers a digital key (Activation key, Expiration date).
-  - `GET /api/estoque/jogo/<id_jogo>`: Lists all physical and digital copies available for a specific game in the catalog.
-  - `PUT /api/estoque/fisico/<id>`: Updates the condition of a physical copy.
-  - `DELETE /api/estoque/<id>`: Logically deletes an item from the inventory.
-
-- **Rentals (Aluguéis)** (Requires Employee via `X-Cliente-Id`).
-  - `POST /api/alugueis/solicitar`: Requests a new rental (Validates stock, customer debts, and calculates total price).
-  - `GET /api/alugueis/meus-alugueis`: Lists all rentals for the authenticated client.
-  - `GET /api/alugueis/<id>`: Retrieves details of a specific rental.
-  - `PATCH /api/alugueis/<id>/cancelar`: Cancels a rental before its start date.
-  - `PATCH /api/alugueis/<id>/renovar`: Renews an active rental for extra days.
-
-- **Sales (Vendas)** (Requires Employee via `X-Cliente-Id`).
-  - `POST /api/vendas/solicitar`: Requests a new game purchase (Automatically drops stock).
-  - `GET /api/vendas/minhas-vendas`: Lists all purchases for the authenticated client.
-  - `GET /api/vendas/<id>`: Retrieves details of a specific purchase.
-  - `PATCH /api/vendas/<id>/cancelar`: Cancels/refunds a purchase.
-
-### 🧪 Running Tests
-
-The project includes an automated test suite utilizing an in-memory SQLite database to avoid interfering with the main PostgreSQL data.
-
-To run all test cases (Database Connections, ORM Models, and API Routes), execute:
-```bash
-python -m unittest discover tests -v
-```
-
-### 📂 Project Structure
-
-```plaintext
-/project-retrohub
-├── app
-│   ├── __init__.py          # Application Factory
-│   ├── database             # DB Adapters & Factory
-│   ├── models               # SQLAlchemy Models
-│   ├── routes               # Web Controllers
-│   └── templates            # HTML Views (Jinja2)
-├── tests                    # Test Suite
-├── resources
-│   └── database             # SQL Scripts (Schema)
-├── docker-compose.yml       # Container Orchestration
-├── Dockerfile               # App Container Definition
-├── run.py                   # Entry Point
-└── requirements.txt
-```
-
----
-
-### Class Diagram
-
-```mermaid
-classDiagram
-class Usuario {
-    +int id
-    +char nome
-    +char cpf
-    +char email
-    +char senha
-    +date data_cadastro
-    +date data_nascimento
-}
-class Cliente {
-    +char dados_pagamento
-    +char tipo_cliente
-}
-class Funcionario {
-    +char matricula
-    +char cargo
-    +char setor
-    +date data_admissao
-}
-class Jogo {
-    +int id
-    +char titulo
-    +char descricao
-    +char plataforma
-    +boolean ativo
-    +char genero
-    +char classificacao
-    +double valor_venda
-    +double valor_diaria_aluguel
-}
-class Exemplar {
-    +int id
-    +char tipo_midia
-}
-class MidiaFisica {
-    +char codido_barras
-    +char estado_conservacao
-}
-class MidiaDigital {
-    +char chave_ativacao
-    +date data_expiracao
-}
-class Venda {
-    +char status
-    +date data_confirmacao
-}
-class Comprovante {
-    +int id
-    +char tipo
-    +date data_envio
-    +char codigo_rastreio
-}
-class Multa {
-    +int id
-    +int dias_atraso
-    +double valor
-    +char status
-    +date data_calculo
-}
-class Aluguel {
-    +int periodo
-    +date data_inicio
-    +date data_devolucao
-    +date data_prevista_devolucao
-    +char status
-}
-class ItemTransacao {
-    +int quantidade
-    +double valor_unitario
-}
-class Avaliacao {
-    +int id
-    +int nota
-    +char comentario
-    +date data_avaliacao
-}
-class Reserva {
-    +int id
-    +date data_reserva
-    +date data_expiracao
-    +char status
-}
-class Transacao {
-    +int id
-    +date data_transacao
-    +double valor_total
-}
-Transacao "0..*" -- "1" Cliente
-Transacao "0..*" -- "0..1" Funcionario
-Transacao "1" -- "1..*" ItemTransacao
-Exemplar "0..*" -- "1" Jogo
-ItemTransacao "0..*" -- "1" Exemplar
-Comprovante "1" -- "1" Transacao
-Multa "0..*" -- "1" Aluguel
-Aluguel "1" -- "0..1" Reserva
-Avaliacao "0..1" -- "1" Transacao
-Cliente --|> Usuario
-Funcionario --|> Usuario
-MidiaFisica --|> Exemplar
-MidiaDigital --|> Exemplar
-Venda --|> Transacao
-Aluguel --|> Transacao
-Reserva "0..*" -- "1" Jogo
-Reserva "0..*" -- "1" Cliente
-%%Generated by Astah mermaid plugin
-```
-
----
-
-### 🛠️ How to Run (Quick Start with Docker)
-
-The easiest way to run the project is using Docker Compose. This will set up the Database, Web App, and PGAdmin automatically.
-
-#### 1. Prerequisites
-
-- Docker & Docker Compose installed.
-
-#### 2. Run the Application
-
-Execute the following command in the project root:
-
-```bash
-    docker-compose up --build
-```
-
-*This will build the Python image, start PostgreSQL, initialize the database schema, and launch the web server.*
-
-#### 3. Access the Services
-
-- **Web App:** [http://localhost:5000](http://localhost:5000)
-- **PGAdmin (Database UI):** [http://localhost:5050](http://localhost:5050)
-  - **Email:** `admin@retrohub.com`
-  - **Password:** `admin`
-
----
-
-### 🔧 How to Run (Manual / Local Development)
-
-If you prefer to run the Python application locally (outside Docker) for debugging:
-
-#### 1. Prerequisites
-
-- Python 3.11+ (Conda recommended)
-- PostgreSQL Database running (you can use `docker-compose up -d postgres`)
-
-#### 2. Configure Environment
-
-Create a `.env` file in the root directory:
-
-```bash
-    # Connection String: dialect+driver://username:password@host:port/database
-    export PG_DATABASE_URL="postgresql+psycopg2://admin:admin@localhost:5432/retrohub"
-```
-
-#### 3. Install Dependencies
-
-```bash
-    conda create -n tc_generator_web python=3.11
-    conda activate tc_generator_web
-    pip install -r requirements.txt
-```
-
-#### 4. Run the Application
-
-```bash
-  python run.py
-```
-
----
-
-## Versão em Português
-
-Esta é uma plataforma digital para entusiastas de jogos retrô, não apenas modernizando e otimizando processos de venda, aluguel e estoque, mas também enriquecendo a experiência do cliente através de personalização avançada, engajamento comunitário e ferramentas inteligentes. Implementaremos inteligência preditiva para gestão de inventário, sistemas de recomendação e um ecossistema que valoriza a paixão por jogos clássicos, mantendo a autenticidade nostálgica através de elementos como comprovantes de aluguel personalizados e aprimorando a eficiência operacional para a equipe.
-
-### 🚀 Principais Funcionalidades
-
-- **Arquitetura Limpa**: Separação de responsabilidades usando Models, Routes e Templates.
-- **Modelagem Robusta**: ORM SQLAlchemy 2.0 com restrições e relacionamentos completos. Refatorado para arquitetura **Catálogo vs Inventário** (Item/Exemplar).
-- **Interface Moderna**: Aplicativo responsivo.
+- **Arquitetura Limpa e em Camadas**: O projeto adota uma estrita separação de responsabilidades (SOLID):
+  - **Rotas (Controllers)**: Camada fina que apenas recebe requisições HTTP e retorna respostas (JSON), utilizando `Flask-RestX` e Swagger.
+  - **Serviços**: Concentram toda a lógica de negócio, orquestrando as operações sem se preocupar com como os dados são salvos.
+  - **Repositórios**: Abstraem o acesso ao banco de dados através de interfaces.
+  - **Modelos**: Entidades ORM puras mapeadas com `SQLAlchemy 2.0`.
+- **Injeção de Dependência (DI)**: Utilização de um `Container` centralizado para injetar dependências (Repositórios nos Serviços), garantindo baixo acoplamento.
+- **Factory de Banco de Dados**: O `DatabaseFactory` permite alternar entre `Mock` (memória), `SQLite` (arquivos locais) e `PostgreSQL` (produção/Docker) mudando apenas uma variável de ambiente.
+- **Design Patterns Aplicados**:
+  - Padrão **State** para gerenciar o ciclo de vida complexo de um Aluguel (Solicitado -> Aprovado -> Ativo -> Finalizado/Atrasado).
+  - Padrão **Catálogo vs. Inventário**: Separação clara entre a vitrine (Catalogo) e os itens físicos/digitais reais no estoque (Exemplares).
 - **Dockerizado**: Configuração automatizada com Docker Compose.
 
-### 🧪 Como Rodar os Testes
+---
 
-O projeto conta com uma robusta bateria de testes automatizados. Eles rodam isolados utilizando um banco SQLite em memória `sqlite:///:memory:`, o que garante velocidade extrema e zero poluição no seu banco de dados principal de desenvolvimento.
+### 🔌 API Endpoints (Swagger UI)
 
-Para executar todos os testes (Conexão com Banco, Mapeamento de Modelos ORM e Rotas de API), abra o terminal na raiz do projeto e rode:
+A documentação completa e interativa da API está disponível via **Swagger UI**. Após iniciar o projeto, acesse:
+
+👉 **[http://localhost:5000/docs](http://localhost:5000/docs)**
+
+Lá você poderá testar todas as rotas diretamente do navegador, incluindo operações de CRUD para:
+- `Clientes` e `Funcionários`
+- `Catálogo` de Jogos
+- `Estoque` (Mídias Físicas e Digitais)
+- `Transações` (Vendas e Aluguéis)
+- `Avaliações`
+- `Relatórios` gerenciais
+
+*(Dica: Algumas rotas exigem a passagem do header `X-Funcionario-Id` ou `X-Cliente-Id`, conforme detalhado no Swagger).*
+
+---
+
+### 🛠️ Como Configurar e Executar
+
+A arquitetura do RetroHub permite que você o execute com diferentes bancos de dados. Recomendamos o uso do **SQLite** para desenvolvimento local simplificado ou **Docker** para um ambiente completo.
+
+#### 1. Configurando o Ambiente (`.env`)
+
+Crie um arquivo `.env` na raiz do projeto com as seguintes configurações:
+
 ```bash
-python -m unittest discover tests -v
+# Define o banco de dados a ser usado: sqlite, postgre ou mock
+APP_MODE=sqlite
+
+# Configuração para SQLite (os dados serão salvos em /resources/database/sqlite/app.db)
+SQLITE_DATABASE_URL=sqlite:///resources/database/sqlite/app.db
+
+# Configuração para PostgreSQL (se estiver usando Docker)
+DB_USER=admin
+DB_PASSWORD=admin
+DB_NAME=retrohub
+PG_DATABASE_URL=postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
 ```
 
-### 🛠️ Como Executar (Rápido com Docker)
+#### 2. Inicializando o Banco de Dados (Para SQLite Local)
 
-A maneira mais fácil de rodar o projeto é usando Docker Compose. Isso configurará o Banco de Dados, a Aplicação Web e o PGAdmin automaticamente.
+Se você escolheu `APP_MODE=sqlite`, execute o script de inicialização para criar o arquivo de banco de dados e as tabelas:
 
-#### 1. Pré-requisitos
+```bash
+python init_db.py
+```
+*(Certifique-se de que a pasta `resources/database/sqlite/` existe na raiz do projeto).*
 
-- Docker & Docker Compose instalados.
+#### 3. Executando (Opção A: Rápido com Docker)
 
-#### 2. Executar a Aplicação
-
-Execute o seguinte comando na raiz do projeto:
+A maneira mais robusta é usar o Docker Compose, que subirá a API, o banco PostgreSQL (se configurado) e o PGAdmin:
 
 ```bash
 docker-compose up --build
 ```
+- Acesse a API e o Swagger em: `http://localhost:5000/docs`
 
-*Isso construirá a imagem Python, iniciará o PostgreSQL, inicializará o esquema do banco de dados e lançará o servidor web.*
+*(Nota: O Docker Compose está configurado para mapear a pasta local `./resources` para dentro do contêiner, garantindo a persistência do seu SQLite local, se esta for a sua escolha em `APP_MODE`).*
 
-#### 3. Acessar os Serviços
+#### 4. Executando (Opção B: Manual / Desenvolvimento Local)
 
-- **App Web:** [http://localhost:5000](http://localhost:5000)
-- **PGAdmin (Interface do Banco):** [http://localhost:5050](http://localhost:5050)
-  - **Email:** `admin@retrohub.com`
-  - **Senha:** `admin`
+1. Crie um ambiente virtual (Conda recomendado):
+   ```bash
+   conda create -n retrohub python=3.11
+   conda activate retrohub
+   ```
+2. Instale as dependências:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Inicie o servidor Flask:
+   ```bash
+   python run.py
+   ```
 
 ---
 
-### 🔧 Como Executar (Manual / Desenvolvimento Local)
+### 🧪 Como Rodar os Testes
 
-Se preferir rodar a aplicação Python localmente (fora do Docker) para depuração:
+O projeto conta com uma robusta bateria de testes automatizados unitários e de integração, garantindo o funcionamento desde a camada de domínio (modelos) até a orquestração dos serviços no banco de dados.
 
-#### 1. Pré-requisitos
+Os testes utilizam o framework **Pytest** e são configurados para rodar de forma isolada, criando e destruindo um banco de dados SQLite em memória (`sqlite:///:memory:`) para cada teste, garantindo máxima confiabilidade.
 
-- Python 3.11+ (Recomendado usar Conda)
-- Banco de dados PostgreSQL rodando (você pode usar `docker-compose up -d postgres`)
-
-#### 2. Configurar Ambiente
-
-Crie um arquivo `.env` na raiz ou exporte as variáveis:
+Para executar todos os testes, rode no terminal:
 
 ```bash
-    # String de Conexão: dialect+driver://username:password@host:port/database
-    export PG_DATABASE_URL="postgresql+psycopg2://admin:admin@localhost:5432/retrohub"
-```
-
-#### 3. Instalar Dependências
-
-```bash
-    conda create -n tc_generator_web python=3.11
-    conda activate tc_generator_web
-    pip install -r requirements.txt
-```
-
-#### 4. Executar a Aplicação
-
-```bash
-    python run.py
+pytest -v
 ```
 
 ---
+### Diagramas
+
+- [Diagrama de Classe](classDiagram.md) 
 
 ## Logo
 
@@ -398,13 +155,15 @@ Crie um arquivo `.env` na raiz ou exporte as variáveis:
 </table>
 
 ---
-##  Licença
+
+## Licença
 
 MIT — ou seja: use, quebre, refaça, mas me cite se for ficar famoso com isso 😎
 
 ---
 
 🧙‍♂️ Autores
+
 <table>
     <tr>
     <td align="center">

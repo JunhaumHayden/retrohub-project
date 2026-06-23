@@ -1,254 +1,151 @@
 import logging
-from decimal import Decimal
-from flask import Blueprint, request, jsonify
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy import and_
+from flask import request
+from flask_restx import Namespace, Resource, fields
 
-from app.models import Catalogo, Funcionario
-from app.database.factories.database_manager import DatabaseManager
+from app.models import Catalogo
+from app.container.container import container
+from app.models.enums import StatusSituacao
 
-catalogo_bp = Blueprint('catalogo', __name__, url_prefix='/api/catalogo/itens')
+# Criar namespace para catálogo
+catalogo_ns = Namespace('catalogo', description='Operações relacionadas ao catálogo de jogos', path='/api/catalogo/itens')
+
+# Modelos para documentação Swagger
+catalogo_model = catalogo_ns.model('Catalogo', {
+    'id': fields.Integer(description='ID do jogo'),
+    'titulo': fields.String(description='Título do jogo'),
+    'descricao': fields.String(description='Descrição do jogo'),
+    'situacao': fields.String(description='Situação do jogo'),
+    'genero': fields.String(description='Gênero do jogo'),
+    'classificacao': fields.String(description='Classificação do jogo'),
+    'estoque_disponivel': fields.Integer(description='Quantidade de exemplares disponíveis')
+})
+
+catalogo_input_model = catalogo_ns.model('CatalogoInput', {
+    'titulo': fields.String(required=True, description='Título do jogo'),
+    'descricao': fields.String(description='Descrição do jogo'),
+    'genero': fields.String(description='Gênero do jogo'),
+    'classificacao': fields.String(description='Classificação do jogo'),
+    'situacao': fields.String(description='Situação do jogo', default=StatusSituacao.DISPONIVEL.value)
+})
 
 # Configuração de log
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def serialize_jogo(jogo: Catalogo):
-    """Função utilitária para serializar um objeto Jogo."""
+def _enum_to_str(value):
+    if value is None:
+        return None
+    return getattr(value, "value", getattr(value, "name", value))
+
+def serialize_catalogo(jogo: Catalogo):
+    """Função utilitária para serializar um objeto Catalogo."""
     return {
         "id": jogo.id,
         "titulo": jogo.titulo,
         "descricao": jogo.descricao,
-        "plataforma": jogo.plataforma,
-        "ativo": jogo.ativo,
+        "situacao": _enum_to_str(jogo.situacao),
         "genero": jogo.genero,
         "classificacao": jogo.classificacao,
-        "valor_venda": float(jogo.valor_venda) if jogo.valor_venda else None,
-        "valor_diaria_aluguel": float(jogo.valor_diaria_aluguel) if jogo.valor_diaria_aluguel else None
+        "estoque_disponivel": container.catalogo_service.get_estoque_disponivel(jogo.id)
     }
 
-def get_funcionario_from_header(session):
+def get_funcionario_from_header():
     """Verifica se o header X-Funcionario-Id foi passado e se é um funcionário válido."""
-    func_id = request.headers.get('X-Funcionario-Id')
-    
-    # Faz fallback para X-Admin-Id caso alguém envie como admin
+    func_id = request.headers.get('X-Funcionario-Id') or request.headers.get('X-Admin-Id')
     if not func_id:
-        func_id = request.headers.get('X-Admin-Id')
-        
-    if not func_id:
-        return None, "Header X-Funcionario-Id (ou X-Admin-Id) é obrigatório para esta operação."
+        catalogo_ns.abort(403, "Header X-Funcionario-Id (ou X-Admin-Id) é obrigatório para esta operação.")
     
     try:
-        func_id = int(func_id)
+        funcionario = container.usuario_service.get_funcionario_by_id(int(func_id))
+        if not funcionario:
+            catalogo_ns.abort(403, "Funcionário não encontrado.")
+        return funcionario
     except ValueError:
-        return None, "O ID do funcionário deve ser um número inteiro."
-
-    funcionario = session.query(Funcionario).get(func_id)
-    if not funcionario:
-        return None, "Funcionário não encontrado."
-        
-    return funcionario, None
+        catalogo_ns.abort(400, "ID de funcionário inválido.")
 
 
-# ==========================================
-# CREATE (C) - Inserir novo item no catálogo
-# ==========================================
-@catalogo_bp.route('/', methods=['POST'])
-def criar_jogo():
-    session = DatabaseManager.get_session()
-    try:
-        # Apenas Funcionários (ou Admin) podem cadastrar
-        funcionario, erro = get_funcionario_from_header(session)
-        if erro:
-            return jsonify({"erro": erro}), 403
+@catalogo_ns.route('/')
+class CatalogoCollectionResource(Resource):
+    @catalogo_ns.marshal_list_with(catalogo_model)
+    def get(self):
+        """Lista todos os jogos do catálogo, com filtros opcionais."""
+        try:
+            situacao_param = request.args.get('situacao')
+            catalogos = container.catalogo_service.list_all(situacao=situacao_param)
+            return [serialize_catalogo(j) for j in catalogos], 200
+        except Exception as e:
+            logger.error(f"Erro em listar_catalogos: {str(e)}")
+            catalogo_ns.abort(500, "Erro ao buscar catálogo.")
 
+    @catalogo_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}})
+    @catalogo_ns.expect(catalogo_input_model)
+    def post(self):
+        """Cria um novo item no catálogo."""
+        funcionario = get_funcionario_from_header()
         data = request.get_json()
-        if not data:
-            return jsonify({"erro": "Dados não fornecidos."}), 400
+        if not data or not data.get('titulo'):
+            catalogo_ns.abort(400, "O campo 'titulo' é obrigatório.")
 
-        # Validação de campos obrigatórios
-        required_fields = ['titulo', 'plataforma']
-        for field in required_fields:
-            if field not in data or not str(data[field]).strip():
-                return jsonify({"erro": f"O campo '{field}' é obrigatório."}), 400
-
-        # Prevenção contra duplicidade (título + plataforma)
-        jogo_duplicado = session.query(Catalogo).filter(
-            and_(
-                Catalogo.titulo.ilike(data['titulo']),
-                Catalogo.plataforma.ilike(data['plataforma'])
+        try:
+            novo_catalogo = Catalogo(
+                titulo=data['titulo'],
+                descricao=data.get('descricao'),
+                genero=data.get('genero'),
+                classificacao=data.get('classificacao'),
+                situacao=data.get('situacao', StatusSituacao.DISPONIVEL.value)
             )
-        ).first()
-        
-        if jogo_duplicado:
-            return jsonify({"erro": f"O jogo '{data['titulo']}' já está cadastrado para a plataforma '{data['plataforma']}'."}), 400
-
-        valor_venda = Decimal(str(data['valor_venda'])) if data.get('valor_venda') else None
-        valor_diaria_aluguel = Decimal(str(data['valor_diaria_aluguel'])) if data.get('valor_diaria_aluguel') else None
-
-        novo_jogo = Catalogo(
-            titulo=data['titulo'],
-            descricao=data.get('descricao'),
-            plataforma=data['plataforma'],
-            ativo=data.get('ativo', True),
-            genero=data.get('genero'),
-            classificacao=data.get('classificacao'),
-            valor_venda=valor_venda,
-            valor_diaria_aluguel=valor_diaria_aluguel
-        )
-
-        session.add(novo_jogo)
-        session.commit()
-
-        # Registro de log de criação
-        logger.info(f"Funcionário ID {funcionario.id_usuario} ({funcionario.nome}) CADASTROU o jogo '{novo_jogo.titulo}' (ID {novo_jogo.id}).")
-
-        return jsonify(serialize_jogo(novo_jogo)), 201
-
-    except IntegrityError as e:
-        session.rollback()
-        return jsonify({"erro": "Erro de integridade ao salvar no banco."}), 400
-    except Exception as e:
-        session.rollback()
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
-    finally:
-        session.close()
+            created_catalogo = container.catalogo_service.create(novo_catalogo)
+            logger.info(f"Funcionário ID {funcionario.id} criou o item de catálogo '{created_catalogo.titulo}'.")
+            return serialize_catalogo(created_catalogo), 201
+        except ValueError as e:
+            catalogo_ns.abort(400, str(e))
+        except Exception as e:
+            logger.error(f"Erro em criar_catalogo: {str(e)}")
+            catalogo_ns.abort(500, "Erro interno ao criar item no catálogo.")
 
 
-# ==========================================
-# READ ALL (R) - Listar jogos
-# ==========================================
-@catalogo_bp.route('/', methods=['GET'])
-def listar_jogos():
-    session = DatabaseManager.get_session()
-    try:
-        # Permite filtrar por status ativo (ex: ?ativo=true)
-        ativo_param = request.args.get('ativo')
-        query = session.query(Catalogo)
-        
-        if ativo_param is not None:
-            is_ativo = ativo_param.lower() == 'true'
-            query = query.filter_by(ativo=is_ativo)
-            
-        jogos = query.all()
-        return jsonify([serialize_jogo(j) for j in jogos]), 200
-    except Exception as e:
-        return jsonify({"erro": f"Erro ao buscar catálogo: {str(e)}"}), 500
-    finally:
-        session.close()
-
-
-# ==========================================
-# READ ONE (R) - Detalhes do jogo
-# ==========================================
-@catalogo_bp.route('/<int:id>', methods=['GET'])
-def buscar_jogo(id):
-    session = DatabaseManager.get_session()
-    try:
-        jogo = session.query(Catalogo).get(id)
+@catalogo_ns.route('/<int:id>')
+@catalogo_ns.response(404, 'Jogo não encontrado no catálogo.')
+class CatalogoItemResource(Resource):
+    @catalogo_ns.marshal_with(catalogo_model)
+    def get(self, id):
+        """Busca um item do catálogo por ID."""
+        jogo = container.catalogo_service.get_by_id(id)
         if not jogo:
-            return jsonify({"erro": "Catalogo não encontrado no catálogo."}), 404
-            
-        return jsonify(serialize_jogo(jogo)), 200
-    except Exception as e:
-        return jsonify({"erro": f"Erro ao buscar jogo: {str(e)}"}), 500
-    finally:
-        session.close()
+            catalogo_ns.abort(404, "Jogo não encontrado no catálogo.")
+        return serialize_catalogo(jogo)
 
-
-# ==========================================
-# UPDATE (U) - Atualizar dados do jogo
-# ==========================================
-@catalogo_bp.route('/<int:id>', methods=['PUT'])
-def atualizar_jogo(id):
-    session = DatabaseManager.get_session()
-    try:
-        # Apenas Funcionários podem alterar
-        funcionario, erro = get_funcionario_from_header(session)
-        if erro:
-            return jsonify({"erro": erro}), 403
-
+    @catalogo_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}})
+    @catalogo_ns.expect(catalogo_input_model)
+    def put(self, id):
+        """Atualiza um item do catálogo."""
+        funcionario = get_funcionario_from_header()
         data = request.get_json()
         if not data:
-            return jsonify({"erro": "Dados não fornecidos."}), 400
+            catalogo_ns.abort(400, "Dados não fornecidos.")
 
-        jogo = session.query(Catalogo).get(id)
-        if not jogo:
-            return jsonify({"erro": "Catalogo não encontrado."}), 404
+        try:
+            updated_catalogo = container.catalogo_service.update(id, data)
+            if not updated_catalogo:
+                catalogo_ns.abort(404, "Jogo não encontrado.")
+            logger.info(f"Funcionário ID {funcionario.id} atualizou o item de catálogo ID {id}.")
+            return serialize_catalogo(updated_catalogo)
+        except ValueError as e:
+            catalogo_ns.abort(400, str(e))
+        except Exception as e:
+            logger.error(f"Erro em atualizar_catalogo: {str(e)}")
+            catalogo_ns.abort(500, "Erro interno ao atualizar item.")
 
-        # Prevenção contra duplicidade ao alterar título ou plataforma
-        novo_titulo = data.get('titulo', jogo.titulo)
-        nova_plataforma = data.get('plataforma', jogo.plataforma)
-
-        if novo_titulo != jogo.titulo or nova_plataforma != jogo.plataforma:
-            jogo_duplicado = session.query(Catalogo).filter(
-                and_(
-                    Catalogo.titulo.ilike(novo_titulo),
-                    Catalogo.plataforma.ilike(nova_plataforma),
-                    Catalogo.id != id
-                )
-            ).first()
-            if jogo_duplicado:
-                return jsonify({"erro": f"Já existe outro jogo cadastrado como '{novo_titulo}' na plataforma '{nova_plataforma}'."}), 400
-
-        # Atualização dos campos
-        if 'titulo' in data: jogo.titulo = data['titulo']
-        if 'descricao' in data: jogo.descricao = data['descricao']
-        if 'plataforma' in data: jogo.plataforma = data['plataforma']
-        if 'ativo' in data: jogo.ativo = data['ativo']
-        if 'genero' in data: jogo.genero = data['genero']
-        if 'classificacao' in data: jogo.classificacao = data['classificacao']
-        
-        if 'valor_venda' in data:
-            jogo.valor_venda = Decimal(str(data['valor_venda'])) if data['valor_venda'] is not None else None
-            
-        if 'valor_diaria_aluguel' in data:
-            jogo.valor_diaria_aluguel = Decimal(str(data['valor_diaria_aluguel'])) if data['valor_diaria_aluguel'] is not None else None
-
-        session.commit()
-
-        # Registro de log de alteração
-        logger.info(f"Funcionário ID {funcionario.id_usuario} ({funcionario.nome}) ATUALIZOU o jogo '{jogo.titulo}' (ID {jogo.id}).")
-
-        return jsonify(serialize_jogo(jogo)), 200
-
-    except IntegrityError as e:
-        session.rollback()
-        return jsonify({"erro": "Conflito de dados no banco."}), 400
-    except Exception as e:
-        session.rollback()
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
-    finally:
-        session.close()
-
-
-# ==========================================
-# DELETE (D) - Inativar ou Excluir item
-# ==========================================
-@catalogo_bp.route('/<int:id>', methods=['DELETE'])
-def excluir_jogo(id):
-    session = DatabaseManager.get_session()
-    try:
-        funcionario, erro = get_funcionario_from_header(session)
-        if erro:
-            return jsonify({"erro": erro}), 403
-
-        jogo = session.query(Catalogo).get(id)
-        if not jogo:
-            return jsonify({"erro": "Jogo não encontrado."}), 404
-
-        # Se o jogo já tiver transações/reservas atreladas, a exclusão física (DELETE) vai falhar
-        # Para catálogo de produtos, a exclusão lógica (inativação) é sempre a melhor prática
-        nome_jogo = jogo.titulo
-        jogo.ativo = False
-        session.commit()
-        
-        logger.warning(f"Funcionário ID {funcionario.id_usuario} ({funcionario.nome}) INATIVOU o jogo '{nome_jogo}' (ID {id}).")
-        
-        return jsonify({"mensagem": "Jogo inativado com sucesso (exclusão lógica).", "jogo": serialize_jogo(jogo)}), 200
-        
-    except Exception as e:
-        session.rollback()
-        return jsonify({"erro": f"Erro interno ao excluir jogo: {str(e)}"}), 500
-    finally:
-        session.close()
+    @catalogo_ns.doc(params={'X-Funcionario-Id': {'in': 'header', 'description': 'ID do funcionário (ou X-Admin-Id)', 'required': True}})
+    def delete(self, id):
+        """Inativa um item do catálogo (soft delete)."""
+        funcionario = get_funcionario_from_header()
+        try:
+            inactivated_jogo = container.catalogo_service.inactivate(id)
+            if not inactivated_jogo:
+                catalogo_ns.abort(404, "Jogo não encontrado.")
+            logger.info(f"Funcionário ID {funcionario.id} inativou o jogo ID {id}.")
+            return {"mensagem": "Item inativado com sucesso."}, 200
+        except Exception as e:
+            logger.error(f"Erro em excluir_catalogo: {str(e)}")
+            catalogo_ns.abort(500, "Erro interno ao inativar item.")
